@@ -12,6 +12,7 @@ completion, coordinating multiple agents.
 
 - **systems-engineer** — creates the ticket plan
 - **python-expert** (or appropriate dev agent) — implements the code
+- **code-reviewer** — reviews the implementation
 - **documentation-expert** — updates documentation
 
 ## Inputs
@@ -37,20 +38,22 @@ completion, coordinating multiple agents.
    testing instructions (unit tests in `tests/unit/`, system tests in
    `tests/system/`, dev tests in `tests/dev/`).
 6. **Run tests**: Verify all tests pass.
-7. **Code review** (skill: **python-code-review**): Review the implementation
-   against:
+7. **Code review** (agent: **code-reviewer**): Delegate review to the
+   code-reviewer agent, which checks:
    - Coding standards (`instructions/coding-standards.md`)
    - Security (no injection, no secrets, safe input handling)
    - Test coverage (every acceptance criterion has a corresponding test)
    - Acceptance criteria (does the code actually satisfy them?)
-   Fix any issues found before proceeding.
+   The reviewer produces a PASS or FAIL verdict. If FAIL, fix the critical
+   findings and request re-review. Do not proceed until the review passes.
 8. **Update documentation** (skill: **generate-documentation**): Update any
    docs specified in the plan. Delegate to documentation-expert.
 9. **Verify acceptance criteria**: Check every criterion in the ticket.
    All must be met.
 10. **Git commit**: Commit all changes from this ticket following the
     conventions in `instructions/git-workflow.md`. The commit message must
-    reference the ticket ID (e.g., `feat: add auth endpoint (#003)`).
+    reference the ticket ID and sprint number if working within a sprint
+    (e.g., `feat: add auth endpoint (#003, sprint 001)`).
 11. **Complete the ticket**:
    - Set `status` to `done` in the ticket's YAML frontmatter.
    - Check off all acceptance criteria (`- [x]`).

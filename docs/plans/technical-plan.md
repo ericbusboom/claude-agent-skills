@@ -161,6 +161,141 @@ definition of done to the SE workflow.
 - Add decision heuristics for ticket prioritization, blockers, scope creep
 - Add escalation rules
 
+## Component: Sprint Documents (`docs/plans/sprints/`)
+
+**Purpose**: Introduce a sprint layer above tickets. After initial project
+setup, all work is organized into numbered sprints with their own lifecycle.
+
+**Use Cases Addressed**: UC-010, UC-013
+
+**Sprint Document Format** (`docs/plans/sprints/NNN-slug.md`):
+```yaml
+---
+id: "NNN"
+title: Sprint title
+status: planning | active | done
+branch: sprint/NNN-slug
+use-cases: [UC-XXX, ...]
+---
+```
+Followed by: goals, scope description, relevant architecture notes, and
+a list of tickets created for this sprint.
+
+**Directory Layout**:
+```
+docs/plans/sprints/
+├── 001-initial-setup.md      # Active sprint
+└── done/                     # Completed sprints
+    └── ...
+```
+
+**Lifecycle**: conversation → plan document → architecture review →
+stakeholder approval → create tickets → execute tickets → validate →
+close sprint → merge branch → move to done/.
+
+## Component: Architecture Reviewer Agent (`agents/architecture-reviewer.md`)
+
+**Purpose**: Reviews sprint plans and architectural decisions against the
+existing codebase and technical plan.
+
+**Use Cases Addressed**: UC-011
+
+**Tools**: Read, Grep, Glob, Bash
+
+**Responsibilities**:
+- Review sprint plans for architectural consistency
+- Identify conflicts with existing components
+- Flag risks, missing considerations, and scalability issues
+- Validate that the sprint plan aligns with the technical plan
+- Does NOT implement, does NOT create tickets
+
+## Component: Code Reviewer Agent (`agents/code-reviewer.md`)
+
+**Purpose**: Reviews code changes during ticket execution for quality,
+standards compliance, and security.
+
+**Use Cases Addressed**: UC-012
+
+**Tools**: Read, Grep, Glob
+
+**Responsibilities**:
+- Review changed files against coding standards
+- Check for security vulnerabilities
+- Verify test coverage and acceptance criteria
+- Produce pass/fail review with specific findings
+- Replaces the self-review step currently in execute-ticket
+- Does NOT implement, does NOT fix issues (reports them)
+
+## Component: Plan Sprint Skill (`skills/plan-sprint.md`)
+
+**Purpose**: Workflow skill for creating a sprint from a stakeholder
+conversation.
+
+**Use Cases Addressed**: UC-010, UC-011
+
+**Workflow**:
+1. Capture stakeholder goals and scope
+2. Create sprint document with goals, scope, and use case references
+3. Create sprint branch (`sprint/NNN-slug`)
+4. Delegate architecture review to architecture-reviewer
+5. Present sprint plan to stakeholder for approval
+6. On approval, delegate ticket creation to systems-engineer
+
+## Component: Close Sprint Skill (`skills/close-sprint.md`)
+
+**Purpose**: Workflow skill for closing a completed sprint.
+
+**Use Cases Addressed**: UC-013
+
+**Workflow**:
+1. Verify all sprint tickets satisfy Definition of Done
+2. Set sprint document status to `done`
+3. Merge sprint branch to main
+4. Move sprint document to `docs/plans/sprints/done/`
+5. Report sprint completion
+
+## Component: Updated Git Workflow (`instructions/git-workflow.md`)
+
+**Purpose**: Add sprint branching to the git workflow instruction.
+
+**Use Cases Addressed**: UC-014
+
+**Changes**:
+- Add sprint branch naming convention: `sprint/NNN-slug`
+- Branch created at sprint start, merged at sprint close
+- All ticket commits happen on the sprint branch
+- Commit message format: `<type>: <summary> (#NNN, sprint NNN)`
+- No feature branches within sprints (tickets commit directly to sprint branch)
+
+## Component: Updated SE Instructions (`instructions/system-engineering.md`)
+
+**Purpose**: Integrate sprints into the SE workflow. Rename "phases" to
+"stages" to free the term. Add sprint as the default working mode after
+initial setup.
+
+**Use Cases Addressed**: UC-010, UC-011, UC-012, UC-013, UC-014
+
+**Changes**:
+- Rename "Phase" to "Stage" throughout (Stage 1a, 1b, 2, 3, 4)
+- Add sprint concept: after Stage 1b, all work happens in sprints
+- Add sprint lifecycle to workflow section
+- Reference new agents (architecture-reviewer, code-reviewer)
+- Reference new skills (plan-sprint, close-sprint)
+- Update directory layout to include `docs/plans/sprints/`
+
+## Component: Updated Project Manager (`agents/project-manager.md`)
+
+**Purpose**: Add sprint coordination to the project-manager agent.
+
+**Use Cases Addressed**: UC-010, UC-013
+
+**Changes**:
+- Add sprint state tracking (check for active sprints)
+- Add sprint lifecycle coordination (plan → execute → close)
+- Delegate architecture review to architecture-reviewer
+- Delegate code review to code-reviewer (replacing self-review)
+- Update delegation map with new agents
+
 ## Open Questions
 
 - Should the script also update target `.gitignore` to exclude symlinked

@@ -52,5 +52,5 @@ You operate within the system engineering process defined in
 
 ## Maintenance
 
-When scope changes in Phase 4, the architect updates the technical plan to
+When scope changes in Stage 4, the architect updates the technical plan to
 reflect new or modified components, APIs, or design decisions.

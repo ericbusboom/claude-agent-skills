@@ -10,11 +10,11 @@ artifacts live in `docs/plans/`.
 
 ## Agents
 
-Four specialized agents drive this process, orchestrated by the
+Six specialized agents drive this process, orchestrated by the
 project-manager:
 
 - **project-manager** — Top-level orchestrator. Delegates to the other
-  agents, tracks project state, and coordinates the ticket execution loop.
+  agents, tracks project state, and coordinates sprints and ticket execution.
   Does not implement code or write documents itself.
 - **requirements-analyst** — Elicits requirements from stakeholder
   narratives. Produces the brief and use cases.
@@ -22,6 +22,10 @@ project-manager:
   and produces the technical plan.
 - **systems-engineer** — Breaks the technical plan into sequenced, numbered
   tickets. Creates ticket plans before implementation begins.
+- **architecture-reviewer** — Reviews sprint plans against the existing
+  codebase and technical plan. Produces architectural review verdicts.
+- **code-reviewer** — Reviews code changes during ticket execution for
+  quality, standards compliance, and security. Produces pass/fail verdicts.
 
 Supporting agents used during implementation:
 - **python-expert** — Implements Python code during ticket execution.
@@ -29,13 +33,15 @@ Supporting agents used during implementation:
 
 ## Skills
 
-Reusable workflows that correspond to each phase:
+Reusable workflows that correspond to each stage:
 
-- **elicit-requirements** — Phase 1a: narrative → brief → use cases
-- **create-technical-plan** — Phase 1b: brief + use cases → technical plan
-- **create-tickets** — Phase 2: technical plan → numbered tickets
-- **execute-ticket** — Phase 3: ticket → plan → implement → test → done
+- **elicit-requirements** — Stage 1a: narrative → brief → use cases
+- **create-technical-plan** — Stage 1b: brief + use cases → technical plan
+- **create-tickets** — Stage 2: technical plan → numbered tickets
+- **execute-ticket** — Stage 3: ticket → plan → implement → test → done
 - **project-status** — Anytime: scan artifacts and report progress
+- **plan-sprint** — Plan and set up a new sprint
+- **close-sprint** — Validate and close a completed sprint
 
 Supporting skills used during ticket execution:
 
@@ -121,7 +127,7 @@ incomplete.
 
 ## Workflow
 
-### Phase 1a: Requirements (requirements-analyst)
+### Stage 1a: Requirements (requirements-analyst)
 
 Skill: **elicit-requirements**
 
@@ -134,7 +140,7 @@ Skill: **elicit-requirements**
    Wait for approval before proceeding. If the stakeholder requests changes,
    revise and re-present.
 
-### Phase 1b: Architecture (architect)
+### Stage 1b: Architecture (architect)
 
 Skill: **create-technical-plan**
 
@@ -145,7 +151,41 @@ Skill: **create-technical-plan**
    Wait for approval before proceeding. If the stakeholder requests changes,
    revise and re-present.
 
-### Phase 2: Ticketing (systems-engineer)
+### Sprints (Default Working Mode)
+
+After Stages 1a and 1b are complete, all work is organized into sprints.
+A sprint is a focused batch of work with its own lifecycle, branch, and
+ticket set.
+
+**Sprint documents** live in `docs/plans/sprints/NNN-slug.md`. Each has
+YAML frontmatter:
+```yaml
+---
+id: "NNN"
+title: Sprint title
+status: planning | active | done
+branch: sprint/NNN-slug
+use-cases: [UC-XXX, ...]
+---
+```
+
+**Sprint lifecycle** (skills: **plan-sprint**, **close-sprint**):
+1. Stakeholder describes the next batch of work.
+2. Create sprint document with goals, scope, and use case references.
+3. Create sprint branch (`sprint/NNN-slug`).
+4. **Architecture review**: Delegate to the **architecture-reviewer** to
+   validate the plan against the existing codebase and technical plan.
+5. **Review gate**: Present the sprint plan and architecture review to the
+   stakeholder. Wait for approval.
+6. Create tickets for the sprint (Stage 2 below).
+7. Execute tickets on the sprint branch (Stage 3 below).
+8. When all tickets are done, close the sprint: merge branch to main,
+   move sprint document to `docs/plans/sprints/done/`.
+
+Active sprints live in `docs/plans/sprints/`. Completed sprints live in
+`docs/plans/sprints/done/`.
+
+### Stage 2: Ticketing (systems-engineer)
 
 Skill: **create-tickets**
 
@@ -156,7 +196,7 @@ Skill: **create-tickets**
    through the sequencing and coverage. Wait for approval before starting
    implementation. If the stakeholder requests changes, revise and re-present.
 
-### Phase 3: Implementation (project-manager coordinates)
+### Stage 3: Implementation (project-manager coordinates)
 
 Skill: **execute-ticket** (repeated for each ticket)
 
@@ -166,8 +206,9 @@ Skill: **execute-ticket** (repeated for each ticket)
 4. Implement the ticket following its plan (python-expert or appropriate
    dev agent).
 5. Write tests as specified in the plan.
-6. Review the implementation: check coding standards, security, test
-   coverage, and acceptance criteria. Fix any issues.
+6. Delegate code review to the **code-reviewer** agent. The reviewer checks
+   coding standards, security, test coverage, and acceptance criteria. If
+   the review fails, fix the findings and re-review.
 7. Update documentation as specified in the plan (documentation-expert).
 8. Verify all acceptance criteria are met and check them off (`[x]`).
 9. Complete the ticket (see **Completing a Ticket** below).
@@ -178,7 +219,7 @@ A ticket is not done until ALL of the following are true:
 
 - [ ] All acceptance criteria in the ticket are met and checked off
 - [ ] Tests are written and passing (see `instructions/testing.md`)
-- [ ] Code review passed (coding standards, security, test coverage)
+- [ ] Code review passed by **code-reviewer** (coding standards, security, test coverage)
 - [ ] Documentation updated as specified in the ticket plan
 - [ ] Changes committed to git with a message referencing the ticket ID
 - [ ] Ticket and plan moved to `docs/plans/tickets/done/`
@@ -193,7 +234,8 @@ When a ticket satisfies the Definition of Done:
 1. Set the ticket's `status` to `done` in its YAML frontmatter.
 2. Check off all acceptance criteria (`- [x]`).
 3. Commit all changes following `instructions/git-workflow.md`. The commit
-   message must reference the ticket ID (e.g., `feat: add auth endpoint (#003)`).
+   message must reference the ticket ID and sprint number if applicable
+   (e.g., `feat: add auth endpoint (#003, sprint 001)`).
 4. Move the ticket file to `docs/plans/tickets/done/`.
 5. Move the ticket plan file to `docs/plans/tickets/done/`.
 
@@ -233,7 +275,7 @@ Things go wrong during implementation. Here is what to do.
    being actively worked).
 4. Escalate to the human: explain the blocker and ask for guidance.
 
-### Phase 4: Maintenance
+### Stage 4: Maintenance
 
 1. If a change alters scope, update the brief and affected use cases first.
 2. If new work is needed, create new tickets following the numbering
@@ -246,6 +288,10 @@ docs/plans/
 ├── brief.md
 ├── usecases.md
 ├── technical-plan.md
+├── sprints/
+│   ├── 001-initial-features.md  # Active sprint
+│   └── done/                    # Completed sprints
+│       └── ...
 └── tickets/
     ├── 003-add-auth.md          # Active ticket
     ├── 003-add-auth-plan.md     # Its plan
@@ -261,6 +307,8 @@ docs/plans/
 
 - The **project-manager** is the entry point for new projects. It determines
   current state and delegates to the right agent/skill.
+- After initial setup (brief, use cases, technical plan), always work within
+  a sprint. Use **plan-sprint** to start and **close-sprint** to finish.
 - When asked to plan work, produce or update these artifacts rather than
   jumping straight to code.
 - When asked to implement, find the next unfinished ticket and work from it.
@@ -268,6 +316,9 @@ docs/plans/
 - A ticket is not done until it satisfies the **Definition of Done** (see
   above): acceptance criteria met, tests passing, code review passed,
   documentation updated, changes committed to git.
+- Delegate code review to the **code-reviewer** agent, not self-review.
+- Delegate architecture review to the **architecture-reviewer** agent during
+  sprint planning.
 - Follow `instructions/coding-standards.md` when writing code.
 - Follow `instructions/git-workflow.md` when committing changes.
 - Follow `instructions/testing.md` when writing tests.

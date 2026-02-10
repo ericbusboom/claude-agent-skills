@@ -22,12 +22,18 @@ context can be lost when the session ends. Commit early, commit with purpose.
 
 ## Commit Message Format
 
-Use conventional-style messages that reference the ticket ID:
+Use conventional-style messages that reference the ticket ID and sprint:
+
+```
+<type>: <short summary> (#NNN, sprint NNN)
+
+<optional body explaining why, not what>
+```
+
+If not working within a sprint, omit the sprint reference:
 
 ```
 <type>: <short summary> (#NNN)
-
-<optional body explaining why, not what>
 ```
 
 **Types**:
@@ -40,25 +46,41 @@ Use conventional-style messages that reference the ticket ID:
 
 **Examples**:
 ```
-feat: add user authentication endpoint (#003)
-fix: handle empty input in parser (#007)
+feat: add user authentication endpoint (#003, sprint 001)
+fix: handle empty input in parser (#007, sprint 002)
 docs: update technical plan for new scope (#010)
-test: add golden file tests for report generator (#005)
+test: add golden file tests for report generator (#005, sprint 001)
 chore: update dependencies to latest versions (#012)
 ```
 
-The ticket ID in parentheses makes commits traceable to their tickets.
+The ticket ID and sprint number make commits traceable to their work items.
 
 ## Branch Strategy
 
-This is a project-level decision. Two common approaches:
+### Sprint Branches (Recommended)
 
-### Option A: Work on Main (Default for Solo Projects)
+When using sprints, create one branch per sprint:
+
+```
+git checkout -b sprint/NNN-slug
+```
+
+All ticket work within the sprint is committed to the sprint branch. When
+the sprint is complete and validated, the branch is merged back to main.
+
+- Branch created at sprint start (by the plan-sprint skill)
+- All ticket commits go to the sprint branch
+- Branch merged to main at sprint close (by the close-sprint skill)
+- No feature branches within a sprint — tickets commit directly to the
+  sprint branch
+
+### Option A: Work on Main (for projects not using sprints)
 
 Commit directly to the main branch. Simple, no merge overhead. Appropriate
-when there is one developer or one AI agent working at a time.
+when there is one developer or one AI agent working at a time and sprints
+are not in use.
 
-### Option B: Feature Branches (Default for Team Projects)
+### Option B: Feature Branches (for projects not using sprints)
 
 Create a branch per ticket:
 
@@ -70,7 +92,8 @@ Merge back to main when the ticket is complete. Use this when multiple
 people or agents work in parallel, or when you want PR-based review.
 
 Choose one approach and document it in the project's README or contributing
-guide. If no choice is documented, default to working on main.
+guide. If no choice is documented and sprints are in use, use sprint
+branches. Otherwise, default to working on main.
 
 ## Safety Rules
 
@@ -82,11 +105,13 @@ guide. If no choice is documented, default to working on main.
 - **Always check `git status`** before committing to avoid including
   unintended files.
 
-## Relationship to Tickets
+## Relationship to Tickets and Sprints
 
 - A ticket is not done until its changes are committed.
 - The commit message must reference the ticket ID.
+- If working within a sprint, the commit message must also reference the
+  sprint number.
 - If a ticket requires multiple commits (milestones), each commit should
-  reference the same ticket ID.
+  reference the same ticket ID and sprint number.
 - When completing a ticket, the final commit should include the ticket file
   move to `done/` and any frontmatter updates.

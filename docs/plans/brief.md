@@ -29,6 +29,9 @@ A pip-installable Python package that:
 4. Provides a robust, agent-driven SE process where agents are grounded in
    the process, follow git conventions, perform code review, handle errors
    gracefully, and gate progress on stakeholder approval.
+5. Supports sprint-based work organization: after initial project setup (brief,
+   use cases, technical plan), all work is grouped into numbered sprints with
+   their own lifecycle, branch, review gates, and ticket sets.
 
 ## Target Users
 
@@ -53,10 +56,16 @@ A pip-installable Python package that:
 - Dev agents (python-expert, documentation-expert) are grounded in the SE
   process — they know about tickets, ticket plans, testing instructions, and
   acceptance criteria.
-- The process includes stakeholder review gates between phases.
+- The process includes stakeholder review gates between stages.
 - Error recovery patterns guide agents when tests fail, plans have gaps, or
   tickets need splitting.
 - A coding standards instruction provides consistent conventions across agents.
+- After initial project setup, all work is organized into numbered sprints.
+- Each sprint has its own branch (`sprint/NNN-slug`), merged on completion.
+- An architecture reviewer validates sprint plans against the existing codebase.
+- A code reviewer validates implementations during ticket execution.
+- Sprint lifecycle (plan → architecture review → stakeholder approval → tickets
+  → execute → validate → close) is fully defined and skill-driven.
 
 ## Out of Scope
 

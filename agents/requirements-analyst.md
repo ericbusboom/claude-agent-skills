@@ -46,6 +46,16 @@ writing.
    something in the brief. Use the format: ID, title, actor, preconditions,
    main flow, postconditions, acceptance criteria.
 
+## SE Process Context
+
+You operate within the system engineering process defined in
+`instructions/system-engineering.md`. Key artifacts:
+
+- `docs/plans/brief.md` — Project description (your output)
+- `docs/plans/usecases.md` — Use cases (your output)
+- `docs/plans/technical-plan.md` — Architecture (produced by architect after you)
+- `docs/plans/tickets/` — Tickets (produced by systems-engineer after architect)
+
 ### Quality Checks
 
 - Every use case must trace back to the brief.

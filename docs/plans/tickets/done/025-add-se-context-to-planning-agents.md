@@ -1,7 +1,7 @@
 ---
 id: "025"
 title: Add SE Process Context to architect and requirements-analyst
-status: todo
+status: done
 use-cases: [UC-004, UC-007]
 depends-on: []
 ---
@@ -16,6 +16,6 @@ don't. Add consistent SE context sections to both for discoverability.
 
 ## Acceptance Criteria
 
-- [ ] `agents/architect.md` has an SE Process Context section with artifact paths
-- [ ] `agents/requirements-analyst.md` has an SE Process Context section with artifact paths
-- [ ] Both reference `instructions/system-engineering.md`
+- [x] `agents/architect.md` has an SE Process Context section with artifact paths
+- [x] `agents/requirements-analyst.md` has an SE Process Context section with artifact paths
+- [x] Both reference `instructions/system-engineering.md`

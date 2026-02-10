@@ -137,19 +137,111 @@ status: draft
   - [ ] Patterns cover test failures, plan gaps, and ticket splitting
   - [ ] Escalation path to human is defined for unresolvable issues
 
-## UC-009: Stakeholder Reviews Artifacts Between Phases
+## UC-009: Stakeholder Reviews Artifacts Between Stages
 
 - **Actor**: Developer (stakeholder)
-- **Preconditions**: An SE phase has just completed (e.g., brief written,
+- **Preconditions**: An SE stage has just completed (e.g., brief written,
   technical plan written, tickets created).
 - **Main Flow**:
-  1. Agent completes a phase and presents the output to the stakeholder.
+  1. Agent completes a stage and presents the output to the stakeholder.
   2. Stakeholder reviews and either approves or requests changes.
   3. If changes requested, agent revises the artifact and re-presents.
-  4. Only after approval does the process advance to the next phase.
-- **Postconditions**: Each phase output is stakeholder-approved before the
-  next phase begins.
+  4. Only after approval does the process advance to the next stage.
+- **Postconditions**: Each stage output is stakeholder-approved before the
+  next stage begins.
 - **Acceptance Criteria**:
-  - [ ] SE instructions define review gates between phases
+  - [ ] SE instructions define review gates between stages
   - [ ] project-manager agent pauses for approval at each gate
   - [ ] Approval/revision cycle is documented
+
+## UC-010: Plan and Execute a Sprint
+
+- **Actor**: Developer (via project-manager)
+- **Preconditions**: Project-level brief, use cases, and technical plan exist.
+  A conversation with the stakeholder has identified a batch of work to do.
+- **Main Flow**:
+  1. Stakeholder describes work to be done.
+  2. project-manager creates a sprint document in `docs/plans/sprints/NNN-slug.md`
+     capturing goals, scope, and relevant use cases.
+  3. architecture-reviewer reviews the sprint plan against the existing codebase
+     and technical plan.
+  4. Stakeholder reviews and approves the sprint plan.
+  5. systems-engineer creates tickets within the sprint.
+  6. project-manager creates a branch `sprint/NNN-slug`.
+  7. Tickets are executed on the sprint branch.
+  8. When all tickets are done, sprint is validated and closed.
+  9. Sprint branch is merged and sprint document moved to `done/`.
+- **Postconditions**: All sprint work is merged, sprint document is archived.
+- **Acceptance Criteria**:
+  - [ ] Sprint documents are created in `docs/plans/sprints/`
+  - [ ] Sprint lifecycle (plan → review → tickets → execute → close) works end to end
+  - [ ] Sprint branch is created and merged on completion
+  - [ ] Completed sprints are moved to `docs/plans/sprints/done/`
+
+## UC-011: Architecture Review of Sprint Plan
+
+- **Actor**: AI agent (architecture-reviewer)
+- **Preconditions**: A sprint plan has been drafted. Technical plan and
+  existing codebase exist.
+- **Main Flow**:
+  1. architecture-reviewer reads the sprint plan, technical plan, and
+     relevant existing code.
+  2. Reviewer checks that the sprint plan is consistent with existing
+     architecture, identifies conflicts, risks, and missing considerations.
+  3. Reviewer produces a review with findings and recommendations.
+  4. Issues are addressed before the sprint proceeds.
+- **Postconditions**: Sprint plan has been validated against the architecture.
+- **Acceptance Criteria**:
+  - [ ] architecture-reviewer agent exists with appropriate tools
+  - [ ] Review checks architectural consistency and identifies risks
+  - [ ] Review output is presented to stakeholder before sprint proceeds
+
+## UC-012: Code Review During Ticket Execution
+
+- **Actor**: AI agent (code-reviewer)
+- **Preconditions**: Ticket implementation is complete and tests pass.
+- **Main Flow**:
+  1. code-reviewer reads the changed files, ticket plan, coding standards,
+     and testing instructions.
+  2. Reviewer checks for quality, standards compliance, security issues,
+     test coverage, and acceptance criteria.
+  3. Reviewer produces a review with pass/fail and specific findings.
+  4. Issues must be fixed before the ticket can be completed.
+- **Postconditions**: Code has been reviewed and meets quality standards.
+- **Acceptance Criteria**:
+  - [ ] code-reviewer agent exists with Read, Grep, Glob tools
+  - [ ] Review checks coding standards, security, test coverage
+  - [ ] Review findings must be resolved before ticket completion
+
+## UC-013: Close a Sprint
+
+- **Actor**: Developer (via project-manager)
+- **Preconditions**: All tickets in the sprint are done. Sprint branch exists.
+- **Main Flow**:
+  1. project-manager verifies all sprint tickets satisfy Definition of Done.
+  2. project-manager merges the sprint branch to main.
+  3. Sprint document status is set to `done`.
+  4. Sprint document is moved to `docs/plans/sprints/done/`.
+  5. project-manager reports sprint completion to stakeholder.
+- **Postconditions**: Sprint branch merged, document archived, all work
+  integrated into main.
+- **Acceptance Criteria**:
+  - [ ] Sprint closure verifies all tickets are done
+  - [ ] Sprint branch is merged to main
+  - [ ] Sprint document is moved to `done/`
+  - [ ] close-sprint skill exists and handles the workflow
+
+## UC-014: Git Workflow Supports Sprint Branching
+
+- **Actor**: AI agent (any agent committing code)
+- **Preconditions**: Work is happening within a sprint.
+- **Main Flow**:
+  1. When a sprint starts, a branch `sprint/NNN-slug` is created from main.
+  2. All ticket work within the sprint is committed to the sprint branch.
+  3. Commit messages reference both the ticket ID and sprint number.
+  4. When the sprint closes, the branch is merged back to main.
+- **Postconditions**: Sprint work is isolated on a branch and merged cleanly.
+- **Acceptance Criteria**:
+  - [ ] Git workflow instruction defines sprint branch naming convention
+  - [ ] Commit message format includes sprint reference
+  - [ ] Branch creation and merge steps are documented
