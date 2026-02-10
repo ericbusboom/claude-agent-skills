@@ -1,12 +1,12 @@
 ---
 name: elicit-requirements
-description: Runs the requirements elicitation workflow to produce a project brief and use cases from a stakeholder narrative
+description: Runs the requirements elicitation workflow to produce a project overview from a stakeholder narrative
 ---
 
 # Elicit Requirements Skill
 
-This skill runs the requirements elicitation workflow to produce a brief and
-use cases from a stakeholder narrative.
+This skill runs the requirements elicitation workflow to produce a project
+overview from a stakeholder narrative.
 
 ## Agent Used
 
@@ -23,16 +23,21 @@ use cases from a stakeholder narrative.
    conversation about what the project should do.
 2. **Ask clarifying questions**: Ask about stakeholders, problem,
    components, requirements, constraints, success criteria, and out of scope.
-3. **Write brief**: Produce `docs/plans/brief.md` — a one-page project
-   description covering problem, solution, users, constraints, success
-   criteria, and out of scope.
-4. **Derive use cases**: Produce `docs/plans/usecases.md` — enumerated use
-   cases with ID, title, actor, preconditions, main flow, postconditions,
-   and acceptance criteria.
-5. **Verify traceability**: Every use case must trace back to something in
-   the brief. Acceptance criteria must be testable.
+3. **Write overview**: Produce `docs/plans/overview.md` using the
+   `create_overview` MCP tool. The overview is a single lightweight document
+   covering project name, problem statement, target users, key constraints,
+   high-level requirements, technology stack, sprint roadmap, and out of
+   scope.
+4. **Verify completeness**: Every section of the overview should be filled
+   in. High-level requirements should be testable. Sprint roadmap should
+   sketch out the first few sprints.
 
 ## Output
 
-- `docs/plans/brief.md` (created or updated)
-- `docs/plans/usecases.md` (created or updated)
+- `docs/plans/overview.md` (created or updated)
+
+## Notes
+
+For existing projects that already have separate `brief.md`, `usecases.md`,
+and `technical-plan.md` files, those files remain valid. The overview
+document is the recommended approach for new projects.

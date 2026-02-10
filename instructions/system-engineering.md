@@ -50,43 +50,34 @@ Supporting skills used during ticket execution:
 
 ## Artifacts
 
-### 1. Brief (`docs/plans/brief.md`)
+### 1. Project Overview (`docs/plans/overview.md`) — Recommended
 
-A one-page project description written first. Everything else derives from it.
+A single lightweight document created at project start. Replaces the separate
+brief, use cases, and technical plan files for new projects. Detailed planning
+lives in sprints.
 
 Contents:
 - Project name
 - Problem statement (what problem, who has it)
-- Proposed solution (high-level)
 - Target users
 - Key constraints (timeline, technology, budget)
-- Success criteria (measurable outcomes)
+- High-level requirements (key scenarios)
+- Technology stack
+- Sprint roadmap (rough plan of sprints)
 - Out of scope
 
-### 2. Use Cases (`docs/plans/usecases.md`)
+### Legacy: Brief, Use Cases, Technical Plan
 
-Enumerated use cases derived from the brief. Each use case has:
-- ID (UC-001, UC-002, ...)
-- Title
-- Actor
-- Preconditions
-- Main flow (numbered steps)
-- Postconditions
-- Acceptance criteria (checkboxes)
+For existing projects that predate the overview document, these separate
+top-level files remain valid:
 
-### 3. Technical Plan (`docs/plans/technical-plan.md`)
+- **Brief** (`docs/plans/brief.md`) — One-page project description.
+- **Use Cases** (`docs/plans/usecases.md`) — Enumerated use cases (UC-001, etc.)
+  with actor, preconditions, main flow, postconditions, acceptance criteria.
+- **Technical Plan** (`docs/plans/technical-plan.md`) — Architecture, tech stack,
+  component design, data model, APIs, deployment, security.
 
-Architecture and design decisions. Must trace back to use cases.
-
-Contents:
-- Architecture overview
-- Technology stack
-- Component design (each component lists use cases it addresses)
-- Data model
-- API design
-- Deployment strategy
-- Security considerations
-- Open questions
+New projects should use `create_overview` instead of the three separate tools.
 
 ### 4. Sprints (`docs/plans/sprints/NNN-slug/`)
 
@@ -184,29 +175,19 @@ for reference.
 
 ## Workflow
 
-### Stage 1a: Requirements (requirements-analyst)
+### Project Setup (requirements-analyst)
 
 Skill: **elicit-requirements**
 
 1. Take the stakeholder's narrative about the project.
 2. Ask clarifying questions about stakeholders, components, requirements,
    constraints, and success criteria.
-3. Write the brief.
-4. Derive use cases from the brief.
-5. **Review gate**: Present the brief and use cases to the stakeholder.
-   Wait for approval before proceeding. If the stakeholder requests changes,
-   revise and re-present.
-
-### Stage 1b: Architecture (architect)
-
-Skill: **create-technical-plan**
-
-1. Read the brief and use cases.
-2. Design the architecture and write the technical plan.
-3. Verify every component traces to at least one use case.
-4. **Review gate**: Present the technical plan to the stakeholder.
-   Wait for approval before proceeding. If the stakeholder requests changes,
-   revise and re-present.
+3. Write the project overview (`docs/plans/overview.md`) using the
+   `create_overview` MCP tool. The overview covers problem, users,
+   constraints, high-level requirements, tech stack, and sprint roadmap.
+4. **Review gate**: Present the overview to the stakeholder. Wait for
+   approval before proceeding. If the stakeholder requests changes, revise
+   and re-present.
 
 ### Sprints (Default Working Mode)
 
@@ -386,9 +367,10 @@ Things go wrong during implementation. Here is what to do.
 
 ```
 docs/plans/
-├── brief.md                     # Top-level project brief
-├── usecases.md                  # Top-level use cases
-├── technical-plan.md            # Top-level technical plan
+├── overview.md                  # Project overview (recommended)
+├── brief.md                     # Top-level brief (legacy)
+├── usecases.md                  # Top-level use cases (legacy)
+├── technical-plan.md            # Top-level technical plan (legacy)
 ├── todo/                        # Ideas and future work
 │   ├── some-idea.md             # One idea per file
 │   └── done/                    # Consumed TODOs (archived)

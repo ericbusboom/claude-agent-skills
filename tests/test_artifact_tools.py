@@ -241,3 +241,21 @@ class TestCloseSprint:
         sprint_file = Path(result["new_path"]) / "sprint.md"
         fm = read_frontmatter(sprint_file)
         assert fm["status"] == "done"
+
+
+class TestCreateOverview:
+    def test_creates_overview(self, work_dir):
+        from claude_agent_skills.artifact_tools import create_overview
+        result = json.loads(create_overview())
+        path = work_dir / "docs" / "plans" / "overview.md"
+        assert path.exists()
+        content = path.read_text()
+        assert "# Project Overview" in content
+        assert "## Problem Statement" in content
+        assert "## Sprint Roadmap" in content
+
+    def test_rejects_duplicate(self, work_dir):
+        from claude_agent_skills.artifact_tools import create_overview
+        create_overview()
+        with pytest.raises(ValueError, match="already exists"):
+            create_overview()
