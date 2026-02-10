@@ -27,7 +27,9 @@ create tickets.
    `docs/plans/sprints/done/` for existing sprints. The new sprint gets the
    next sequential number (NNN format: 001, 002, ...).
 
-2. **Create sprint directory**: Create `docs/plans/sprints/NNN-slug/` with:
+2. **Create sprint directory**: Use the `create_sprint` MCP tool. This
+   creates the directory structure and registers the sprint in the state
+   database at phase `planning-docs`:
    - `sprint.md` — Sprint goals, scope, architecture notes, ticket list.
      Frontmatter: id, title, status: planning, branch, use-cases.
    - `brief.md` — Sprint-level brief (problem, solution, success criteria).
@@ -37,26 +39,46 @@ create tickets.
 
 3. **Create sprint branch**: Run `git checkout -b sprint/NNN-slug` from main.
 
-4. **Architecture review**: Delegate to the architecture-reviewer agent.
+4. **Advance to architecture-review**: Call `advance_sprint_phase` to move
+   from `planning-docs` to `architecture-review`.
+
+5. **Architecture review**: Delegate to the architecture-reviewer agent.
    The reviewer reads the sprint plan, technical plan, and relevant existing
    code, then produces a review (APPROVE / APPROVE WITH CHANGES / REVISE).
    - If REVISE: update the sprint document and re-review.
    - If APPROVE WITH CHANGES: note the changes for ticket creation.
+   - Call `record_gate_result` with gate `architecture_review` and result
+     `passed` or `failed`.
 
-5. **Stakeholder review gate**: Present the sprint plan and architecture
+6. **Advance to stakeholder-review**: If architecture review passed, call
+   `advance_sprint_phase` to move to `stakeholder-review`.
+
+7. **Stakeholder review gate**: Present the sprint plan and architecture
    review to the stakeholder. Wait for approval. If changes are requested,
    revise and re-present.
+   - Call `record_gate_result` with gate `stakeholder_approval` and result
+     `passed` or `failed`.
 
-6. **Create tickets**: Delegate to the systems-engineer to create tickets
+8. **Advance to ticketing**: If stakeholder approved, call
+   `advance_sprint_phase` to move to `ticketing`.
+
+9. **Create tickets**: Delegate to the systems-engineer to create tickets
    for this sprint. Tickets are created in the sprint's `tickets/` directory
    with per-sprint numbering (001, 002, ...). Update the sprint document's
    Tickets section with the list of created tickets.
 
-7. **Set sprint status**: Update the sprint document status to `active`.
+10. **Acquire execution lock and advance to executing**: Call
+    `acquire_execution_lock` to claim the lock for this sprint, then call
+    `advance_sprint_phase` to move to `executing`. Only one sprint can hold
+    the execution lock at a time.
+
+11. **Set sprint status**: Update the sprint document status to `active`.
 
 ## Output
 
 - Sprint directory `docs/plans/sprints/NNN-slug/` with planning documents
 - Sprint `sprint.md` status set to `active`
 - Sprint branch `sprint/NNN-slug` created
+- Sprint phase advanced to `executing` in the state database
+- Execution lock acquired for this sprint
 - Tickets in the sprint's `tickets/` directory ready for execution

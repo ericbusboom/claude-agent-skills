@@ -219,6 +219,51 @@ directory contains `sprint.md`, `brief.md`, `usecases.md`,
 Active sprints live in `docs/plans/sprints/`. Completed sprints live in
 `docs/plans/sprints/done/`.
 
+### Sprint State Database
+
+A SQLite database at `docs/plans/.clasi.db` tracks sprint lifecycle state.
+AIs interact with it exclusively through MCP tools — never write to the
+database directly.
+
+**Seven-phase lifecycle model:**
+
+```
+planning-docs → architecture-review → stakeholder-review → ticketing → executing → closing → done
+```
+
+Phase transitions are enforced: `advance_sprint_phase` validates that exit
+conditions for the current phase are met before allowing the transition.
+
+**Review gates** (required to advance past certain phases):
+
+| Gate | Required to advance from | Recorded by |
+|------|--------------------------|-------------|
+| `architecture_review` | `architecture-review` → `stakeholder-review` | `record_gate_result` |
+| `stakeholder_approval` | `stakeholder-review` → `ticketing` | `record_gate_result` |
+
+Each gate must be recorded as `passed` before the phase can advance.
+
+**Execution lock:**
+
+Only one sprint can be in the `executing` phase at a time. Before advancing
+from `ticketing` to `executing`, the sprint must acquire the execution lock
+via `acquire_execution_lock`. The lock is released when the sprint is closed
+(`close_sprint` releases it automatically).
+
+**MCP tools for state management:**
+
+- `get_sprint_phase(sprint_id)` — Query current phase, gates, and lock status
+- `advance_sprint_phase(sprint_id)` — Move to the next phase (validates conditions)
+- `record_gate_result(sprint_id, gate, result, notes?)` — Record a review gate outcome
+- `acquire_execution_lock(sprint_id)` — Claim the execution lock
+- `release_execution_lock(sprint_id)` — Release the execution lock
+
+**Ticket creation gate enforcement:**
+
+The `create_ticket` tool checks the state database and blocks ticket creation
+if the sprint is before the `ticketing` phase. This prevents tickets from
+being created before architecture and stakeholder reviews are complete.
+
 ### Stage 2: Ticketing (systems-engineer)
 
 Skill: **create-tickets**

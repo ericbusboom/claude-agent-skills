@@ -31,10 +31,13 @@ the sprint branch, and archive the sprint document.
 
    If any ticket is not done, report which tickets remain and stop.
 
-3. **Run final validation**: Ensure tests pass, no uncommitted changes
+3. **Advance to closing phase**: Call `advance_sprint_phase` to move
+   from `executing` to `closing`.
+
+4. **Run final validation**: Ensure tests pass, no uncommitted changes
    exist on the sprint branch.
 
-4. **Merge sprint branch**: Merge `sprint/NNN-slug` into main:
+5. **Merge sprint branch**: Merge `sprint/NNN-slug` into main:
    ```
    git checkout main
    git merge sprint/NNN-slug
@@ -42,16 +45,21 @@ the sprint branch, and archive the sprint document.
    If there are merge conflicts, resolve them or escalate to the
    stakeholder.
 
-5. **Update sprint document**: Set the sprint status to `done`.
+6. **Close the sprint**: Call the `close_sprint` MCP tool. This
+   atomically:
+   - Updates the sprint document status to `done`
+   - Moves the sprint directory to `docs/plans/sprints/done/NNN-slug/`
+   - Advances the state database phase to `done`
+   - Releases the execution lock
 
-6. **Archive sprint**: Move the sprint directory to
-   `docs/plans/sprints/done/NNN-slug/`.
+7. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
 
-7. **Report completion**: Summarize what was accomplished in the sprint —
+8. **Report completion**: Summarize what was accomplished in the sprint —
    list of completed tickets, key changes, any notes for follow-up.
 
 ## Output
 
-- Sprint branch merged to main
+- Sprint branch merged to main and deleted
 - Sprint document moved to `docs/plans/sprints/done/`
+- State database phase set to `done`, execution lock released
 - Sprint completion summary reported to stakeholder
