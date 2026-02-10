@@ -27,7 +27,13 @@ create tickets.
    `docs/plans/sprints/done/` for existing sprints. The new sprint gets the
    next sequential number (NNN format: 001, 002, ...).
 
-2. **Create sprint directory**: Use the `create_sprint` MCP tool. This
+2. **Mine the TODO directory**: Scan `docs/plans/todo/` for ideas relevant
+   to the upcoming sprint. Discuss relevant TODOs with the stakeholder and
+   incorporate selected items into the sprint scope. After the sprint
+   directory is created (step 3), move consumed TODO files to
+   `docs/plans/todo/done/`.
+
+3. **Create sprint directory**: Use the `create_sprint` MCP tool. This
    creates the directory structure and registers the sprint in the state
    database at phase `planning-docs`:
    - `sprint.md` — Sprint goals, scope, architecture notes, ticket list.
@@ -37,12 +43,12 @@ create tickets.
    - `technical-plan.md` — Sprint-level architecture and component design.
    - `tickets/` — Empty directory for tickets (with `done/` subdirectory).
 
-3. **Create sprint branch**: Run `git checkout -b sprint/NNN-slug` from main.
+4. **Create sprint branch**: Run `git checkout -b sprint/NNN-slug` from main.
 
-4. **Advance to architecture-review**: Call `advance_sprint_phase` to move
+5. **Advance to architecture-review**: Call `advance_sprint_phase` to move
    from `planning-docs` to `architecture-review`.
 
-5. **Architecture review**: Delegate to the architecture-reviewer agent.
+6. **Architecture review**: Delegate to the architecture-reviewer agent.
    The reviewer reads the sprint plan, technical plan, and relevant existing
    code, then produces a review (APPROVE / APPROVE WITH CHANGES / REVISE).
    - If REVISE: update the sprint document and re-review.
@@ -50,29 +56,29 @@ create tickets.
    - Call `record_gate_result` with gate `architecture_review` and result
      `passed` or `failed`.
 
-6. **Advance to stakeholder-review**: If architecture review passed, call
+7. **Advance to stakeholder-review**: If architecture review passed, call
    `advance_sprint_phase` to move to `stakeholder-review`.
 
-7. **Stakeholder review gate**: Present the sprint plan and architecture
+8. **Stakeholder review gate**: Present the sprint plan and architecture
    review to the stakeholder. Wait for approval. If changes are requested,
    revise and re-present.
    - Call `record_gate_result` with gate `stakeholder_approval` and result
      `passed` or `failed`.
 
-8. **Advance to ticketing**: If stakeholder approved, call
+9. **Advance to ticketing**: If stakeholder approved, call
    `advance_sprint_phase` to move to `ticketing`.
 
-9. **Create tickets**: Delegate to the systems-engineer to create tickets
-   for this sprint. Tickets are created in the sprint's `tickets/` directory
-   with per-sprint numbering (001, 002, ...). Update the sprint document's
-   Tickets section with the list of created tickets.
+10. **Create tickets**: Delegate to the systems-engineer to create tickets
+    for this sprint. Tickets are created in the sprint's `tickets/` directory
+    with per-sprint numbering (001, 002, ...). Update the sprint document's
+    Tickets section with the list of created tickets.
 
-10. **Acquire execution lock and advance to executing**: Call
+11. **Acquire execution lock and advance to executing**: Call
     `acquire_execution_lock` to claim the lock for this sprint, then call
     `advance_sprint_phase` to move to `executing`. Only one sprint can hold
     the execution lock at a time.
 
-11. **Set sprint status**: Update the sprint document status to `active`.
+12. **Set sprint status**: Update the sprint document status to `active`.
 
 ## Output
 
