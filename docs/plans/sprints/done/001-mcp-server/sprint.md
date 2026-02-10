@@ -1,9 +1,13 @@
 ---
-id: "001"
+id: '001'
 title: Replace symlinks with MCP server
-status: planning
+status: done
 branch: sprint/001-mcp-server
-use-cases: [UC-001, UC-003, UC-004, UC-010]
+use-cases:
+- UC-001
+- UC-003
+- UC-004
+- UC-010
 ---
 
 # Sprint 001: Replace Symlinks with MCP Server
