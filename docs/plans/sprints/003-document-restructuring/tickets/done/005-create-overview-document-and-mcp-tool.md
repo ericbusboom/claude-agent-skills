@@ -1,7 +1,7 @@
 ---
 id: '005'
 title: Create overview document and MCP tool
-status: in-progress
+status: done
 use-cases:
 - SUC-005
 depends-on: []

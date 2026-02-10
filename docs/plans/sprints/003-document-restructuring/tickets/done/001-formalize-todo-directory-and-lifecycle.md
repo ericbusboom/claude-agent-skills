@@ -1,7 +1,7 @@
 ---
 id: '001'
 title: Formalize TODO directory and lifecycle
-status: in-progress
+status: done
 use-cases:
 - SUC-001
 depends-on: []

@@ -7,18 +7,17 @@ sprint: "003"
 
 ## Architecture Overview
 
-This sprint is primarily about process and instruction changes, with three
-areas of code change: the TODO cleanup CLI command, per-language MCP tools,
-and versioning automation. The existing package structure from sprint 001 is
-extended, not reorganized.
+This sprint is primarily about process and instruction changes, with two
+areas of code change: the TODO cleanup CLI command and per-language MCP tools.
+The existing package structure from sprint 001 is extended, not reorganized.
 
 ```
 claude-agent-skills/
 ├── instructions/
-│   ├── system-engineering.md      # Updated: TODO dir, overview doc, scenarios
+│   ├── system-engineering.md      # Updated: TODO dir, overview doc
 │   ├── coding-standards.md        # Unchanged
 │   ├── testing.md                 # Updated: reference sprint test strategy
-│   ├── git-workflow.md            # Updated: versioning, tagging
+│   ├── git-workflow.md            # Unchanged
 │   └── languages/                 # NEW: per-language instructions
 │       └── python.md
 ├── claude_agent_skills/
@@ -28,7 +27,7 @@ claude-agent-skills/
 │   └── templates.py               # Updated: merged sprint template, overview
 ├── skills/
 │   ├── plan-sprint.md             # Updated: TODO mining step
-│   ├── close-sprint.md            # Updated: versioning step
+│   ├── close-sprint.md            # Unchanged
 │   ├── elicit-requirements.md     # Updated: overview doc workflow
 │   └── create-technical-plan.md   # Updated: Mermaid guidance
 ├── agents/                        # Minimal changes (reference updates)
@@ -66,7 +65,7 @@ splitting files with multiple level-1 headings into individual files.
 
 ### Component: Per-Language Instructions (`instructions/languages/`)
 
-**Use Cases**: SUC-009
+**Use Cases**: SUC-007
 
 Subdirectory with one markdown file per language. Same frontmatter format
 as other instructions.
@@ -76,7 +75,7 @@ type hints, pytest patterns, Python idioms.
 
 ### Component: Language Instruction MCP Tools (`process_tools.py`)
 
-**Use Cases**: SUC-009
+**Use Cases**: SUC-007
 
 Two new tools following the `list_instructions`/`get_instruction` pattern:
 
@@ -104,50 +103,27 @@ top-level project planning.
 A new MCP tool `create_overview` replaces `create_brief`,
 `create_technical_plan`, and `create_use_cases`.
 
-### Component: Versioning (`close-sprint` skill + `git-workflow.md`)
-
-**Use Cases**: SUC-008
-
-Add version management to the close-sprint workflow:
-1. Read current version from `pyproject.toml`.
-2. Compute next version: same major, current date, increment build
-   (reset to 1 if date changed).
-3. Update `pyproject.toml`.
-4. Commit version bump.
-5. Tag the merge commit with `vMAJOR.ISODATE.BUILD`.
-
-Version computation logic lives in a small utility function in
-`cli.py` or a new `versioning.py` module.
-
 ### Component: Updated Instructions
 
-**Use Cases**: SUC-001, SUC-003, SUC-005, SUC-006, SUC-007
+**Use Cases**: SUC-001, SUC-003, SUC-005, SUC-006
 
 Changes to `instructions/system-engineering.md`:
 - Add TODO directory section (format, lifecycle, layout)
 - Replace Stage 1a/1b with single "Project Setup" using overview doc
-- Rename "use cases" to "scenarios" throughout
 - Update directory layout diagram
 - Reference per-language instructions
-
-Changes to `instructions/git-workflow.md`:
-- Add versioning scheme section
-- Add tagging step to sprint closure
 
 Changes to `instructions/testing.md`:
 - Reference sprint-level test strategy section
 
 ### Component: Updated Skills
 
-**Use Cases**: SUC-003, SUC-005, SUC-007
+**Use Cases**: SUC-003, SUC-005, SUC-006
 
 Changes to `skills/plan-sprint.md`:
 - Add step: scan TODO directory
 - Add step: discuss TODOs with stakeholder
 - Add step: move consumed TODOs to done
-
-Changes to `skills/close-sprint.md`:
-- Add step: bump version and tag
 
 Changes to `skills/elicit-requirements.md`:
 - Update to produce overview doc instead of separate brief + use cases

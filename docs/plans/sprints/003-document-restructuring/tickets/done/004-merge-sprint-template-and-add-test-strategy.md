@@ -1,7 +1,7 @@
 ---
 id: '004'
 title: Merge sprint template and add test strategy
-status: in-progress
+status: done
 use-cases:
 - SUC-004
 depends-on: []

@@ -1,7 +1,7 @@
 ---
 id: '006'
 title: Add Mermaid diagram guidance
-status: in-progress
+status: done
 use-cases:
 - SUC-006
 depends-on: []

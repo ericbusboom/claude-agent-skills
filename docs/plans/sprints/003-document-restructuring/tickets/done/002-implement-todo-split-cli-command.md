@@ -1,7 +1,7 @@
 ---
 id: '002'
 title: Implement todo-split CLI command
-status: in-progress
+status: done
 use-cases:
 - SUC-002
 depends-on: []

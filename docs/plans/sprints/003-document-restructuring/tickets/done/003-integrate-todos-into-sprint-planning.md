@@ -1,7 +1,7 @@
 ---
 id: '003'
 title: Integrate TODOs into sprint planning
-status: in-progress
+status: done
 use-cases:
 - SUC-003
 depends-on:
