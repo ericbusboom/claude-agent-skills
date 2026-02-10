@@ -1,9 +1,11 @@
 ---
-id: "004"
+id: '004'
 title: MCP Tools and Process Refinements
-status: planning
+status: done
 branch: sprint/004-mcp-tools-and-process-refinements
-use-cases: [UC-004, UC-009]
+use-cases:
+- UC-004
+- UC-009
 ---
 
 # Sprint 004: MCP Tools and Process Refinements
