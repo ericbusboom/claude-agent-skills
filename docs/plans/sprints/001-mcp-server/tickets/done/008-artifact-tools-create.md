@@ -1,7 +1,7 @@
 ---
 id: "008"
 title: Artifact Management tools — create
-status: todo
+status: done
 use-cases: [SUC-003, SUC-004, SUC-007]
 depends-on: ["001", "002", "005"]
 ---

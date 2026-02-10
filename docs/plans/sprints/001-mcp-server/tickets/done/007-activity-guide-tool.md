@@ -1,7 +1,7 @@
 ---
 id: "007"
 title: Activity guide tool
-status: todo
+status: done
 use-cases: [SUC-002]
 depends-on: ["006"]
 ---

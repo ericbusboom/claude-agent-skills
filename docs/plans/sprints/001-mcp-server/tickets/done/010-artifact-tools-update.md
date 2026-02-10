@@ -1,7 +1,7 @@
 ---
 id: "010"
 title: Artifact Management tools — update and close
-status: todo
+status: done
 use-cases: [SUC-006]
 depends-on: ["001", "005"]
 ---

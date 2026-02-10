@@ -1,7 +1,7 @@
 ---
 id: "009"
 title: Artifact Management tools — query and status
-status: todo
+status: done
 use-cases: [SUC-005]
 depends-on: ["001", "005"]
 ---
