@@ -717,3 +717,59 @@ def move_todo_to_done(filename: str) -> str:
         "old_path": str(src),
         "new_path": str(dst),
     }, indent=2)
+
+
+# --- Frontmatter tools ---
+
+
+@server.tool()
+def read_artifact_frontmatter(path: str) -> str:
+    """Read YAML frontmatter from a file.
+
+    Uses resolve_artifact_path to find files in original or done/ locations.
+
+    Args:
+        path: Path to the file
+
+    Returns JSON dict of frontmatter fields.
+    """
+    try:
+        resolved = resolve_artifact_path(path)
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {path}")
+
+    fm = read_frontmatter(resolved)
+    return json.dumps(fm, indent=2)
+
+
+@server.tool()
+def write_artifact_frontmatter(path: str, updates: str) -> str:
+    """Update YAML frontmatter on a file, merging with existing fields.
+
+    Uses resolve_artifact_path to find files in original or done/ locations.
+    Creates frontmatter on a plain file that has none.
+
+    Args:
+        path: Path to the file
+        updates: JSON string of fields to merge (e.g., '{"status": "done"}')
+
+    Returns JSON with {path, updated_fields}.
+    """
+    try:
+        resolved = resolve_artifact_path(path)
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {path}")
+
+    try:
+        update_dict = json.loads(updates)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Invalid JSON for updates: {e}")
+
+    fm = read_frontmatter(resolved)
+    fm.update(update_dict)
+    write_frontmatter(resolved, fm)
+
+    return json.dumps({
+        "path": str(resolved),
+        "updated_fields": list(update_dict.keys()),
+    }, indent=2)
