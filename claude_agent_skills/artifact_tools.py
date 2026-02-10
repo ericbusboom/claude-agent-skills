@@ -556,10 +556,31 @@ def close_sprint(sprint_id: str) -> str:
         except (ValueError, Exception):
             pass  # Graceful degradation
 
-    return json.dumps({
+    # Auto-version after archiving
+    version = None
+    try:
+        from claude_agent_skills.versioning import (
+            compute_next_version,
+            update_pyproject_version,
+            create_version_tag,
+        )
+        version = compute_next_version()
+        pyproject = Path.cwd() / "pyproject.toml"
+        if pyproject.exists():
+            update_pyproject_version(version, pyproject)
+        create_version_tag(version)
+    except Exception:
+        pass  # Versioning is best-effort
+
+    result = {
         "old_path": str(sprint_dir),
         "new_path": str(new_path),
-    }, indent=2)
+    }
+    if version:
+        result["version"] = version
+        result["tag"] = f"v{version}"
+
+    return json.dumps(result, indent=2)
 
 
 # --- State management tools (ticket 005) ---
@@ -772,4 +793,37 @@ def write_artifact_frontmatter(path: str, updates: str) -> str:
     return json.dumps({
         "path": str(resolved),
         "updated_fields": list(update_dict.keys()),
+    }, indent=2)
+
+
+# --- Versioning tools ---
+
+
+@server.tool()
+def tag_version(major: int = 0) -> str:
+    """Compute the next version, update pyproject.toml, and create a git tag.
+
+    Version format: <major>.<YYYYMMDD>.<build>
+    Build auto-increments within the same date, resets to 1 on new date.
+
+    Args:
+        major: Major version number (default 0)
+
+    Returns JSON with {version, tag}.
+    """
+    from claude_agent_skills.versioning import (
+        compute_next_version,
+        update_pyproject_version,
+        create_version_tag,
+    )
+
+    version = compute_next_version(major)
+    pyproject = Path.cwd() / "pyproject.toml"
+    if pyproject.exists():
+        update_pyproject_version(version, pyproject)
+    create_version_tag(version)
+
+    return json.dumps({
+        "version": version,
+        "tag": f"v{version}",
     }, indent=2)
