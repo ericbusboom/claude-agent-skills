@@ -1,7 +1,7 @@
 ---
 id: "004"
 title: Init command implementation
-status: todo
+status: done
 use-cases: [SUC-001]
 depends-on: ["003"]
 ---

@@ -1,7 +1,7 @@
 ---
 id: "005"
 title: MCP server skeleton
-status: todo
+status: done
 use-cases: [SUC-002]
 depends-on: ["003"]
 ---
