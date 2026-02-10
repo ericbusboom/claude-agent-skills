@@ -8,27 +8,7 @@ description: Shared coding conventions for project structure, error handling, lo
 These conventions apply to all code written in this project. Dev agents
 (python-expert and others) must follow these standards.
 
-## Project Structure
 
-```
-project-root/
-├── src/ or <package_name>/   # Source code
-│   ├── __init__.py
-│   └── modules...
-├── tests/                    # All tests (see testing instructions)
-├── docs/                     # Documentation and plans
-├── instructions/             # SE process instructions
-├── agents/                   # Agent definitions
-├── skills/                   # Skill definitions
-└── pyproject.toml            # Package metadata
-```
-
-- One module per concern. Do not mix unrelated functionality in a single file.
-- Keep modules under 300 lines. If a module grows beyond this, split it.
-- Name files descriptively: `link_agents.py` not `utils.py` or `helpers.py`.
-- Avoid generic catch-all modules (`utils.py`, `misc.py`, `helpers.py`).
-  If you need a utility, put it in the module that uses it or give it a
-  specific name.
 
 ## Error Handling
 
