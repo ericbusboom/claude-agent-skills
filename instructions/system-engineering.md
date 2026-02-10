@@ -79,6 +79,28 @@ top-level files remain valid:
 
 New projects should use `create_overview` instead of the three separate tools.
 
+### Diagrams in Technical Plans
+
+Use Mermaid diagrams in technical plans when they clarify structure that is
+hard to convey in text alone. Diagrams should show the target state at the
+end of the sprint.
+
+**When to use diagrams:**
+- Subsystem/component interaction diagrams (flowchart or C4-style)
+- Module dependency diagrams showing how packages relate
+- Data flow diagrams for complex pipelines
+
+**When NOT to use diagrams:**
+- Swim lane / sequence diagrams unless multi-system sequencing is involved
+- Exhaustive class diagrams (too detailed, go stale quickly)
+- Diagrams that merely restate what the text already says
+
+**Best practices:**
+- Keep diagrams small: 5-10 nodes maximum
+- Use Mermaid syntax (renders in GitHub, VS Code, most markdown viewers)
+- Label edges with the relationship (calls, depends-on, produces)
+- One diagram per concern; do not overload a single diagram
+
 ### 4. Sprints (`docs/plans/sprints/NNN-slug/`)
 
 Each sprint is a **directory** containing its planning documents and tickets.
@@ -87,8 +109,7 @@ Ticket numbering is per-sprint (starts at 001 within each sprint).
 Directory structure:
 ```
 docs/plans/sprints/NNN-slug/
-├── sprint.md              # Sprint goals, scope, architecture notes
-├── brief.md               # Sprint-level brief
+├── sprint.md              # Sprint goals, scope, problem, solution, test strategy
 ├── usecases.md            # Sprint-level use cases (SUC-NNN)
 ├── technical-plan.md      # Sprint-level technical plan
 └── tickets/
