@@ -33,6 +33,10 @@ env/
 *~
 .DS_Store
 
+# Linked agent/skill targets (created by link-claude-agents)
+.github/copilot/
+.claude/
+
 # Testing
 .pytest_cache/
 .coverage

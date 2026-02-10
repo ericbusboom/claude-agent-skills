@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Link agent and skill definitions from this repository into target projects.
+Link agent, skill, and instruction definitions from this repository into
+target projects.
 
 This script creates symlinks from a target repository for both GitHub Copilot
 (.github/copilot/) and Claude Code (.claude/), adapting the layout to each
@@ -9,16 +10,20 @@ tool's expected directory structure.
 Source layout (this repo):
     agents/<name>.md
     skills/<name>.md
+    instructions/<name>.md
 
 Copilot target layout:
-    .github/copilot/agents/  ->  <source>/agents/
-    .github/copilot/skills/  ->  <source>/skills/
+    .github/copilot/agents/          ->  <source>/agents/
+    .github/copilot/skills/          ->  <source>/skills/
+    .github/copilot/instructions/    ->  <source>/instructions/
 
 Claude Code target layout:
-    .claude/agents/           ->  <source>/agents/
-    .claude/skills/<name>/SKILL.md  ->  <source>/skills/<name>.md
+    .claude/agents/                   ->  <source>/agents/
+    .claude/skills/<name>/SKILL.md   ->  <source>/skills/<name>.md
+    .claude/rules/                    ->  <source>/instructions/
 """
 
+import shutil
 import sys
 import argparse
 from pathlib import Path
@@ -55,14 +60,13 @@ def link_directory(source_path, target_path, dry_run=False):
         if target_path.resolve() == source_path.resolve():
             print(f"  Already linked: {target_path}")
             return
-        else:
-            print(f"  Replacing stale symlink: {target_path}")
-            if not dry_run:
-                target_path.unlink()
-
-    if target_path.exists():
-        print(f"  Skipping (already exists): {target_path}")
-        return
+        print(f"  Replacing symlink: {target_path}")
+        if not dry_run:
+            target_path.unlink()
+    elif target_path.exists():
+        print(f"  Replacing existing: {target_path}")
+        if not dry_run:
+            shutil.rmtree(target_path)
 
     print(f"  Linking: {target_path} -> {source_path}")
     if not dry_run:
@@ -81,14 +85,13 @@ def link_file(source_file, target_file, dry_run=False):
         if target_file.resolve() == source_file.resolve():
             print(f"  Already linked: {target_file}")
             return
-        else:
-            print(f"  Replacing stale symlink: {target_file}")
-            if not dry_run:
-                target_file.unlink()
-
-    if target_file.exists():
-        print(f"  Skipping (already exists): {target_file}")
-        return
+        print(f"  Replacing symlink: {target_file}")
+        if not dry_run:
+            target_file.unlink()
+    elif target_file.exists():
+        print(f"  Replacing existing: {target_file}")
+        if not dry_run:
+            target_file.unlink()
 
     print(f"  Linking: {target_file} -> {source_file}")
     if not dry_run:
@@ -136,6 +139,7 @@ def link_agents_and_skills(target_repo, dry_run=False):
 
     source_agents = repo_root / "agents"
     source_skills = repo_root / "skills"
+    source_instructions = repo_root / "instructions"
 
     print(f"Source repo: {repo_root}")
     print(f"Target repo: {target_repo}")
@@ -148,6 +152,8 @@ def link_agents_and_skills(target_repo, dry_run=False):
         copilot_dir.mkdir(parents=True, exist_ok=True)
     link_directory(source_agents, copilot_dir / "agents", dry_run)
     link_directory(source_skills, copilot_dir / "skills", dry_run)
+    if source_instructions.exists():
+        link_directory(source_instructions, copilot_dir / "instructions", dry_run)
     print()
 
     # --- Claude Code ---
@@ -157,15 +163,17 @@ def link_agents_and_skills(target_repo, dry_run=False):
         claude_dir.mkdir(parents=True, exist_ok=True)
     link_directory(source_agents, claude_dir / "agents", dry_run)
     link_claude_skills(source_skills, claude_dir, dry_run)
+    if source_instructions.exists():
+        link_directory(source_instructions, claude_dir / "rules", dry_run)
     print()
 
-    print("Done! Agent and skill definitions are now linked.")
+    print("Done! Agents, skills, and instructions are now linked.")
 
 
 def main():
     """Main entry point for the link-claude-agents command."""
     parser = argparse.ArgumentParser(
-        description="Link agent and skill definitions into the current repository"
+        description="Link agent, skill, and instruction definitions into the current repository"
     )
     parser.add_argument(
         "target",
