@@ -10,6 +10,18 @@ description: Instructions for testing conventions, test types, design for testab
 No ticket is considered finished until tests have been written to exercise the
 changes in that ticket. This is non-negotiable.
 
+## Test Placement (Mandatory)
+
+Every test file MUST go in the correct subdirectory. Never place test files
+directly in `tests/`.
+
+- **`tests/unit/`** — Tests a single module in isolation.
+- **`tests/system/`** — Tests multiple modules working together.
+- **`tests/dev/`** — Throwaway scripts used during development.
+
+When creating a new test file, decide: does this test one module, or does it
+exercise multiple modules interacting? That determines the directory.
+
 ## Test Types
 
 ### Unit Tests (`tests/unit/`)

@@ -108,12 +108,17 @@ def find_by_name(items: list[dict[str, str]], name: str) -> dict[str, str] | Non
 
 ```
 tests/
-├── test_module_a.py     # Tests for src/module_a.py
-├── test_module_b.py     # Tests for src/module_b.py
-└── conftest.py          # Shared fixtures
+├── unit/                    # One module in isolation
+│   ├── test_module_a.py
+│   └── test_module_b.py
+├── system/                  # Multiple modules together
+│   └── test_feature_x.py
+├── dev/                     # Throwaway dev scripts
+└── conftest.py              # Shared fixtures
 ```
 
 - One test file per source module. Name it `test_<module>.py`.
+- Place in `tests/unit/` or `tests/system/` — never directly in `tests/`.
 - Group related tests into classes: `class TestFeatureName:`.
 - Test function names describe the behavior: `test_raises_on_missing_file`.
 
