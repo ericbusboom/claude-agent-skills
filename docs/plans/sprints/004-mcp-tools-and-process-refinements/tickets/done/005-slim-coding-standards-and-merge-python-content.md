@@ -1,8 +1,9 @@
 ---
-id: "005"
+id: '005'
 title: Slim coding standards and merge Python content
-status: todo
-use-cases: [SUC-003]
+status: done
+use-cases:
+- SUC-003
 depends-on: []
 ---
 

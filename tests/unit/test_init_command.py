@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from claude_agent_skills.init_command import run_init, INSTRUCTION_CONTENT, MCP_CONFIG
+from claude_agent_skills.init_command import run_init, INSTRUCTION_CONTENT, MCP_CONFIG, SKILL_STUBS
 
 
 @pytest.fixture
@@ -68,6 +68,31 @@ class TestRunInit:
 
         settings_path = target_dir / ".claude" / "settings.json"
         assert not settings_path.exists()
+
+    def test_installs_skill_stubs(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        skills_dir = target_dir / ".claude" / "skills"
+        for filename, content in SKILL_STUBS.items():
+            stub = skills_dir / filename
+            assert stub.exists(), f"Missing stub: {filename}"
+            assert stub.read_text(encoding="utf-8") == content
+
+    def test_skill_stubs_reference_mcp(self):
+        for filename, content in SKILL_STUBS.items():
+            assert "get_skill_definition" in content, (
+                f"Stub {filename} should reference get_skill_definition"
+            )
+
+    def test_skill_stubs_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        skills_dir = target_dir / ".claude" / "skills"
+        for filename in SKILL_STUBS:
+            assert (skills_dir / filename).exists()
 
     def test_instruction_content_has_tool_reference(self):
         assert "get_se_overview" in INSTRUCTION_CONTENT

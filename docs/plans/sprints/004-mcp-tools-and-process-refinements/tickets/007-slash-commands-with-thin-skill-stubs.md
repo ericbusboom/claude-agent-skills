@@ -1,9 +1,12 @@
 ---
-id: "007"
+id: '007'
 title: Slash commands with thin skill stubs
-status: todo
-use-cases: [SUC-007]
-depends-on: ["002", "003"]
+status: in-progress
+use-cases:
+- SUC-007
+depends-on:
+- '002'
+- '003'
 ---
 
 # Slash commands with thin skill stubs

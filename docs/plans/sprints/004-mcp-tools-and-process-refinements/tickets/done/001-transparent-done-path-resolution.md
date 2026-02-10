@@ -1,8 +1,9 @@
 ---
-id: "001"
+id: '001'
 title: Transparent done path resolution
-status: todo
-use-cases: [SUC-005]
+status: done
+use-cases:
+- SUC-005
 depends-on: []
 ---
 

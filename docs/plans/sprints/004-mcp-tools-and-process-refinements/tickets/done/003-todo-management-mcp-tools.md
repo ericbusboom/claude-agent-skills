@@ -1,8 +1,9 @@
 ---
-id: "003"
+id: '003'
 title: TODO management MCP tools
-status: todo
-use-cases: [SUC-002]
+status: done
+use-cases:
+- SUC-002
 depends-on: []
 ---
 

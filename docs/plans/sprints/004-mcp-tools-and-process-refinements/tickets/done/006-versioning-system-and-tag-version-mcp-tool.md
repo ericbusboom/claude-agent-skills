@@ -1,8 +1,9 @@
 ---
-id: "006"
+id: '006'
 title: Versioning system and tag_version MCP tool
-status: todo
-use-cases: [SUC-006]
+status: done
+use-cases:
+- SUC-006
 depends-on: []
 ---
 

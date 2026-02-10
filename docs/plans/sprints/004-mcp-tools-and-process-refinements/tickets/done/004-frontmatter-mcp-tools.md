@@ -1,9 +1,11 @@
 ---
-id: "004"
+id: '004'
 title: Frontmatter MCP tools
-status: todo
-use-cases: [SUC-004]
-depends-on: ["001"]
+status: done
+use-cases:
+- SUC-004
+depends-on:
+- '001'
 ---
 
 # Frontmatter MCP tools

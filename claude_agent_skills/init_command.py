@@ -77,6 +77,42 @@ MCP_CONFIG = {
     }
 }
 
+# Thin skill stubs that delegate to MCP for real instructions.
+# Each key is the relative path under .claude/skills/, value is the content.
+SKILL_STUBS = {
+    "todo.md": """\
+---
+description: Create a TODO file from user input
+---
+
+# /todo
+
+To execute this skill, call the CLASI MCP tool `get_skill_definition("todo")`
+to retrieve the full instructions, then follow them.
+""",
+    "next.md": """\
+---
+description: Determine and execute the next process step
+---
+
+# /next
+
+To execute this skill, call the CLASI MCP tool `get_skill_definition("next")`
+to retrieve the full instructions, then follow them.
+""",
+    "status.md": """\
+---
+description: Run project status report
+---
+
+# /status
+
+To execute this skill, call the CLASI MCP tool
+`get_skill_definition("project-status")` to retrieve the full instructions,
+then follow them.
+""",
+}
+
 
 def _write_instruction_file(target: Path, rel_path: str) -> bool:
     """Write the instruction file at the given relative path.
@@ -92,6 +128,23 @@ def _write_instruction_file(target: Path, rel_path: str) -> bool:
 
     path.write_text(INSTRUCTION_CONTENT, encoding="utf-8")
     click.echo(f"  Wrote: {rel_path}")
+    return True
+
+
+def _write_skill_stub(target: Path, filename: str, content: str) -> bool:
+    """Write a skill stub file to .claude/skills/.
+
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    path = target / ".claude" / "skills" / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        click.echo(f"  Unchanged: .claude/skills/{filename}")
+        return False
+
+    path.write_text(content, encoding="utf-8")
+    click.echo(f"  Wrote: .claude/skills/{filename}")
     return True
 
 
@@ -137,6 +190,12 @@ def run_init(target: str) -> None:
     _write_instruction_file(
         target_path, ".github/copilot/instructions/clasi-se-process.md"
     )
+    click.echo()
+
+    # Install skill stubs
+    click.echo("Skill stubs:")
+    for filename, content in SKILL_STUBS.items():
+        _write_skill_stub(target_path, filename, content)
     click.echo()
 
     # Configure MCP server in .mcp.json at project root

@@ -1,8 +1,9 @@
 ---
-id: "002"
+id: '002'
 title: Fix clasi init for mcp.json
-status: todo
-use-cases: [SUC-001]
+status: done
+use-cases:
+- SUC-001
 depends-on: []
 ---
 
