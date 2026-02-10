@@ -86,6 +86,81 @@ pipx install .
 The `link-claude-agents` command is registered as a console script entry
 point in `pyproject.toml`.
 
+## Component: Git Workflow Instruction (`instructions/git-workflow.md`)
+
+**Purpose**: Define when and how agents commit, branch, and write commit
+messages during ticket execution.
+
+**Use Cases Addressed**: UC-005
+
+**Contents**:
+- Commit timing (commit at ticket completion, optionally at milestones)
+- Commit message format (conventional commits referencing ticket IDs)
+- Branch strategy (feature branches per ticket, or work on main — project choice)
+- Rules for agents: always commit before marking done, never force-push
+
+## Component: Coding Standards Instruction (`instructions/coding-standards.md`)
+
+**Purpose**: Shared coding conventions that all dev agents follow.
+
+**Use Cases Addressed**: UC-006, UC-007
+
+**Contents**:
+- Project structure conventions
+- Error handling patterns
+- Logging approach
+- Import ordering
+- Configuration management
+
+## Component: Updated Agent Definitions
+
+**Purpose**: Ground dev agents in the SE process so they know about tickets,
+plans, instructions, and acceptance criteria.
+
+**Use Cases Addressed**: UC-007
+
+**Changes**:
+- `agents/python-expert.md` — Add SE process awareness: read ticket plan,
+  follow testing and coding standards instructions, satisfy acceptance criteria.
+- `agents/documentation-expert.md` — Add `Write` and `Edit` tools. Add SE
+  process awareness.
+
+## Component: Updated SE Instructions (`instructions/system-engineering.md`)
+
+**Purpose**: Add review gates, error recovery, code review step, and
+definition of done to the SE workflow.
+
+**Use Cases Addressed**: UC-006, UC-008, UC-009
+
+**Changes**:
+- Add stakeholder review gates between phases (pause for approval)
+- Add error recovery patterns (test failures, plan gaps, ticket splitting)
+- Add code review step to ticket execution lifecycle
+- Add definition of done (beyond acceptance criteria)
+- Reference new instructions (git-workflow, coding-standards)
+
+## Component: Updated Execute-Ticket Skill (`skills/execute-ticket.md`)
+
+**Purpose**: Add code review step and git commit step to the ticket lifecycle.
+
+**Use Cases Addressed**: UC-005, UC-006
+
+**Changes**:
+- Add review step between testing and documentation
+- Add git commit step at ticket completion
+- Reference error recovery patterns
+
+## Component: Updated Project-Manager Agent (`agents/project-manager.md`)
+
+**Purpose**: Add stakeholder review gates and decision heuristics.
+
+**Use Cases Addressed**: UC-008, UC-009
+
+**Changes**:
+- Add review gates: pause for stakeholder approval after each phase
+- Add decision heuristics for ticket prioritization, blockers, scope creep
+- Add escalation rules
+
 ## Open Questions
 
 - Should the script also update target `.gitignore` to exclude symlinked

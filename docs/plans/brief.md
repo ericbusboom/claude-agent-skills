@@ -24,8 +24,11 @@ A pip-installable Python package that:
 2. Provides a CLI command (`link-claude-agents`) that symlinks these
    definitions into any target repository, adapting the directory layout to
    each tool's conventions (GitHub Copilot and Claude Code).
-3. Includes a system engineering process (instructions) that can be shared
-   across projects to standardize planning workflows.
+3. Includes a system engineering process (instructions, agents, skills) that
+   can be shared across projects to standardize planning workflows.
+4. Provides a robust, agent-driven SE process where agents are grounded in
+   the process, follow git conventions, perform code review, handle errors
+   gracefully, and gate progress on stakeholder approval.
 
 ## Target Users
 
@@ -45,9 +48,20 @@ A pip-installable Python package that:
   agents, skills, and instructions for both Copilot and Claude Code.
 - Changes to source definitions are immediately visible in all linked projects.
 - The SE process instructions are discoverable by both AI tools.
+- Agents follow a defined git workflow (commit per ticket, meaningful messages).
+- Code review is a required gate before any ticket is marked done.
+- Dev agents (python-expert, documentation-expert) are grounded in the SE
+  process — they know about tickets, ticket plans, testing instructions, and
+  acceptance criteria.
+- The process includes stakeholder review gates between phases.
+- Error recovery patterns guide agents when tests fail, plans have gaps, or
+  tickets need splitting.
+- A coding standards instruction provides consistent conventions across agents.
 
 ## Out of Scope
 
-- Runtime agent orchestration or execution.
+- Runtime agent orchestration or execution engine.
 - Per-project customization of shared definitions (projects that need
   customization should create their own local definitions).
+- CI/CD pipeline integration (instructions describe local workflow only).
+- Language-specific agents beyond Python (future expansion).
