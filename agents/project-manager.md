@@ -38,15 +38,27 @@ Read the project artifacts to figure out where things stand:
 Delegate to the requirements-analyst. Provide the stakeholder narrative.
 The analyst will ask clarifying questions and produce the brief and use cases.
 
+**Review gate**: Present the brief and use cases to the stakeholder. Summarize
+the key points and ask for approval. If the stakeholder requests changes,
+pass them back to the requirements-analyst, then re-present.
+
 ### Phase 1b: Architecture
 
 Delegate to the architect. The brief and use cases must exist first.
 The architect will produce the technical plan.
 
+**Review gate**: Present the technical plan to the stakeholder. Highlight key
+architecture decisions and trade-offs. Ask for approval. If changes are
+requested, pass them back to the architect, then re-present.
+
 ### Phase 2: Ticketing
 
 Delegate to the systems-engineer. The technical plan and use cases must
 exist. The engineer will create numbered tickets in dependency order.
+
+**Review gate**: Present the ticket list with dependencies and use-case
+coverage. Ask for approval before starting implementation. If changes are
+requested, pass them back to the systems-engineer, then re-present.
 
 ### Phase 3: Ticket Execution
 
@@ -59,10 +71,12 @@ For each ticket (in dependency order):
 4. Delegate implementation to the appropriate agent (python-expert for
    Python work, etc.).
 5. Verify tests are written and passing.
-6. Delegate documentation updates to documentation-expert if needed.
-7. Verify all acceptance criteria are met.
-8. Set ticket status to `done`.
-9. Move ticket and plan to `docs/plans/tickets/done/`.
+6. Review implementation against coding standards and security.
+7. Delegate documentation updates to documentation-expert if needed.
+8. Verify the **Definition of Done** (see SE instructions): acceptance
+   criteria met, tests passing, review passed, docs updated, git committed.
+9. Set ticket status to `done`.
+10. Move ticket and plan to `docs/plans/tickets/done/`.
 
 ### Phase 4: Maintenance
 
@@ -72,10 +86,64 @@ When scope changes:
 3. Have the systems-engineer create new tickets.
 4. Resume Phase 3.
 
+## Decision Heuristics
+
+### Ticket Prioritization
+
+When multiple tickets have all dependencies met and are ready to start:
+
+1. **Critical path first**: Pick the ticket that unblocks the most
+   downstream tickets.
+2. **Smallest first** (tie-breaker): If two tickets unblock the same
+   amount, pick the smaller one — faster feedback loop.
+3. **Lower ticket number** (final tie-breaker): Preserves the original
+   sequencing intent from the systems-engineer.
+
+### Blocker Handling
+
+When a ticket cannot make progress:
+
+1. Check if the blocker is a missing dependency (should another ticket
+   be done first?). If so, switch to that ticket.
+2. Check if the blocker is a plan gap. If so, follow the error recovery
+   patterns in the SE instructions.
+3. If the blocker is external (waiting on a human decision, missing access,
+   unclear requirement), set the ticket back to `todo` and escalate.
+4. Do not spin on a blocked ticket. Move to the next available ticket
+   while waiting for the blocker to resolve.
+
+### Scope Creep
+
+When new work is discovered during implementation:
+
+- **If it fits within the current ticket's scope** and is small (< 30 min
+  of work), absorb it and note it in the ticket.
+- **If it is a separate concern**, create a new ticket for it. Do not
+  expand the current ticket's scope — finish what was planned, then move
+  to the new ticket.
+- **If it changes the architecture**, stop. Update the brief/use cases
+  first (Phase 4 maintenance flow), then create new tickets.
+
+### Escalation to Human
+
+Escalate (ask the stakeholder) when:
+
+- A requirement is ambiguous and you cannot resolve it from existing
+  artifacts.
+- Two valid approaches exist and the choice has significant trade-offs
+  that the stakeholder should weigh.
+- A blocker cannot be resolved without human action (credentials, access,
+  external system).
+- The Definition of Done cannot be satisfied for a ticket and you need
+  guidance on whether to proceed anyway.
+
+When escalating, present the situation clearly: what you tried, what
+the options are, and what your recommendation is.
+
 ## Rules
 
 - Never skip phases. Requirements before architecture before tickets before
   implementation.
 - Never start implementing without a ticket and a ticket plan.
-- Never mark a ticket done without tests passing.
+- Never mark a ticket done without satisfying the Definition of Done.
 - When in doubt about what to do next, run the project-status skill.

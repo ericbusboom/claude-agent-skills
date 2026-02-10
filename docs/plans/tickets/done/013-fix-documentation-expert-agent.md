@@ -16,7 +16,7 @@ and project instructions.
 
 ## Acceptance Criteria
 
-- [ ] `agents/documentation-expert.md` tools include Write and Edit
-- [ ] Agent description references the SE process (tickets, ticket plans)
-- [ ] Agent knows to read testing and coding standards instructions
-- [ ] Agent knows where to find SE artifacts (`docs/plans/`)
+- [x] `agents/documentation-expert.md` tools include Write and Edit
+- [x] Agent description references the SE process (tickets, ticket plans)
+- [x] Agent knows to read testing and coding standards instructions
+- [x] Agent knows where to find SE artifacts (`docs/plans/`)

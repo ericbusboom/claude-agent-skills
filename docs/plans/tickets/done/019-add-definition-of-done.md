@@ -1,7 +1,7 @@
 ---
 id: "019"
 title: Add definition of done to SE instructions
-status: todo
+status: done
 use-cases: [UC-006, UC-007]
 depends-on: ["011", "012", "015"]
 ---
@@ -17,7 +17,7 @@ no new warnings. This replaces the ad-hoc completion checks.
 
 ## Acceptance Criteria
 
-- [ ] SE instructions include a "Definition of Done" section
-- [ ] DoD lists all required gates (tests, review, docs, git, acceptance criteria)
-- [ ] "Completing a Ticket" section references the DoD
-- [ ] project-manager agent references the DoD when verifying completion
+- [x] SE instructions include a "Definition of Done" section
+- [x] DoD lists all required gates (tests, review, docs, git, acceptance criteria)
+- [x] "Completing a Ticket" section references the DoD
+- [x] project-manager agent references the DoD when verifying completion

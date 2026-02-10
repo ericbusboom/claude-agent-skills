@@ -1,7 +1,7 @@
 ---
 id: "020"
 title: Add decision heuristics to project-manager agent
-status: todo
+status: done
 use-cases: [UC-008, UC-009]
 depends-on: ["016", "017"]
 ---
@@ -16,7 +16,7 @@ scope creep, and when to escalate to the human.
 
 ## Acceptance Criteria
 
-- [ ] project-manager agent includes ticket prioritization heuristics
-- [ ] Includes blocker handling guidance
-- [ ] Includes scope creep handling (new ticket vs. absorb)
-- [ ] Includes escalation criteria (when to ask the human)
+- [x] project-manager agent includes ticket prioritization heuristics
+- [x] Includes blocker handling guidance
+- [x] Includes scope creep handling (new ticket vs. absorb)
+- [x] Includes escalation criteria (when to ask the human)

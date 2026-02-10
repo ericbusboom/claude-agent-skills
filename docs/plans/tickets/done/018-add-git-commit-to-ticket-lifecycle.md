@@ -1,7 +1,7 @@
 ---
 id: "018"
 title: Add git commit step to ticket lifecycle
-status: todo
+status: done
 use-cases: [UC-005]
 depends-on: ["011"]
 ---
@@ -16,6 +16,6 @@ follow the conventions defined in the git workflow instruction.
 
 ## Acceptance Criteria
 
-- [ ] `skills/execute-ticket.md` includes a git commit step before moving ticket to done
-- [ ] Commit message format references ticket ID
-- [ ] `instructions/system-engineering.md` "Completing a Ticket" section includes commit step
+- [x] `skills/execute-ticket.md` includes a git commit step before moving ticket to done
+- [x] Commit message format references ticket ID
+- [x] `instructions/system-engineering.md` "Completing a Ticket" section includes commit step

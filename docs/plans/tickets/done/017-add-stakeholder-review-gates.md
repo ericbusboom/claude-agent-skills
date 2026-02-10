@@ -1,7 +1,7 @@
 ---
 id: "017"
 title: Add stakeholder review gates between phases
-status: todo
+status: done
 use-cases: [UC-009]
 depends-on: []
 ---
@@ -16,7 +16,7 @@ present each phase's output and wait for approval before advancing.
 
 ## Acceptance Criteria
 
-- [ ] SE instructions define review gates after Phase 1a, 1b, and 2
-- [ ] Each gate specifies what is presented and what approval means
-- [ ] project-manager agent description includes pause-for-approval behavior
-- [ ] Revision cycle is documented (stakeholder requests changes → agent revises → re-present)
+- [x] SE instructions define review gates after Phase 1a, 1b, and 2
+- [x] Each gate specifies what is presented and what approval means
+- [x] project-manager agent description includes pause-for-approval behavior
+- [x] Revision cycle is documented (stakeholder requests changes → agent revises → re-present)

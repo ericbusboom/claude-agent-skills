@@ -37,6 +37,11 @@ Reusable workflows that correspond to each phase:
 - **execute-ticket** — Phase 3: ticket → plan → implement → test → done
 - **project-status** — Anytime: scan artifacts and report progress
 
+Supporting skills used during ticket execution:
+
+- **python-code-review** — Code review against coding standards and security
+- **generate-documentation** — Create or update project documentation
+
 ## Artifacts
 
 ### 1. Brief (`docs/plans/brief.md`)
@@ -125,56 +130,114 @@ Skill: **elicit-requirements**
    constraints, and success criteria.
 3. Write the brief.
 4. Derive use cases from the brief.
+5. **Review gate**: Present the brief and use cases to the stakeholder.
+   Wait for approval before proceeding. If the stakeholder requests changes,
+   revise and re-present.
 
 ### Phase 1b: Architecture (architect)
 
 Skill: **create-technical-plan**
 
-5. Read the brief and use cases.
-6. Design the architecture and write the technical plan.
-7. Verify every component traces to at least one use case.
+1. Read the brief and use cases.
+2. Design the architecture and write the technical plan.
+3. Verify every component traces to at least one use case.
+4. **Review gate**: Present the technical plan to the stakeholder.
+   Wait for approval before proceeding. If the stakeholder requests changes,
+   revise and re-present.
 
 ### Phase 2: Ticketing (systems-engineer)
 
 Skill: **create-tickets**
 
-8. Break the technical plan into numbered tickets in dependency order.
-9. Ensure every use case is covered by at least one ticket.
-10. Ensure every ticket traces to at least one use case.
+1. Break the technical plan into numbered tickets in dependency order.
+2. Ensure every use case is covered by at least one ticket.
+3. Ensure every ticket traces to at least one use case.
+4. **Review gate**: Present the ticket list to the stakeholder. Walk
+   through the sequencing and coverage. Wait for approval before starting
+   implementation. If the stakeholder requests changes, revise and re-present.
 
 ### Phase 3: Implementation (project-manager coordinates)
 
 Skill: **execute-ticket** (repeated for each ticket)
 
-11. Pick the next `todo` ticket whose dependencies are all `done`.
-12. Create the ticket plan (`NNN-slug-plan.md`).
-13. Set the ticket status to `in-progress` in its YAML frontmatter.
-14. Implement the ticket following its plan (python-expert or appropriate
-    dev agent).
-15. Write tests as specified in the plan.
-16. Update documentation as specified in the plan (documentation-expert).
-17. Verify all acceptance criteria are met and check them off (`[x]`).
-18. Complete the ticket (see **Completing a Ticket** below).
+1. Pick the next `todo` ticket whose dependencies are all `done`.
+2. Create the ticket plan (`NNN-slug-plan.md`).
+3. Set the ticket status to `in-progress` in its YAML frontmatter.
+4. Implement the ticket following its plan (python-expert or appropriate
+   dev agent).
+5. Write tests as specified in the plan.
+6. Review the implementation: check coding standards, security, test
+   coverage, and acceptance criteria. Fix any issues.
+7. Update documentation as specified in the plan (documentation-expert).
+8. Verify all acceptance criteria are met and check them off (`[x]`).
+9. Complete the ticket (see **Completing a Ticket** below).
+
+#### Definition of Done
+
+A ticket is not done until ALL of the following are true:
+
+- [ ] All acceptance criteria in the ticket are met and checked off
+- [ ] Tests are written and passing (see `instructions/testing.md`)
+- [ ] Code review passed (coding standards, security, test coverage)
+- [ ] Documentation updated as specified in the ticket plan
+- [ ] Changes committed to git with a message referencing the ticket ID
+- [ ] Ticket and plan moved to `docs/plans/tickets/done/`
+
+Do not mark a ticket done if any item is incomplete. If an item cannot be
+satisfied, document why in the ticket before completing.
 
 #### Completing a Ticket
 
-When a ticket's work is finished and all acceptance criteria are met:
+When a ticket satisfies the Definition of Done:
 
 1. Set the ticket's `status` to `done` in its YAML frontmatter.
 2. Check off all acceptance criteria (`- [x]`).
-3. Move the ticket file to `docs/plans/tickets/done/`.
-4. Move the ticket plan file to `docs/plans/tickets/done/`.
+3. Commit all changes following `instructions/git-workflow.md`. The commit
+   message must reference the ticket ID (e.g., `feat: add auth endpoint (#003)`).
+4. Move the ticket file to `docs/plans/tickets/done/`.
+5. Move the ticket plan file to `docs/plans/tickets/done/`.
 
 Active tickets live in `docs/plans/tickets/`. Completed tickets live in
 `docs/plans/tickets/done/`. This separation makes it easy to see at a glance
 what work remains (active directory) versus what has been finished (done
 directory).
 
+#### Error Recovery
+
+Things go wrong during implementation. Here is what to do.
+
+**Test failures:**
+1. Read the error output carefully. Diagnose the root cause.
+2. Fix the code (not the test, unless the test is wrong).
+3. Re-run the tests. Repeat until all pass.
+4. If the failure reveals a flaw in the ticket plan, update the plan.
+
+**Plan gaps** (the plan missed something needed for implementation):
+1. If the gap is small and local (e.g., a missing helper function), update
+   the ticket plan and continue.
+2. If the gap is architectural (e.g., a missing component, wrong API design),
+   stop implementation. Flag the gap to the architect. Update the technical
+   plan first, then update the ticket plan, then resume.
+
+**Ticket too large** (the ticket is taking much longer than expected):
+1. Stop and assess what is done vs. what remains.
+2. Split the ticket: complete and close the part that is done (with tests).
+3. Create a new ticket for the remaining work. Update dependencies so the
+   new ticket depends on the closed one.
+4. Resume with the new ticket.
+
+**Unresolvable blockers:**
+1. If you cannot make progress despite trying the above patterns, stop.
+2. Document what you tried and what blocked you in the ticket.
+3. Set the ticket status back to `todo` (not `in-progress` — it is not
+   being actively worked).
+4. Escalate to the human: explain the blocker and ask for guidance.
+
 ### Phase 4: Maintenance
 
-18. If a change alters scope, update the brief and affected use cases first.
-19. If new work is needed, create new tickets following the numbering
-    sequence.
+1. If a change alters scope, update the brief and affected use cases first.
+2. If new work is needed, create new tickets following the numbering
+   sequence.
 
 ## Directory Layout
 
@@ -202,10 +265,14 @@ docs/plans/
   jumping straight to code.
 - When asked to implement, find the next unfinished ticket and work from it.
 - Always create a ticket plan before starting implementation.
-- No ticket is done without tests. See the testing instructions.
-- When a ticket is completed, update its frontmatter status to `done`,
-  check off all acceptance criteria, and move the ticket and its plan to
-  `docs/plans/tickets/done/`. Do this immediately — do not batch completions.
+- A ticket is not done until it satisfies the **Definition of Done** (see
+  above): acceptance criteria met, tests passing, code review passed,
+  documentation updated, changes committed to git.
+- Follow `instructions/coding-standards.md` when writing code.
+- Follow `instructions/git-workflow.md` when committing changes.
+- Follow `instructions/testing.md` when writing tests.
+- When a ticket is completed, follow the **Completing a Ticket** steps
+  immediately — do not batch completions.
 - Do not create new artifacts without updating the existing ones to stay
   consistent.
 - If a change alters scope, update the brief and affected use cases first.

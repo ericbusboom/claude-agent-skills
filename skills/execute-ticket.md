@@ -37,10 +37,21 @@ completion, coordinating multiple agents.
    testing instructions (unit tests in `tests/unit/`, system tests in
    `tests/system/`, dev tests in `tests/dev/`).
 6. **Run tests**: Verify all tests pass.
-7. **Update documentation**: Update any docs specified in the plan.
-8. **Verify acceptance criteria**: Check every criterion in the ticket.
+7. **Code review** (skill: **python-code-review**): Review the implementation
+   against:
+   - Coding standards (`instructions/coding-standards.md`)
+   - Security (no injection, no secrets, safe input handling)
+   - Test coverage (every acceptance criterion has a corresponding test)
+   - Acceptance criteria (does the code actually satisfy them?)
+   Fix any issues found before proceeding.
+8. **Update documentation** (skill: **generate-documentation**): Update any
+   docs specified in the plan. Delegate to documentation-expert.
+9. **Verify acceptance criteria**: Check every criterion in the ticket.
    All must be met.
-9. **Complete the ticket**:
+10. **Git commit**: Commit all changes from this ticket following the
+    conventions in `instructions/git-workflow.md`. The commit message must
+    reference the ticket ID (e.g., `feat: add auth endpoint (#003)`).
+11. **Complete the ticket**:
    - Set `status` to `done` in the ticket's YAML frontmatter.
    - Check off all acceptance criteria (`- [x]`).
    - Move the ticket file to `docs/plans/tickets/done/`.

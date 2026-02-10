@@ -1,7 +1,7 @@
 ---
 id: "015"
 title: Add code review gate to ticket lifecycle
-status: todo
+status: done
 use-cases: [UC-006]
 depends-on: ["012"]
 ---
@@ -17,7 +17,7 @@ acceptance criteria. Issues must be resolved before completion.
 
 ## Acceptance Criteria
 
-- [ ] `skills/execute-ticket.md` includes a review step after testing
-- [ ] Review checks are defined (standards, security, test coverage, acceptance criteria)
-- [ ] Review findings must be resolved before ticket completion
-- [ ] `instructions/system-engineering.md` Phase 3 references code review step
+- [x] `skills/execute-ticket.md` includes a review step after testing
+- [x] Review checks are defined (standards, security, test coverage, acceptance criteria)
+- [x] Review findings must be resolved before ticket completion
+- [x] `instructions/system-engineering.md` Phase 3 references code review step

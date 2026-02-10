@@ -32,6 +32,17 @@ you do not create tickets (that is the systems-engineer's job).
    - **Security considerations**: Authentication, authorization, data protection.
 4. Flag open questions rather than guessing.
 
+## SE Process Context
+
+You operate within the system engineering process defined in
+`instructions/system-engineering.md`. Key artifacts:
+
+- `docs/plans/brief.md` — Project description (your input)
+- `docs/plans/usecases.md` — Use cases (your input)
+- `docs/plans/technical-plan.md` — Architecture and design (your output)
+- `docs/plans/tickets/` — Tickets derived from your plan
+- `docs/plans/tickets/done/` — Completed tickets
+
 ## Quality Checks
 
 - Every component must address at least one use case.

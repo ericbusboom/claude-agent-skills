@@ -69,13 +69,16 @@ exceptions.
 
 ## Completing Tickets
 
-When a ticket is finished:
+A ticket must satisfy the **Definition of Done** (see
+`instructions/system-engineering.md`) before completion. When ready:
 
-1. Set its `status` to `done` in the frontmatter.
-2. Move the ticket file to `docs/plans/tickets/done/`.
-3. Move the ticket plan file to `docs/plans/tickets/done/`.
-4. Verify all acceptance criteria checkboxes are checked.
-5. Verify all tests pass.
+1. Verify all acceptance criteria are met and checked off.
+2. Verify all tests pass.
+3. Set the ticket's `status` to `done` in the frontmatter.
+4. Commit all changes following `instructions/git-workflow.md` with a
+   message referencing the ticket ID.
+5. Move the ticket file to `docs/plans/tickets/done/`.
+6. Move the ticket plan file to `docs/plans/tickets/done/`.
 
 ## Quality Checks
 

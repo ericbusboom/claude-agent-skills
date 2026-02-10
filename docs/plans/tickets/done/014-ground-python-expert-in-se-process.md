@@ -1,7 +1,7 @@
 ---
 id: "014"
 title: Ground python-expert agent in SE process
-status: todo
+status: done
 use-cases: [UC-007]
 depends-on: []
 ---
@@ -17,8 +17,8 @@ with one grounded in the workflow.
 
 ## Acceptance Criteria
 
-- [ ] `agents/python-expert.md` references tickets and ticket plans
-- [ ] Agent knows to read the ticket plan before implementing
-- [ ] Agent references testing instructions and coding standards
-- [ ] Agent knows to satisfy acceptance criteria from the ticket
-- [ ] Agent knows where to find SE artifacts (`docs/plans/`)
+- [x] `agents/python-expert.md` references tickets and ticket plans
+- [x] Agent knows to read the ticket plan before implementing
+- [x] Agent references testing instructions and coding standards
+- [x] Agent knows to satisfy acceptance criteria from the ticket
+- [x] Agent knows where to find SE artifacts (`docs/plans/`)
