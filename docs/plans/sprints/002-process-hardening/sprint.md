@@ -73,4 +73,19 @@ checklist, and explicit traceability between sprint and project use cases.
 
 ## Tickets
 
-(To be created after sprint approval.)
+| ID  | Title | Depends On |
+|-----|-------|-----------|
+| 001 | State DB schema and core functions | — |
+| 002 | Phase transition logic | 001 |
+| 003 | Gate recording | 001 |
+| 004 | Execution locks | 001 |
+| 005 | State MCP tools | 002, 003, 004 |
+| 006 | Gate enforcement in create_ticket and update_ticket_status | 005 |
+| 007 | Integrate state DB with create_sprint and close_sprint | 005 |
+| 008 | Sprint template Definition of Ready | — |
+| 009 | Use case traceability | — |
+| 010 | Update skills for phase tracking | 007 |
+
+Independent starting points: 001, 008, 009
+
+Critical path: 001 → 002/003/004 → 005 → 006/007 → 010
