@@ -1,7 +1,7 @@
 ---
 id: "011"
 title: Migrate old tickets to sprint 000
-status: todo
+status: done
 use-cases: []
 depends-on: []
 ---

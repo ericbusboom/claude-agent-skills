@@ -1,7 +1,7 @@
 ---
 id: "013"
 title: Update SE instructions for sprint-as-directory
-status: todo
+status: done
 use-cases: [SUC-003]
 depends-on: []
 ---

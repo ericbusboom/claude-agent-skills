@@ -1,7 +1,7 @@
 ---
 id: "012"
 title: Remove symlink code
-status: todo
+status: done
 use-cases: []
 depends-on: ["003"]
 ---
