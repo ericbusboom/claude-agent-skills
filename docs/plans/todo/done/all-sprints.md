@@ -1,20 +1,3 @@
-# Mermaid diagrams
-
-When we when we are creating briefs and technical plans, about when we're
-creating technical plans you should be illustrating important things with
-Mermaid documents. You don't need to do everything. Most of the flow diagrams,
-the swim lane diagrams I find are kind of useless unless you're really doing
-something that has to be sequencing between multiple things. But I do want to
-have diagrams showing modularity and interaction between sub-systems. Those
-diagrams when they're created should show the system as it will exist at the end
-of the sprint. So you're showing, and you don't have to show individual classes
-so much. If the system's small and the individual classes are important, then
-let's do that. But for the most part, we're looking at subsystems and what's the
-communication between the subsystems. If you are going to do class diagrams,
-then just do them within the subsystem. I don't need to see huge class diagrams
-that list all the classes, but we do want to see what's the layout and structure
-of things within a subsystem. 
-
 # All Sprints. 
 
 
@@ -36,4 +19,4 @@ might be in the top-level document, the first document you make. We're going to
 talk about how we might sequence the process so we kinda know what our first
 sprint is going to be. But, you know, that top-level document should be real
 general. And then all of the details and all of the tickets are always inside a
-sprint. 
+sprint.
