@@ -1,9 +1,11 @@
 ---
-id: "003"
+id: '003'
 title: Document Restructuring
-status: planning
+status: done
 branch: sprint/003-document-restructuring
-use-cases: [UC-004, UC-009]
+use-cases:
+- UC-004
+- UC-009
 ---
 
 # Sprint 003: Document Restructuring
