@@ -19,6 +19,10 @@ from claude_agent_skills.artifact_tools import (
     close_sprint,
 )
 from claude_agent_skills.frontmatter import read_frontmatter
+from claude_agent_skills.state_db import (
+    advance_phase,
+    record_gate,
+)
 
 
 @pytest.fixture
@@ -26,6 +30,16 @@ def work_dir(tmp_path, monkeypatch):
     """Set up a temporary working directory with docs/plans/sprints/ structure."""
     monkeypatch.chdir(tmp_path)
     return tmp_path
+
+
+def _advance_to_ticketing(work_dir, sprint_id: str) -> None:
+    """Advance a sprint through review gates to ticketing phase for testing."""
+    db_path = work_dir / "docs" / "plans" / ".clasi.db"
+    advance_phase(db_path, sprint_id)  # planning-docs → architecture-review
+    record_gate(db_path, sprint_id, "architecture_review", "passed")
+    advance_phase(db_path, sprint_id)  # architecture-review → stakeholder-review
+    record_gate(db_path, sprint_id, "stakeholder_approval", "passed")
+    advance_phase(db_path, sprint_id)  # stakeholder-review → ticketing
 
 
 class TestCreateSprint:
@@ -57,12 +71,14 @@ class TestCreateSprint:
 class TestCreateTicket:
     def test_creates_ticket(self, work_dir):
         create_sprint("My Sprint")
+        _advance_to_ticketing(work_dir, "001")
         result = json.loads(create_ticket("001", "Add Feature"))
         assert result["id"] == "001"
         assert "001-add-feature.md" in result["path"]
 
     def test_auto_increments(self, work_dir):
         create_sprint("My Sprint")
+        _advance_to_ticketing(work_dir, "001")
         create_ticket("001", "First")
         result = json.loads(create_ticket("001", "Second"))
         assert result["id"] == "002"
@@ -70,6 +86,11 @@ class TestCreateTicket:
     def test_invalid_sprint(self, work_dir):
         with pytest.raises(ValueError, match="not found"):
             create_ticket("999", "Orphan")
+
+    def test_blocked_before_ticketing_phase(self, work_dir):
+        create_sprint("My Sprint")
+        with pytest.raises(ValueError, match="planning-docs.*phase"):
+            create_ticket("001", "Too Early")
 
 
 class TestCreateTopLevelArtifacts:
@@ -115,6 +136,7 @@ class TestListSprints:
 class TestListTickets:
     def test_lists_tickets(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         create_ticket("001", "Task A")
         create_ticket("001", "Task B")
         result = json.loads(list_tickets())
@@ -123,6 +145,8 @@ class TestListTickets:
     def test_filter_by_sprint(self, work_dir):
         create_sprint("Sprint 1")
         create_sprint("Sprint 2")
+        _advance_to_ticketing(work_dir, "001")
+        _advance_to_ticketing(work_dir, "002")
         create_ticket("001", "Task in S1")
         create_ticket("002", "Task in S2")
         result = json.loads(list_tickets(sprint_id="001"))
@@ -131,6 +155,7 @@ class TestListTickets:
 
     def test_filter_by_status(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         create_ticket("001", "Todo Task")
         result = json.loads(list_tickets(status="todo"))
         assert len(result) == 1
@@ -141,6 +166,7 @@ class TestListTickets:
 class TestGetSprintStatus:
     def test_status_with_tickets(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         create_ticket("001", "Task A")
         create_ticket("001", "Task B")
         result = json.loads(get_sprint_status("001"))
@@ -157,6 +183,7 @@ class TestGetSprintStatus:
 class TestUpdateTicketStatus:
     def test_updates_status(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         ticket = json.loads(create_ticket("001", "Task"))
         result = json.loads(update_ticket_status(ticket["path"], "in-progress"))
         assert result["old_status"] == "todo"
@@ -166,6 +193,7 @@ class TestUpdateTicketStatus:
 
     def test_invalid_status(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         ticket = json.loads(create_ticket("001", "Task"))
         with pytest.raises(ValueError, match="Invalid status"):
             update_ticket_status(ticket["path"], "invalid")
@@ -174,6 +202,7 @@ class TestUpdateTicketStatus:
 class TestMoveTicketToDone:
     def test_moves_ticket(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         ticket = json.loads(create_ticket("001", "Task"))
         result = json.loads(move_ticket_to_done(ticket["path"]))
         assert not os.path.exists(result["old_path"])
@@ -182,6 +211,7 @@ class TestMoveTicketToDone:
 
     def test_moves_plan_too(self, work_dir):
         create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
         ticket = json.loads(create_ticket("001", "Task"))
         # Create a plan file
         from pathlib import Path

@@ -17,6 +17,7 @@ from claude_agent_skills.state_db import (
     acquire_lock as _acquire_lock,
     release_lock as _release_lock,
     get_sprint_state as _get_sprint_state,
+    register_sprint as _register_sprint,
 )
 from claude_agent_skills.templates import (
     slugify,
@@ -133,12 +134,47 @@ def create_sprint(title: str) -> str:
         path.write_text(template.format(**fmt), encoding="utf-8")
         files[name] = str(path)
 
+    # Register sprint in state database (lazy init)
+    try:
+        _register_sprint(
+            str(_db_path()), sprint_id, slug, f"sprint/{sprint_id}-{slug}"
+        )
+    except Exception:
+        pass  # Graceful degradation if DB fails
+
     return json.dumps({
         "id": sprint_id,
         "path": str(sprint_dir),
         "branch": f"sprint/{sprint_id}-{slug}",
         "files": files,
+        "phase": "planning-docs",
     }, indent=2)
+
+
+def _check_sprint_phase_for_ticketing(sprint_id: str) -> None:
+    """Check that a sprint is in ticketing phase or later.
+
+    Degrades gracefully: if the DB doesn't exist or the sprint isn't
+    registered, the check is skipped (backward compatibility).
+    """
+    db = _db_path()
+    if not db.exists():
+        return
+    try:
+        from claude_agent_skills.state_db import PHASES
+        state = _get_sprint_state(str(db), sprint_id)
+        phase_idx = PHASES.index(state["phase"])
+        ticketing_idx = PHASES.index("ticketing")
+        if phase_idx < ticketing_idx:
+            raise ValueError(
+                f"Cannot create tickets: sprint '{sprint_id}' is in "
+                f"'{state['phase']}' phase. Tickets can only be created "
+                f"in 'ticketing' phase or later. Complete the review gates first."
+            )
+    except ValueError as e:
+        if "not registered" in str(e):
+            return  # Sprint not in DB — allow (backward compat)
+        raise
 
 
 @server.tool()
@@ -146,11 +182,13 @@ def create_ticket(sprint_id: str, title: str) -> str:
     """Create a new ticket in a sprint's tickets/ directory.
 
     Auto-assigns the next ticket number within the sprint.
+    Checks sprint phase if the state database exists.
 
     Args:
         sprint_id: The sprint ID (e.g., '001')
         title: The ticket title
     """
+    _check_sprint_phase_for_ticketing(sprint_id)
     sprint_dir = _find_sprint_dir(sprint_id)
     ticket_id = _next_ticket_id(sprint_dir)
     slug = slugify(title)
@@ -437,6 +475,24 @@ def close_sprint(sprint_id: str) -> str:
         raise ValueError(f"Destination already exists: {new_path}")
 
     shutil.move(str(sprint_dir), str(new_path))
+
+    # Update state database: advance to done and release lock
+    db = _db_path()
+    if db.exists():
+        try:
+            state = _get_sprint_state(str(db), sprint_id)
+            # Advance through closing → done if needed
+            from claude_agent_skills.state_db import PHASES
+            phase_idx = PHASES.index(state["phase"])
+            done_idx = PHASES.index("done")
+            while phase_idx < done_idx:
+                _advance_phase(str(db), sprint_id)
+                phase_idx += 1
+            # Release execution lock if held
+            if state["lock"]:
+                _release_lock(str(db), sprint_id)
+        except (ValueError, Exception):
+            pass  # Graceful degradation
 
     return json.dumps({
         "old_path": str(sprint_dir),

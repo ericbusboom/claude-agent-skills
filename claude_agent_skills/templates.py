@@ -54,6 +54,14 @@ use-cases: []
 
 (Key design decisions and constraints.)
 
+## Definition of Ready
+
+Before tickets can be created, all of the following must be true:
+
+- [ ] Sprint planning documents are complete (sprint.md, brief, use cases, technical plan)
+- [ ] Architecture review passed
+- [ ] Stakeholder has approved the sprint plan
+
 ## Tickets
 
 (To be created after sprint approval.)
@@ -87,6 +95,7 @@ status: draft
 # Sprint {id} Use Cases
 
 ## SUC-001: (Title)
+Parent: UC-XXX
 
 - **Actor**: (Who)
 - **Preconditions**: (What must be true before)

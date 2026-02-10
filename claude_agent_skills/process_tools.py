@@ -254,3 +254,81 @@ def get_activity_guide(activity: str) -> str:
         sections.append(f"## Instruction: {instr_name}\n\n{content}")
 
     return "\n\n---\n\n".join(sections)
+
+
+# --- Use case traceability (ticket 009, sprint 002) ---
+
+
+def _parse_parent_refs(content: str) -> list[str]:
+    """Extract Parent: UC-XXX references from use case content."""
+    import re
+    return re.findall(r"Parent:\s*((?:UC|SC)-\d+)", content)
+
+
+@server.tool()
+def get_use_case_coverage() -> str:
+    """Report use case coverage across sprints.
+
+    Reads top-level use cases and each sprint's use cases,
+    matching parent references to report which top-level use cases
+    are covered by completed, active, or planned sprints.
+
+    Returns JSON with coverage data.
+    """
+    plans_dir = Path.cwd() / "docs" / "plans"
+    sprints_dir = plans_dir / "sprints"
+
+    # Read top-level use cases
+    top_level = {}
+    top_uc_file = plans_dir / "usecases.md"
+    if top_uc_file.exists():
+        _, content = read_document(top_uc_file)
+        import re
+        for match in re.finditer(r"##\s+(UC-\d+):\s*(.+)", content):
+            top_level[match.group(1)] = {
+                "title": match.group(2).strip(),
+                "covered_by": [],
+            }
+
+    # Scan sprint use cases for parent references
+    for location in [sprints_dir, sprints_dir / "done"]:
+        if not location.exists():
+            continue
+        for sprint_dir in sorted(location.iterdir()):
+            if not sprint_dir.is_dir():
+                continue
+            sprint_file = sprint_dir / "sprint.md"
+            uc_file = sprint_dir / "usecases.md"
+            if not sprint_file.exists():
+                continue
+
+            from claude_agent_skills.frontmatter import read_frontmatter
+            sprint_fm = read_frontmatter(sprint_file)
+            sprint_id = sprint_fm.get("id", "")
+            sprint_status = sprint_fm.get("status", "unknown")
+
+            if uc_file.exists():
+                _, uc_content = read_document(uc_file)
+                parents = _parse_parent_refs(uc_content)
+                for parent_id in set(parents):
+                    if parent_id in top_level:
+                        top_level[parent_id]["covered_by"].append({
+                            "sprint_id": sprint_id,
+                            "sprint_status": sprint_status,
+                        })
+
+    # Build coverage report
+    covered = []
+    uncovered = []
+    for uc_id, info in sorted(top_level.items()):
+        entry = {"id": uc_id, "title": info["title"], "sprints": info["covered_by"]}
+        if info["covered_by"]:
+            covered.append(entry)
+        else:
+            uncovered.append(entry)
+
+    return json.dumps({
+        "total_use_cases": len(top_level),
+        "covered": covered,
+        "uncovered": uncovered,
+    }, indent=2)
