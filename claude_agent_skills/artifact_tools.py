@@ -662,3 +662,58 @@ def release_execution_lock(sprint_id: str) -> str:
         return json.dumps(result, indent=2)
     except ValueError as e:
         return json.dumps({"error": str(e)}, indent=2)
+
+
+# --- TODO management tools ---
+
+
+def _todo_dir() -> Path:
+    """Return the docs/plans/todo/ directory."""
+    return _plans_dir() / "todo"
+
+
+@server.tool()
+def list_todos() -> str:
+    """List all active TODO files.
+
+    Scans docs/plans/todo/*.md (excludes done/ subdirectory).
+
+    Returns JSON array of {filename, title}.
+    """
+    todo = _todo_dir()
+    results = []
+    if todo.exists():
+        for f in sorted(todo.glob("*.md")):
+            title = f.stem
+            # Extract title from first # heading
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.startswith("# "):
+                    title = line[2:].strip()
+                    break
+            results.append({"filename": f.name, "title": title})
+    return json.dumps(results, indent=2)
+
+
+@server.tool()
+def move_todo_to_done(filename: str) -> str:
+    """Move a TODO file to the done/ subdirectory.
+
+    Args:
+        filename: The TODO filename (e.g., 'my-idea.md')
+
+    Returns JSON with {old_path, new_path}.
+    """
+    todo = _todo_dir()
+    src = todo / filename
+    if not src.exists():
+        raise ValueError(f"TODO not found: {filename}")
+
+    done = todo / "done"
+    done.mkdir(parents=True, exist_ok=True)
+    dst = done / filename
+    src.rename(dst)
+
+    return json.dumps({
+        "old_path": str(src),
+        "new_path": str(dst),
+    }, indent=2)
