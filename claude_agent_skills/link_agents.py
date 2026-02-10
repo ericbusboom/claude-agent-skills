@@ -40,7 +40,7 @@ def get_source_dir():
     return github_dir
 
 
-def create_directory_link(source_dir, target_dir, dir_name):
+def create_directory_link(source_dir, target_dir, dir_name, dry_run=False):
     """
     Create a symlink for a directory (agents or skills).
     
@@ -57,7 +57,8 @@ def create_directory_link(source_dir, target_dir, dir_name):
     # If target doesn't exist, create a direct symlink to the directory
     if not target_path.exists():
         print(f"Creating symlink: {target_path} -> {source_path}")
-        target_path.symlink_to(source_path)
+        if not dry_run:
+            target_path.symlink_to(source_path)
         return
     
     # If target exists, link individual files
@@ -70,9 +71,6 @@ def create_directory_link(source_dir, target_dir, dir_name):
             rel_path = source_file.relative_to(source_path)
             target_file = target_path / rel_path
             
-            # Create parent directories if needed
-            target_file.parent.mkdir(parents=True, exist_ok=True)
-            
             # Check if target file already exists
             if target_file.exists() or target_file.is_symlink():
                 # Check if it's already a symlink to our source
@@ -82,15 +80,19 @@ def create_directory_link(source_dir, target_dir, dir_name):
                     print(f"  Skipping (exists): {rel_path}")
             else:
                 print(f"  Linking: {rel_path}")
-                target_file.symlink_to(source_file)
+                if not dry_run:
+                    # Create parent directories if needed
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+                    target_file.symlink_to(source_file)
 
 
-def link_agents_and_skills(target_repo):
+def link_agents_and_skills(target_repo, dry_run=False):
     """
     Link agents and skills directories from the source repository to the target.
     
     Args:
         target_repo: Path to the target repository (current directory if None)
+        dry_run: If True, show what would be done without making changes
     """
     # Determine target directory
     if target_repo is None:
@@ -117,11 +119,11 @@ def link_agents_and_skills(target_repo):
     print()
     
     # Link agents directory
-    create_directory_link(source_github, target_github, "agents")
+    create_directory_link(source_github, target_github, "agents", dry_run)
     print()
     
     # Link skills directory
-    create_directory_link(source_github, target_github, "skills")
+    create_directory_link(source_github, target_github, "skills", dry_run)
     print()
     
     print("Done! Agent and skill definitions are now linked.")
@@ -151,7 +153,7 @@ def main():
         print()
     
     try:
-        link_agents_and_skills(args.target)
+        link_agents_and_skills(args.target, args.dry_run)
     except KeyboardInterrupt:
         print("\nAborted by user")
         sys.exit(1)
