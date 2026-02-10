@@ -11,6 +11,13 @@ from typing import Optional
 
 from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
 from claude_agent_skills.mcp_server import server
+from claude_agent_skills.state_db import (
+    advance_phase as _advance_phase,
+    record_gate as _record_gate,
+    acquire_lock as _acquire_lock,
+    release_lock as _release_lock,
+    get_sprint_state as _get_sprint_state,
+)
 from claude_agent_skills.templates import (
     slugify,
     SPRINT_TEMPLATE,
@@ -435,3 +442,105 @@ def close_sprint(sprint_id: str) -> str:
         "old_path": str(sprint_dir),
         "new_path": str(new_path),
     }, indent=2)
+
+
+# --- State management tools (ticket 005) ---
+
+
+def _db_path() -> Path:
+    """Return the default state database path."""
+    return _plans_dir() / ".clasi.db"
+
+
+@server.tool()
+def get_sprint_phase(sprint_id: str) -> str:
+    """Get a sprint's current lifecycle phase and gate status.
+
+    Args:
+        sprint_id: The sprint ID (e.g., '002')
+
+    Returns JSON with {id, phase, gates, lock}.
+    """
+    try:
+        state = _get_sprint_state(str(_db_path()), sprint_id)
+        return json.dumps(state, indent=2)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, indent=2)
+
+
+@server.tool()
+def advance_sprint_phase(sprint_id: str) -> str:
+    """Advance a sprint to the next lifecycle phase.
+
+    Validates that exit conditions are met (review gates passed,
+    execution lock held, etc.) before allowing the transition.
+
+    Args:
+        sprint_id: The sprint ID (e.g., '002')
+
+    Returns JSON with {sprint_id, old_phase, new_phase}.
+    """
+    try:
+        result = _advance_phase(str(_db_path()), sprint_id)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, indent=2)
+
+
+@server.tool()
+def record_gate_result(
+    sprint_id: str,
+    gate: str,
+    result: str,
+    notes: Optional[str] = None,
+) -> str:
+    """Record a review gate result for a sprint.
+
+    Args:
+        sprint_id: The sprint ID
+        gate: Gate name ('architecture_review' or 'stakeholder_approval')
+        result: 'passed' or 'failed'
+        notes: Optional notes about the review
+
+    Returns JSON with {sprint_id, gate_name, result, recorded_at}.
+    """
+    try:
+        gate_result = _record_gate(str(_db_path()), sprint_id, gate, result, notes)
+        return json.dumps(gate_result, indent=2)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, indent=2)
+
+
+@server.tool()
+def acquire_execution_lock(sprint_id: str) -> str:
+    """Acquire the execution lock for a sprint.
+
+    Only one sprint can hold the lock at a time. Prevents concurrent
+    sprint execution in the same repository.
+
+    Args:
+        sprint_id: The sprint ID
+
+    Returns JSON with {sprint_id, acquired_at, reentrant}.
+    """
+    try:
+        lock = _acquire_lock(str(_db_path()), sprint_id)
+        return json.dumps(lock, indent=2)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, indent=2)
+
+
+@server.tool()
+def release_execution_lock(sprint_id: str) -> str:
+    """Release the execution lock held by a sprint.
+
+    Args:
+        sprint_id: The sprint ID
+
+    Returns JSON with {sprint_id, released}.
+    """
+    try:
+        result = _release_lock(str(_db_path()), sprint_id)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return json.dumps({"error": str(e)}, indent=2)
