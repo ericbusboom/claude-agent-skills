@@ -1,7 +1,7 @@
 ---
 id: "001"
 title: Frontmatter parser module
-status: todo
+status: done
 use-cases: [SUC-005, SUC-006]
 depends-on: []
 ---

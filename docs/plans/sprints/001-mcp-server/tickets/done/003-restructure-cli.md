@@ -1,7 +1,7 @@
 ---
 id: "003"
 title: Restructure CLI and pyproject.toml
-status: todo
+status: done
 use-cases: [SUC-001]
 depends-on: []
 ---

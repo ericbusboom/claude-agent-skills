@@ -1,7 +1,7 @@
 ---
 id: "002"
 title: Templates module
-status: todo
+status: done
 use-cases: [SUC-003, SUC-004, SUC-007]
 depends-on: []
 ---
