@@ -1,7 +1,7 @@
 ---
 id: "002"
 title: Process Hardening
-status: planning
+status: done
 branch: sprint/002-process-hardening
 use-cases: [UC-004]
 ---
