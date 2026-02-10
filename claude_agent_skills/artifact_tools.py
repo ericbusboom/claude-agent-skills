@@ -42,6 +42,38 @@ def _sprints_dir() -> Path:
     return _plans_dir() / "sprints"
 
 
+def resolve_artifact_path(path: str) -> Path:
+    """Find a file whether it's in its original location or a done/ subdirectory.
+
+    Resolution order:
+    1. Given path as-is
+    2. Insert done/ before the filename (e.g., tickets/001.md -> tickets/done/001.md)
+    3. Remove done/ from the path (e.g., tickets/done/001.md -> tickets/001.md)
+
+    Returns the resolved Path.
+    Raises FileNotFoundError if none of the candidates exist.
+    """
+    p = Path(path)
+    if p.exists():
+        return p
+
+    # Try inserting done/ before the filename
+    with_done = p.parent / "done" / p.name
+    if with_done.exists():
+        return with_done
+
+    # Try removing done/ from the path
+    parts = p.parts
+    if "done" in parts:
+        without_done = Path(*[part for part in parts if part != "done"])
+        if without_done.exists():
+            return without_done
+
+    raise FileNotFoundError(
+        f"Artifact not found: {path} (also checked done/ variants)"
+    )
+
+
 def _find_sprint_dir(sprint_id: str) -> Path:
     """Find a sprint directory by its ID (checks active and done)."""
     sprints = _sprints_dir()
@@ -424,8 +456,9 @@ def update_ticket_status(path: str, status: str) -> str:
     if status not in valid_statuses:
         raise ValueError(f"Invalid status '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}")
 
-    ticket_path = Path(path)
-    if not ticket_path.exists():
+    try:
+        ticket_path = resolve_artifact_path(path)
+    except FileNotFoundError:
         raise ValueError(f"Ticket not found: {path}")
 
     fm = read_frontmatter(ticket_path)
@@ -449,11 +482,15 @@ def move_ticket_to_done(path: str) -> str:
 
     Returns JSON with {old_path, new_path}.
     """
-    ticket_path = Path(path)
-    if not ticket_path.exists():
+    try:
+        ticket_path = resolve_artifact_path(path)
+    except FileNotFoundError:
         raise ValueError(f"Ticket not found: {path}")
 
+    # If resolved to done/, the parent is already the done dir — go up one more
     tickets_dir = ticket_path.parent
+    if tickets_dir.name == "done":
+        tickets_dir = tickets_dir.parent
     done_dir = tickets_dir / "done"
     done_dir.mkdir(parents=True, exist_ok=True)
 
