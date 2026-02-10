@@ -48,6 +48,38 @@ Skills are task-oriented workflows that leverage agents to accomplish specific g
 - **[python-code-review](/.github/skills/python-code-review.md)** - Performs comprehensive code reviews of Python code using the Python Expert agent
 - **[generate-documentation](/.github/skills/generate-documentation.md)** - Creates professional project documentation using the Documentation Expert agent
 
+## Installation
+
+To install this package and make the agents and skills available to your projects:
+
+```bash
+# Clone this repository
+git clone https://github.com/ericbusboom/claude-agent-skills.git
+cd claude-agent-skills
+
+# Install with pipx in editable mode
+pipx install -e .
+```
+
+The editable installation allows you to modify agents and skills in the cloned repository, and the changes will be immediately available when you link them to other projects.
+
+## Linking to Your Projects
+
+Once installed, you can link the agents and skills to any project:
+
+```bash
+# Navigate to your project directory
+cd /path/to/your/project
+
+# Link the agents and skills
+link-claude-agents
+```
+
+This will:
+- Create symlinks from your project's `.github/agents` and `.github/skills` directories to this repository
+- If those directories already exist in your project, it will link individual files instead
+- Preserve any existing custom agents or skills in your project
+
 ## Usage
 
 To use an agent or skill in Claude Code:

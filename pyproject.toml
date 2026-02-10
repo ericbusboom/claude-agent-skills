@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-agent-skills"
+version = "0.1.0"
+description = "Link Claude agent and skill definitions into your projects"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+    {name = "Eric Busboom"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.scripts]
+link-claude-agents = "claude_agent_skills.link_agents:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["claude_agent_skills*"]
