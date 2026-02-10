@@ -209,17 +209,17 @@ ACTIVITY_GUIDES: dict[str, dict[str, list[str]]] = {
     "implementation": {
         "agents": ["python-expert", "systems-engineer"],
         "skills": ["execute-ticket"],
-        "instructions": ["system-engineering", "coding-standards", "testing", "git-workflow"],
+        "instructions": ["system-engineering", "coding-standards", "languages/python", "testing", "git-workflow"],
     },
     "testing": {
         "agents": ["python-expert"],
         "skills": ["execute-ticket"],
-        "instructions": ["testing", "coding-standards"],
+        "instructions": ["testing", "coding-standards", "languages/python"],
     },
     "code-review": {
         "agents": ["code-reviewer"],
         "skills": ["execute-ticket"],
-        "instructions": ["coding-standards", "testing"],
+        "instructions": ["coding-standards", "languages/python", "testing"],
     },
     "sprint-planning": {
         "agents": ["project-manager", "architecture-reviewer"],
