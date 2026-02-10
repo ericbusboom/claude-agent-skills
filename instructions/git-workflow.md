@@ -95,6 +95,21 @@ Choose one approach and document it in the project's README or contributing
 guide. If no choice is documented and sprints are in use, use sprint
 branches. Otherwise, default to working on main.
 
+## Closing a Sprint Branch
+
+Merging a sprint branch is **not** the same as closing a sprint. The merge
+is one step in a multi-step atomic operation. When a sprint is complete:
+
+1. Merge the sprint branch to main.
+2. Move the sprint directory to `docs/plans/sprints/done/`.
+3. Update the sprint's `status` to `done` in `sprint.md` frontmatter.
+4. Delete the local sprint branch.
+5. Commit the sprint closure (the directory move and status update).
+
+**Never merge a sprint branch without also archiving the sprint directory.**
+A merged branch with an active sprint directory is an inconsistent state.
+Use the **close-sprint** skill to perform all steps together.
+
 ## Safety Rules
 
 - **Never force-push** unless explicitly instructed by the human.

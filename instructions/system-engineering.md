@@ -207,8 +207,14 @@ directory contains `sprint.md`, `brief.md`, `usecases.md`,
    stakeholder. Wait for approval.
 6. Create tickets for the sprint in `tickets/` (Stage 2 below).
 7. Execute tickets on the sprint branch (Stage 3 below).
-8. When all tickets are done, close the sprint: merge branch to main,
-   move sprint directory to `docs/plans/sprints/done/`.
+8. When all tickets are done, close the sprint (**close-sprint** skill).
+   This is an atomic operation — all steps must be completed together:
+   a. Merge the sprint branch to main.
+   b. Update sprint status to `done` in `sprint.md` frontmatter.
+   c. Move the sprint directory to `docs/plans/sprints/done/`.
+   d. Delete the sprint branch.
+   e. Commit the closure.
+   **Never merge the branch without also archiving the sprint directory.**
 
 Active sprints live in `docs/plans/sprints/`. Completed sprints live in
 `docs/plans/sprints/done/`.
