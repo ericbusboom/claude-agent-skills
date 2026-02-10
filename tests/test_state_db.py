@@ -9,6 +9,11 @@ from claude_agent_skills.state_db import (
     init_db,
     register_sprint,
     get_sprint_state,
+    advance_phase,
+    record_gate,
+    acquire_lock,
+    release_lock,
+    get_lock_holder,
 )
 
 
@@ -109,6 +114,200 @@ class TestGetSprintState:
         with pytest.raises(ValueError, match="not registered"):
             get_sprint_state(db_path, "001")
         assert db_path.exists()
+
+
+class TestAdvancePhase:
+    def test_advance_from_planning_docs(self, db_path):
+        register_sprint(db_path, "001", "test")
+        result = advance_phase(db_path, "001")
+        assert result["old_phase"] == "planning-docs"
+        assert result["new_phase"] == "architecture-review"
+
+    def test_advance_requires_gate(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")  # → architecture-review
+        with pytest.raises(ValueError, match="architecture_review.*not passed"):
+            advance_phase(db_path, "001")  # needs gate
+
+    def test_advance_after_gate_passes(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")  # → architecture-review
+        record_gate(db_path, "001", "architecture_review", "passed")
+        result = advance_phase(db_path, "001")  # → stakeholder-review
+        assert result["new_phase"] == "stakeholder-review"
+
+    def test_advance_stakeholder_gate(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")  # → architecture-review
+        record_gate(db_path, "001", "architecture_review", "passed")
+        advance_phase(db_path, "001")  # → stakeholder-review
+        with pytest.raises(ValueError, match="stakeholder_approval.*not passed"):
+            advance_phase(db_path, "001")
+
+    def test_full_lifecycle(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")  # → architecture-review
+        record_gate(db_path, "001", "architecture_review", "passed")
+        advance_phase(db_path, "001")  # → stakeholder-review
+        record_gate(db_path, "001", "stakeholder_approval", "passed")
+        advance_phase(db_path, "001")  # → ticketing
+        acquire_lock(db_path, "001")
+        advance_phase(db_path, "001")  # → executing
+        advance_phase(db_path, "001")  # → closing
+        advance_phase(db_path, "001")  # → done
+        state = get_sprint_state(db_path, "001")
+        assert state["phase"] == "done"
+
+    def test_cannot_advance_past_done(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")  # → architecture-review
+        record_gate(db_path, "001", "architecture_review", "passed")
+        advance_phase(db_path, "001")  # → stakeholder-review
+        record_gate(db_path, "001", "stakeholder_approval", "passed")
+        advance_phase(db_path, "001")  # → ticketing
+        acquire_lock(db_path, "001")
+        advance_phase(db_path, "001")  # → executing
+        advance_phase(db_path, "001")  # → closing
+        advance_phase(db_path, "001")  # → done
+        with pytest.raises(ValueError, match="already done"):
+            advance_phase(db_path, "001")
+
+    def test_ticketing_to_executing_requires_lock(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")
+        record_gate(db_path, "001", "architecture_review", "passed")
+        advance_phase(db_path, "001")
+        record_gate(db_path, "001", "stakeholder_approval", "passed")
+        advance_phase(db_path, "001")  # → ticketing
+        with pytest.raises(ValueError, match="execution lock"):
+            advance_phase(db_path, "001")
+
+    def test_not_registered_raises(self, db_path):
+        init_db(db_path)
+        with pytest.raises(ValueError, match="not registered"):
+            advance_phase(db_path, "999")
+
+    def test_failed_gate_blocks(self, db_path):
+        register_sprint(db_path, "001", "test")
+        advance_phase(db_path, "001")  # → architecture-review
+        record_gate(db_path, "001", "architecture_review", "failed")
+        with pytest.raises(ValueError, match="not passed"):
+            advance_phase(db_path, "001")
+
+
+class TestRecordGate:
+    def test_records_gate(self, db_path):
+        register_sprint(db_path, "001", "test")
+        result = record_gate(db_path, "001", "architecture_review", "passed")
+        assert result["gate_name"] == "architecture_review"
+        assert result["result"] == "passed"
+        assert result["recorded_at"] is not None
+
+    def test_with_notes(self, db_path):
+        register_sprint(db_path, "001", "test")
+        result = record_gate(db_path, "001", "architecture_review", "passed", "Looks good")
+        assert result["notes"] == "Looks good"
+
+    def test_upsert_overwrites(self, db_path):
+        register_sprint(db_path, "001", "test")
+        record_gate(db_path, "001", "architecture_review", "failed", "Issues found")
+        result = record_gate(db_path, "001", "architecture_review", "passed", "Fixed")
+        assert result["result"] == "passed"
+        assert result["notes"] == "Fixed"
+        state = get_sprint_state(db_path, "001")
+        assert len(state["gates"]) == 1
+        assert state["gates"][0]["result"] == "passed"
+
+    def test_invalid_gate_name(self, db_path):
+        register_sprint(db_path, "001", "test")
+        with pytest.raises(ValueError, match="Invalid gate name"):
+            record_gate(db_path, "001", "bogus", "passed")
+
+    def test_invalid_result(self, db_path):
+        register_sprint(db_path, "001", "test")
+        with pytest.raises(ValueError, match="Invalid result"):
+            record_gate(db_path, "001", "architecture_review", "maybe")
+
+    def test_not_registered_raises(self, db_path):
+        init_db(db_path)
+        with pytest.raises(ValueError, match="not registered"):
+            record_gate(db_path, "999", "architecture_review", "passed")
+
+    def test_visible_in_state(self, db_path):
+        register_sprint(db_path, "001", "test")
+        record_gate(db_path, "001", "architecture_review", "passed")
+        record_gate(db_path, "001", "stakeholder_approval", "passed")
+        state = get_sprint_state(db_path, "001")
+        assert len(state["gates"]) == 2
+        names = {g["gate_name"] for g in state["gates"]}
+        assert names == {"architecture_review", "stakeholder_approval"}
+
+
+class TestExecutionLocks:
+    def test_acquire_lock(self, db_path):
+        register_sprint(db_path, "001", "test")
+        result = acquire_lock(db_path, "001")
+        assert result["sprint_id"] == "001"
+        assert result["reentrant"] is False
+
+    def test_reentrant_acquire(self, db_path):
+        register_sprint(db_path, "001", "test")
+        acquire_lock(db_path, "001")
+        result = acquire_lock(db_path, "001")
+        assert result["reentrant"] is True
+
+    def test_conflict(self, db_path):
+        register_sprint(db_path, "001", "first")
+        register_sprint(db_path, "002", "second")
+        acquire_lock(db_path, "001")
+        with pytest.raises(ValueError, match="held by sprint '001'"):
+            acquire_lock(db_path, "002")
+
+    def test_release_lock(self, db_path):
+        register_sprint(db_path, "001", "test")
+        acquire_lock(db_path, "001")
+        result = release_lock(db_path, "001")
+        assert result["released"] is True
+
+    def test_release_when_not_held(self, db_path):
+        init_db(db_path)
+        with pytest.raises(ValueError, match="No execution lock"):
+            release_lock(db_path, "001")
+
+    def test_release_wrong_sprint(self, db_path):
+        register_sprint(db_path, "001", "first")
+        register_sprint(db_path, "002", "second")
+        acquire_lock(db_path, "001")
+        with pytest.raises(ValueError, match="does not hold"):
+            release_lock(db_path, "002")
+
+    def test_get_lock_holder(self, db_path):
+        register_sprint(db_path, "001", "test")
+        assert get_lock_holder(db_path) is None
+        acquire_lock(db_path, "001")
+        holder = get_lock_holder(db_path)
+        assert holder["sprint_id"] == "001"
+
+    def test_acquire_after_release(self, db_path):
+        register_sprint(db_path, "001", "first")
+        register_sprint(db_path, "002", "second")
+        acquire_lock(db_path, "001")
+        release_lock(db_path, "001")
+        result = acquire_lock(db_path, "002")
+        assert result["sprint_id"] == "002"
+        assert result["reentrant"] is False
+
+    def test_not_registered_raises(self, db_path):
+        init_db(db_path)
+        with pytest.raises(ValueError, match="not registered"):
+            acquire_lock(db_path, "999")
+
+    def test_visible_in_state(self, db_path):
+        register_sprint(db_path, "001", "test")
+        acquire_lock(db_path, "001")
+        state = get_sprint_state(db_path, "001")
+        assert state["lock"] is not None
+        assert state["lock"]["sprint_id"] == "001"
 
 
 class TestPhaseConstants:

@@ -165,3 +165,235 @@ def get_sprint_state(db_path: str | Path, sprint_id: str) -> dict[str, Any]:
         }
     finally:
         conn.close()
+
+
+# --- Phase transitions (ticket 002) ---
+
+
+# Gate requirements for each transition: {from_phase: required_gate_name or None}
+_GATE_REQUIREMENTS: dict[str, Optional[str]] = {
+    "planning-docs": None,  # No gate to advance from planning-docs
+    "architecture-review": "architecture_review",
+    "stakeholder-review": "stakeholder_approval",
+    "ticketing": None,  # Checked programmatically (needs tickets + lock)
+    "executing": None,  # Checked programmatically (all tickets done)
+    "closing": None,  # Checked programmatically (sprint archived)
+}
+
+
+def advance_phase(db_path: str | Path, sprint_id: str) -> dict[str, Any]:
+    """Advance a sprint to the next lifecycle phase.
+
+    Validates that exit conditions for the current phase are met before
+    advancing. Returns a dict with old_phase and new_phase.
+
+    Raises ValueError if conditions are not met or the sprint is already done.
+    """
+    init_db(db_path)
+    conn = _connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT phase FROM sprints WHERE id = ?", (sprint_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Sprint '{sprint_id}' is not registered")
+
+        current = row["phase"]
+        if current == "done":
+            raise ValueError(f"Sprint '{sprint_id}' is already done")
+
+        idx = PHASES.index(current)
+        next_phase = PHASES[idx + 1]
+
+        # Check gate requirements
+        required_gate = _GATE_REQUIREMENTS.get(current)
+        if required_gate:
+            gate_row = conn.execute(
+                "SELECT result FROM sprint_gates "
+                "WHERE sprint_id = ? AND gate_name = ?",
+                (sprint_id, required_gate),
+            ).fetchone()
+            if gate_row is None or gate_row["result"] != "passed":
+                raise ValueError(
+                    f"Cannot advance from '{current}': "
+                    f"gate '{required_gate}' has not passed"
+                )
+
+        # Special check: ticketing → executing requires lock
+        if current == "ticketing":
+            lock_row = conn.execute(
+                "SELECT sprint_id FROM execution_locks WHERE id = 1"
+            ).fetchone()
+            if lock_row is None or lock_row["sprint_id"] != sprint_id:
+                raise ValueError(
+                    f"Cannot advance to 'executing': "
+                    f"sprint '{sprint_id}' does not hold the execution lock"
+                )
+
+        now = _now()
+        conn.execute(
+            "UPDATE sprints SET phase = ?, updated_at = ? WHERE id = ?",
+            (next_phase, now, sprint_id),
+        )
+        conn.commit()
+
+        return {"sprint_id": sprint_id, "old_phase": current, "new_phase": next_phase}
+    finally:
+        conn.close()
+
+
+# --- Gate recording (ticket 003) ---
+
+
+def record_gate(
+    db_path: str | Path,
+    sprint_id: str,
+    gate_name: str,
+    result: str,
+    notes: Optional[str] = None,
+) -> dict[str, Any]:
+    """Record a review gate result for a sprint.
+
+    Uses upsert semantics: re-recording a gate overwrites the previous result.
+
+    Raises ValueError for invalid gate names or results, or if the sprint
+    is not registered.
+    """
+    if gate_name not in VALID_GATE_NAMES:
+        raise ValueError(
+            f"Invalid gate name '{gate_name}'. "
+            f"Must be one of: {', '.join(sorted(VALID_GATE_NAMES))}"
+        )
+    if result not in VALID_GATE_RESULTS:
+        raise ValueError(
+            f"Invalid result '{result}'. "
+            f"Must be one of: {', '.join(sorted(VALID_GATE_RESULTS))}"
+        )
+
+    init_db(db_path)
+    conn = _connect(db_path)
+    try:
+        # Verify sprint exists
+        row = conn.execute(
+            "SELECT id FROM sprints WHERE id = ?", (sprint_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Sprint '{sprint_id}' is not registered")
+
+        now = _now()
+        conn.execute(
+            "INSERT INTO sprint_gates (sprint_id, gate_name, result, recorded_at, notes) "
+            "VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(sprint_id, gate_name) DO UPDATE SET "
+            "result = excluded.result, recorded_at = excluded.recorded_at, "
+            "notes = excluded.notes",
+            (sprint_id, gate_name, result, now, notes),
+        )
+        conn.commit()
+
+        return {
+            "sprint_id": sprint_id,
+            "gate_name": gate_name,
+            "result": result,
+            "recorded_at": now,
+            "notes": notes,
+        }
+    finally:
+        conn.close()
+
+
+# --- Execution locks (ticket 004) ---
+
+
+def acquire_lock(db_path: str | Path, sprint_id: str) -> dict[str, Any]:
+    """Acquire the execution lock for a sprint.
+
+    Only one sprint can hold the lock at a time (singleton table).
+    Re-entrant: if the sprint already holds the lock, returns success.
+
+    Raises ValueError if another sprint holds the lock.
+    """
+    init_db(db_path)
+    conn = _connect(db_path)
+    try:
+        # Verify sprint exists
+        row = conn.execute(
+            "SELECT id FROM sprints WHERE id = ?", (sprint_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Sprint '{sprint_id}' is not registered")
+
+        lock_row = conn.execute(
+            "SELECT sprint_id, acquired_at FROM execution_locks WHERE id = 1"
+        ).fetchone()
+
+        if lock_row is not None:
+            if lock_row["sprint_id"] == sprint_id:
+                # Re-entrant: already holds lock
+                return {
+                    "sprint_id": sprint_id,
+                    "acquired_at": lock_row["acquired_at"],
+                    "reentrant": True,
+                }
+            raise ValueError(
+                f"Execution lock held by sprint '{lock_row['sprint_id']}' "
+                f"since {lock_row['acquired_at']}"
+            )
+
+        now = _now()
+        conn.execute(
+            "INSERT INTO execution_locks (id, sprint_id, acquired_at) "
+            "VALUES (1, ?, ?)",
+            (sprint_id, now),
+        )
+        conn.commit()
+
+        return {"sprint_id": sprint_id, "acquired_at": now, "reentrant": False}
+    finally:
+        conn.close()
+
+
+def release_lock(db_path: str | Path, sprint_id: str) -> dict[str, Any]:
+    """Release the execution lock held by a sprint.
+
+    Raises ValueError if the sprint does not hold the lock.
+    """
+    init_db(db_path)
+    conn = _connect(db_path)
+    try:
+        lock_row = conn.execute(
+            "SELECT sprint_id FROM execution_locks WHERE id = 1"
+        ).fetchone()
+
+        if lock_row is None:
+            raise ValueError("No execution lock is currently held")
+        if lock_row["sprint_id"] != sprint_id:
+            raise ValueError(
+                f"Sprint '{sprint_id}' does not hold the lock "
+                f"(held by '{lock_row['sprint_id']}')"
+            )
+
+        conn.execute("DELETE FROM execution_locks WHERE id = 1")
+        conn.commit()
+
+        return {"sprint_id": sprint_id, "released": True}
+    finally:
+        conn.close()
+
+
+def get_lock_holder(db_path: str | Path) -> Optional[dict[str, Any]]:
+    """Return the current lock holder, or None if no lock is held."""
+    init_db(db_path)
+    conn = _connect(db_path)
+    try:
+        lock_row = conn.execute(
+            "SELECT sprint_id, acquired_at FROM execution_locks WHERE id = 1"
+        ).fetchone()
+        if lock_row is None:
+            return None
+        return {
+            "sprint_id": lock_row["sprint_id"],
+            "acquired_at": lock_row["acquired_at"],
+        }
+    finally:
+        conn.close()
