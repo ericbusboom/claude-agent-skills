@@ -42,6 +42,38 @@ def _sprints_dir() -> Path:
     return _plans_dir() / "sprints"
 
 
+def resolve_artifact_path(path: str) -> Path:
+    """Find a file whether it's in its original location or a done/ subdirectory.
+
+    Resolution order:
+    1. Given path as-is
+    2. Insert done/ before the filename (e.g., tickets/001.md -> tickets/done/001.md)
+    3. Remove done/ from the path (e.g., tickets/done/001.md -> tickets/001.md)
+
+    Returns the resolved Path.
+    Raises FileNotFoundError if none of the candidates exist.
+    """
+    p = Path(path)
+    if p.exists():
+        return p
+
+    # Try inserting done/ before the filename
+    with_done = p.parent / "done" / p.name
+    if with_done.exists():
+        return with_done
+
+    # Try removing done/ from the path
+    parts = p.parts
+    if "done" in parts:
+        without_done = Path(*[part for part in parts if part != "done"])
+        if without_done.exists():
+            return without_done
+
+    raise FileNotFoundError(
+        f"Artifact not found: {path} (also checked done/ variants)"
+    )
+
+
 def _find_sprint_dir(sprint_id: str) -> Path:
     """Find a sprint directory by its ID (checks active and done)."""
     sprints = _sprints_dir()
@@ -424,8 +456,9 @@ def update_ticket_status(path: str, status: str) -> str:
     if status not in valid_statuses:
         raise ValueError(f"Invalid status '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}")
 
-    ticket_path = Path(path)
-    if not ticket_path.exists():
+    try:
+        ticket_path = resolve_artifact_path(path)
+    except FileNotFoundError:
         raise ValueError(f"Ticket not found: {path}")
 
     fm = read_frontmatter(ticket_path)
@@ -449,11 +482,15 @@ def move_ticket_to_done(path: str) -> str:
 
     Returns JSON with {old_path, new_path}.
     """
-    ticket_path = Path(path)
-    if not ticket_path.exists():
+    try:
+        ticket_path = resolve_artifact_path(path)
+    except FileNotFoundError:
         raise ValueError(f"Ticket not found: {path}")
 
+    # If resolved to done/, the parent is already the done dir — go up one more
     tickets_dir = ticket_path.parent
+    if tickets_dir.name == "done":
+        tickets_dir = tickets_dir.parent
     done_dir = tickets_dir / "done"
     done_dir.mkdir(parents=True, exist_ok=True)
 
@@ -519,10 +556,31 @@ def close_sprint(sprint_id: str) -> str:
         except (ValueError, Exception):
             pass  # Graceful degradation
 
-    return json.dumps({
+    # Auto-version after archiving
+    version = None
+    try:
+        from claude_agent_skills.versioning import (
+            compute_next_version,
+            update_pyproject_version,
+            create_version_tag,
+        )
+        version = compute_next_version()
+        pyproject = Path.cwd() / "pyproject.toml"
+        if pyproject.exists():
+            update_pyproject_version(version, pyproject)
+        create_version_tag(version)
+    except Exception:
+        pass  # Versioning is best-effort
+
+    result = {
         "old_path": str(sprint_dir),
         "new_path": str(new_path),
-    }, indent=2)
+    }
+    if version:
+        result["version"] = version
+        result["tag"] = f"v{version}"
+
+    return json.dumps(result, indent=2)
 
 
 # --- State management tools (ticket 005) ---
@@ -625,3 +683,147 @@ def release_execution_lock(sprint_id: str) -> str:
         return json.dumps(result, indent=2)
     except ValueError as e:
         return json.dumps({"error": str(e)}, indent=2)
+
+
+# --- TODO management tools ---
+
+
+def _todo_dir() -> Path:
+    """Return the docs/plans/todo/ directory."""
+    return _plans_dir() / "todo"
+
+
+@server.tool()
+def list_todos() -> str:
+    """List all active TODO files.
+
+    Scans docs/plans/todo/*.md (excludes done/ subdirectory).
+
+    Returns JSON array of {filename, title}.
+    """
+    todo = _todo_dir()
+    results = []
+    if todo.exists():
+        for f in sorted(todo.glob("*.md")):
+            title = f.stem
+            # Extract title from first # heading
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.startswith("# "):
+                    title = line[2:].strip()
+                    break
+            results.append({"filename": f.name, "title": title})
+    return json.dumps(results, indent=2)
+
+
+@server.tool()
+def move_todo_to_done(filename: str) -> str:
+    """Move a TODO file to the done/ subdirectory.
+
+    Args:
+        filename: The TODO filename (e.g., 'my-idea.md')
+
+    Returns JSON with {old_path, new_path}.
+    """
+    todo = _todo_dir()
+    src = todo / filename
+    if not src.exists():
+        raise ValueError(f"TODO not found: {filename}")
+
+    done = todo / "done"
+    done.mkdir(parents=True, exist_ok=True)
+    dst = done / filename
+    src.rename(dst)
+
+    return json.dumps({
+        "old_path": str(src),
+        "new_path": str(dst),
+    }, indent=2)
+
+
+# --- Frontmatter tools ---
+
+
+@server.tool()
+def read_artifact_frontmatter(path: str) -> str:
+    """Read YAML frontmatter from a file.
+
+    Uses resolve_artifact_path to find files in original or done/ locations.
+
+    Args:
+        path: Path to the file
+
+    Returns JSON dict of frontmatter fields.
+    """
+    try:
+        resolved = resolve_artifact_path(path)
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {path}")
+
+    fm = read_frontmatter(resolved)
+    return json.dumps(fm, indent=2)
+
+
+@server.tool()
+def write_artifact_frontmatter(path: str, updates: str) -> str:
+    """Update YAML frontmatter on a file, merging with existing fields.
+
+    Uses resolve_artifact_path to find files in original or done/ locations.
+    Creates frontmatter on a plain file that has none.
+
+    Args:
+        path: Path to the file
+        updates: JSON string of fields to merge (e.g., '{"status": "done"}')
+
+    Returns JSON with {path, updated_fields}.
+    """
+    try:
+        resolved = resolve_artifact_path(path)
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {path}")
+
+    try:
+        update_dict = json.loads(updates)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Invalid JSON for updates: {e}")
+
+    fm = read_frontmatter(resolved)
+    fm.update(update_dict)
+    write_frontmatter(resolved, fm)
+
+    return json.dumps({
+        "path": str(resolved),
+        "updated_fields": list(update_dict.keys()),
+    }, indent=2)
+
+
+# --- Versioning tools ---
+
+
+@server.tool()
+def tag_version(major: int = 0) -> str:
+    """Compute the next version, update pyproject.toml, and create a git tag.
+
+    Version format: <major>.<YYYYMMDD>.<build>
+    Build auto-increments within the same date, resets to 1 on new date.
+
+    Args:
+        major: Major version number (default 0)
+
+    Returns JSON with {version, tag}.
+    """
+    from claude_agent_skills.versioning import (
+        compute_next_version,
+        update_pyproject_version,
+        create_version_tag,
+    )
+
+    version = compute_next_version(major)
+    pyproject = Path.cwd() / "pyproject.toml"
+    if pyproject.exists():
+        update_pyproject_version(version, pyproject)
+    create_version_tag(version)
+
+    return json.dumps({
+        "version": version,
+        "tag": f"v{version}",
+    }, indent=2)

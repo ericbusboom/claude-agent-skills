@@ -77,6 +77,42 @@ MCP_CONFIG = {
     }
 }
 
+# Thin skill stubs that delegate to MCP for real instructions.
+# Each key is the relative path under .claude/skills/, value is the content.
+SKILL_STUBS = {
+    "todo.md": """\
+---
+description: Create a TODO file from user input
+---
+
+# /todo
+
+To execute this skill, call the CLASI MCP tool `get_skill_definition("todo")`
+to retrieve the full instructions, then follow them.
+""",
+    "next.md": """\
+---
+description: Determine and execute the next process step
+---
+
+# /next
+
+To execute this skill, call the CLASI MCP tool `get_skill_definition("next")`
+to retrieve the full instructions, then follow them.
+""",
+    "status.md": """\
+---
+description: Run project status report
+---
+
+# /status
+
+To execute this skill, call the CLASI MCP tool
+`get_skill_definition("project-status")` to retrieve the full instructions,
+then follow them.
+""",
+}
+
 
 def _write_instruction_file(target: Path, rel_path: str) -> bool:
     """Write the instruction file at the given relative path.
@@ -95,16 +131,31 @@ def _write_instruction_file(target: Path, rel_path: str) -> bool:
     return True
 
 
-def _update_settings_json(settings_path: Path) -> bool:
-    """Merge MCP server config into a settings.json file.
+def _write_skill_stub(target: Path, filename: str, content: str) -> bool:
+    """Write a skill stub file to .claude/skills/.
 
     Returns True if the file was written/updated, False if unchanged.
     """
-    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    path = target / ".claude" / "skills" / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-    if settings_path.exists():
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        click.echo(f"  Unchanged: .claude/skills/{filename}")
+        return False
+
+    path.write_text(content, encoding="utf-8")
+    click.echo(f"  Wrote: .claude/skills/{filename}")
+    return True
+
+
+def _update_mcp_json(mcp_json_path: Path) -> bool:
+    """Merge MCP server config into .mcp.json.
+
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    if mcp_json_path.exists():
         try:
-            data = json.loads(settings_path.read_text(encoding="utf-8"))
+            data = json.loads(mcp_json_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, ValueError):
             data = {}
     else:
@@ -113,18 +164,18 @@ def _update_settings_json(settings_path: Path) -> bool:
     mcp_servers = data.setdefault("mcpServers", {})
 
     if mcp_servers.get("clasi") == MCP_CONFIG["clasi"]:
-        click.echo(f"  Unchanged: {settings_path}")
+        click.echo(f"  Unchanged: {mcp_json_path}")
         return False
 
     mcp_servers["clasi"] = MCP_CONFIG["clasi"]
-    settings_path.write_text(
+    mcp_json_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
-    click.echo(f"  Updated: {settings_path}")
+    click.echo(f"  Updated: {mcp_json_path}")
     return True
 
 
-def run_init(target: str, *, global_config: bool = False) -> None:
+def run_init(target: str) -> None:
     """Initialize a repository for the CLASI SE process.
 
     Writes instruction files and configures the MCP server.
@@ -141,15 +192,16 @@ def run_init(target: str, *, global_config: bool = False) -> None:
     )
     click.echo()
 
-    # Configure MCP server in local settings
-    click.echo("MCP server configuration:")
-    local_settings = target_path / ".claude" / "settings.json"
-    _update_settings_json(local_settings)
+    # Install skill stubs
+    click.echo("Skill stubs:")
+    for filename, content in SKILL_STUBS.items():
+        _write_skill_stub(target_path, filename, content)
+    click.echo()
 
-    # Optionally configure global settings
-    if global_config:
-        global_settings = Path.home() / ".claude" / "settings.json"
-        _update_settings_json(global_settings)
+    # Configure MCP server in .mcp.json at project root
+    click.echo("MCP server configuration:")
+    mcp_json = target_path / ".mcp.json"
+    _update_mcp_json(mcp_json)
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")
