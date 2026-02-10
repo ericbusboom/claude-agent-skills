@@ -1,7 +1,7 @@
 ---
 id: "010"
 title: Update skills for phase tracking
-status: todo
+status: done
 use-cases:
   - SUC-001
   - SUC-002

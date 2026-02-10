@@ -1,7 +1,7 @@
 ---
 id: "004"
 title: Execution locks
-status: todo
+status: done
 use-cases:
   - SUC-003
 depends-on:

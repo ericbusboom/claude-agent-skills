@@ -1,7 +1,7 @@
 ---
 id: "003"
 title: Gate recording
-status: todo
+status: done
 use-cases:
   - SUC-002
 depends-on:

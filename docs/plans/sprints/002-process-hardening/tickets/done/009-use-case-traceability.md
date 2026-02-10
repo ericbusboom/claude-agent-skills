@@ -1,7 +1,7 @@
 ---
 id: "009"
 title: Use case traceability
-status: todo
+status: done
 use-cases:
   - SUC-005
 depends-on: []

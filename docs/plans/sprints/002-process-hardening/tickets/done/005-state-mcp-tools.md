@@ -1,7 +1,7 @@
 ---
 id: "005"
 title: State MCP tools
-status: todo
+status: done
 use-cases:
   - SUC-001
   - SUC-002

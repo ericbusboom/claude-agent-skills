@@ -1,7 +1,7 @@
 ---
 id: "001"
 title: State DB schema and core functions
-status: todo
+status: done
 use-cases:
   - SUC-001
 depends-on: []

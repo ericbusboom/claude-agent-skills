@@ -1,7 +1,7 @@
 ---
 id: "006"
 title: Gate enforcement in create_ticket and update_ticket_status
-status: todo
+status: done
 use-cases:
   - SUC-004
 depends-on:

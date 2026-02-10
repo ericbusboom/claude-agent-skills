@@ -1,7 +1,7 @@
 ---
 id: "008"
 title: Sprint template Definition of Ready
-status: todo
+status: done
 use-cases:
   - SUC-001
 depends-on: []

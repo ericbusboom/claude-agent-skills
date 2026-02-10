@@ -1,7 +1,7 @@
 ---
 id: "007"
 title: Integrate state DB with create_sprint and close_sprint
-status: todo
+status: done
 use-cases:
   - SUC-001
 depends-on:
