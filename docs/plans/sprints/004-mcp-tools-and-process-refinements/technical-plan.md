@@ -47,29 +47,30 @@ Add to `claude_agent_skills/artifact_tools.py`:
 - `move_todo_to_done(filename)` — Move a file from `docs/plans/todo/` to
   `docs/plans/todo/done/`. Create `done/` if needed.
 
-### Component 3: Dissolve coding-standards.md
+### Component 3: Slim coding-standards.md, move Python content
 
 **Use Cases**: SUC-003
 
-Content migration plan for `instructions/coding-standards.md`:
+Keep a slim `instructions/coding-standards.md` with language-agnostic
+principles only. Move Python-specific content into `languages/python.md`.
 
-| Section | Destination |
-|---------|-------------|
-| Project Structure | `languages/python.md` (Python-specific parts) |
-| Error Handling | `languages/python.md` (Python examples, principles) |
-| Logging | `languages/python.md` |
-| Import Ordering | `languages/python.md` (already partially covered) |
-| Dependency Management | `languages/python.md` (already has uv/pyproject section) |
-| Naming Conventions | `languages/python.md` |
-| Type Hints | `languages/python.md` (already covered, merge any gaps) |
-| Code Style | `languages/python.md` (already partially covered) |
+**Stays in coding-standards.md** (generic principles):
+- Error handling philosophy (fail fast, be specific, validate at boundaries)
+- Dependency management principles (minimize deps, pin to minimum compatible)
+- General naming guidance (descriptive names, avoid catch-all modules)
+
+**Moves to languages/python.md** (Python-specific):
+- Project Structure (Python package layout)
+- Logging (Python `logging` module usage)
+- Import Ordering (PEP 8 groups)
+- Naming Conventions (snake_case, PascalCase — Python conventions)
+- Type Hints (already mostly covered, merge any gaps)
+- Code Style (PEP 8, Black, f-strings, pathlib — already partially covered)
 
 After migration:
-- Delete `instructions/coding-standards.md`.
-- Update `ACTIVITY_GUIDES` in `process_tools.py` to remove
-  `coding-standards` references. Replace with `languages/python` where
-  appropriate, or the language-agnostic instruction if one remains.
-- Update `instructions/system-engineering.md` references.
+- Update `ACTIVITY_GUIDES` in `process_tools.py` — keep `coding-standards`
+  in guides where it applies, also add language instruction references.
+- Update `instructions/system-engineering.md` references if needed.
 
 ### Component 4: Frontmatter MCP tools
 
@@ -127,37 +128,51 @@ Create `claude_agent_skills/versioning.py`:
 - `update_pyproject_version(version: str)` — Updates `pyproject.toml`.
 - `tag_version(version: str)` — Creates git tag `v<version>`.
 
-Integrate into `close_sprint` in `artifact_tools.py` — after merging,
-compute and tag the version.
+Two integration points:
+- **`close_sprint`** in `artifact_tools.py` — auto-versions after merging.
+  Calls `compute_next_version` and `tag_version` automatically.
+- **`tag_version` MCP tool** — standalone tool for versioning outside of
+  sprint closure (e.g., hotfixes, manual releases).
 
 ### Component 7: Slash commands
 
 **Use Cases**: SUC-007
 
-Create Claude Code skill files in the project. These get installed by
-`clasi init` into `.claude/skills/`:
+**Architecture**: Thin skill stubs + MCP-served definitions.
 
-- `.claude/skills/todo/SKILL.md` — `/todo`: Create a TODO file from the
-  user's message.
-- `.claude/skills/next/SKILL.md` — `/next`: Determine current state and
-  execute the next process step.
-- `.claude/skills/status/SKILL.md` — `/status`: Run project-status report.
+Skill stubs are small files installed by `clasi init` into
+`.claude/skills/`. Each stub just tells the AI to call the MCP server
+for the full skill instructions:
 
-Each skill is a markdown file with instructions that the AI follows. They
-reference MCP tools to accomplish their work.
+```markdown
+# /todo
 
-## Open Questions
+Call `get_skill_definition("todo")` from the CLASI MCP server to get
+the full instructions for this skill, then follow them. The user's
+message is the input.
+```
 
-1. **Coding standards — anything truly language-agnostic?** The error
-   handling principles and dependency management guidance could apply to
-   any language. Should we keep a slim `coding-standards.md` with just the
-   generic parts, or absorb everything into language files?
+The real logic lives in MCP-served skill definitions (`skills/todo.md`,
+`skills/next.md`, `skills/status.md`) which are part of the package and
+updated with it. The stubs are stable pointers that rarely change.
 
-2. **Versioning integration point**: Should `close_sprint` auto-version,
-   or should it be a separate MCP tool (`tag_version`) that the sprint
-   closure skill calls? Auto-versioning couples the two; a separate tool
-   is more flexible.
+Skill definitions to create in the package:
+- `skills/todo.md` — Create a TODO file from the user's message
+- `skills/next.md` — Determine current state, execute next process step
+- `skills/status.md` — Run project-status report
 
-3. **Slash command installation**: Should `clasi init` install the skill
-   files, or should they be symlinked from the package like agent/skill
-   definitions?
+`clasi init` installs the stub files. Update `init_command.py` to write
+them alongside the instruction file.
+
+## Resolved Questions
+
+1. **Coding standards**: Keep a slim language-agnostic
+   `coding-standards.md` with generic principles. Move Python-specific
+   content into `languages/python.md`.
+
+2. **Versioning**: Both — `close_sprint` auto-versions, AND a standalone
+   `tag_version` MCP tool exists for use outside sprint closure.
+
+3. **Slash command installation**: `clasi init` copies thin stub files
+   that point to the MCP server. Stubs are stable (just say "go read MCP"),
+   so drift is not a concern. Real logic stays in MCP-served skill defs.
