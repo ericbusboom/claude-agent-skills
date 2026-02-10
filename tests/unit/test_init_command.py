@@ -28,14 +28,14 @@ class TestRunInit:
         assert claude_rules.read_text(encoding="utf-8") == INSTRUCTION_CONTENT
         assert copilot_inst.read_text(encoding="utf-8") == INSTRUCTION_CONTENT
 
-    def test_creates_mcp_settings(self, target_dir):
+    def test_creates_mcp_json(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
-        settings_path = target_dir / ".claude" / "settings.json"
-        assert settings_path.exists()
+        mcp_json = target_dir / ".mcp.json"
+        assert mcp_json.exists()
 
-        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        data = json.loads(mcp_json.read_text(encoding="utf-8"))
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
     def test_idempotent(self, target_dir):
@@ -43,39 +43,31 @@ class TestRunInit:
         run_init(str(target_dir))
         run_init(str(target_dir))
 
-        settings_path = target_dir / ".claude" / "settings.json"
-        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        mcp_json = target_dir / ".mcp.json"
+        data = json.loads(mcp_json.read_text(encoding="utf-8"))
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
         claude_rules = target_dir / ".claude" / "rules" / "clasi-se-process.md"
         assert claude_rules.read_text(encoding="utf-8") == INSTRUCTION_CONTENT
 
-    def test_merges_existing_settings(self, target_dir):
+    def test_merges_existing_mcp_json(self, target_dir):
         target_dir.mkdir()
-        settings_path = target_dir / ".claude" / "settings.json"
-        settings_path.parent.mkdir(parents=True, exist_ok=True)
-        existing = {"existingKey": "value", "mcpServers": {"other": {"command": "other"}}}
-        settings_path.write_text(json.dumps(existing), encoding="utf-8")
+        mcp_json = target_dir / ".mcp.json"
+        existing = {"mcpServers": {"other": {"command": "other"}}}
+        mcp_json.write_text(json.dumps(existing), encoding="utf-8")
 
         run_init(str(target_dir))
 
-        data = json.loads(settings_path.read_text(encoding="utf-8"))
-        assert data["existingKey"] == "value"
+        data = json.loads(mcp_json.read_text(encoding="utf-8"))
         assert data["mcpServers"]["other"] == {"command": "other"}
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
-    def test_global_config(self, target_dir, tmp_path, monkeypatch):
+    def test_does_not_create_settings_json(self, target_dir):
         target_dir.mkdir()
-        fake_home = tmp_path / "home"
-        fake_home.mkdir()
-        monkeypatch.setattr("pathlib.Path.home", lambda: fake_home)
+        run_init(str(target_dir))
 
-        run_init(str(target_dir), global_config=True)
-
-        global_settings = fake_home / ".claude" / "settings.json"
-        assert global_settings.exists()
-        data = json.loads(global_settings.read_text(encoding="utf-8"))
-        assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
+        settings_path = target_dir / ".claude" / "settings.json"
+        assert not settings_path.exists()
 
     def test_instruction_content_has_tool_reference(self):
         assert "get_se_overview" in INSTRUCTION_CONTENT

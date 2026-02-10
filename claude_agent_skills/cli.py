@@ -2,7 +2,7 @@
 CLI entry point for clasi (Claude Agent Skills Instructions).
 
 Subcommands:
-    clasi init [--global] [target]  — Initialize a repo for CLASI
+    clasi init [target]             — Initialize a repo for CLASI
     clasi mcp                       — Run the MCP server (stdio)
     clasi todo-split                — Split multi-heading TODO files
 """
@@ -20,14 +20,8 @@ def cli():
 
 
 @cli.command()
-@click.option(
-    "--global",
-    "global_config",
-    is_flag=True,
-    help="Also add MCP server config to global Claude settings (~/.claude/settings.json)",
-)
 @click.argument("target", default=".", type=click.Path(exists=True))
-def init(target, global_config):
+def init(target):
     """Initialize a repository for the CLASI SE process.
 
     Writes instruction files and configures the MCP server in the target
@@ -35,7 +29,7 @@ def init(target, global_config):
     """
     from claude_agent_skills.init_command import run_init
 
-    run_init(target, global_config=global_config)
+    run_init(target)
 
 
 @cli.command("todo-split")
