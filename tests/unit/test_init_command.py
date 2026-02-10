@@ -74,15 +74,15 @@ class TestRunInit:
         run_init(str(target_dir))
 
         skills_dir = target_dir / ".claude" / "skills"
-        for filename, content in SKILL_STUBS.items():
-            stub = skills_dir / filename
-            assert stub.exists(), f"Missing stub: {filename}"
+        for name, content in SKILL_STUBS.items():
+            stub = skills_dir / name / "SKILL.md"
+            assert stub.exists(), f"Missing stub: {name}/SKILL.md"
             assert stub.read_text(encoding="utf-8") == content
 
     def test_skill_stubs_reference_mcp(self):
-        for filename, content in SKILL_STUBS.items():
+        for name, content in SKILL_STUBS.items():
             assert "get_skill_definition" in content, (
-                f"Stub {filename} should reference get_skill_definition"
+                f"Stub {name} should reference get_skill_definition"
             )
 
     def test_skill_stubs_idempotent(self, target_dir):
@@ -91,8 +91,8 @@ class TestRunInit:
         run_init(str(target_dir))
 
         skills_dir = target_dir / ".claude" / "skills"
-        for filename in SKILL_STUBS:
-            assert (skills_dir / filename).exists()
+        for name in SKILL_STUBS:
+            assert (skills_dir / name / "SKILL.md").exists()
 
     def test_instruction_content_has_tool_reference(self):
         assert "get_se_overview" in INSTRUCTION_CONTENT

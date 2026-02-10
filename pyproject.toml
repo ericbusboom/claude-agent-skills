@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-agent-skills"
-version = "0.2.0"
+version = "0.20260210.1"
 description = "MCP server for AI-driven software engineering process — agents, skills, instructions, and artifact management"
 readme = "README.md"
 requires-python = ">=3.10"

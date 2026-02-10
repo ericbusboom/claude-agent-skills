@@ -78,9 +78,9 @@ MCP_CONFIG = {
 }
 
 # Thin skill stubs that delegate to MCP for real instructions.
-# Each key is the relative path under .claude/skills/, value is the content.
+# Each key is the subdirectory name under .claude/skills/<name>/SKILL.md.
 SKILL_STUBS = {
-    "todo.md": """\
+    "todo": """\
 ---
 description: Create a TODO file from user input
 ---
@@ -90,7 +90,7 @@ description: Create a TODO file from user input
 To execute this skill, call the CLASI MCP tool `get_skill_definition("todo")`
 to retrieve the full instructions, then follow them.
 """,
-    "next.md": """\
+    "next": """\
 ---
 description: Determine and execute the next process step
 ---
@@ -100,7 +100,7 @@ description: Determine and execute the next process step
 To execute this skill, call the CLASI MCP tool `get_skill_definition("next")`
 to retrieve the full instructions, then follow them.
 """,
-    "status.md": """\
+    "status": """\
 ---
 description: Run project status report
 ---
@@ -131,20 +131,21 @@ def _write_instruction_file(target: Path, rel_path: str) -> bool:
     return True
 
 
-def _write_skill_stub(target: Path, filename: str, content: str) -> bool:
-    """Write a skill stub file to .claude/skills/.
+def _write_skill_stub(target: Path, name: str, content: str) -> bool:
+    """Write a skill stub to .claude/skills/<name>/SKILL.md.
 
     Returns True if the file was written/updated, False if unchanged.
     """
-    path = target / ".claude" / "skills" / filename
+    path = target / ".claude" / "skills" / name / "SKILL.md"
     path.parent.mkdir(parents=True, exist_ok=True)
+    rel = f".claude/skills/{name}/SKILL.md"
 
     if path.exists() and path.read_text(encoding="utf-8") == content:
-        click.echo(f"  Unchanged: .claude/skills/{filename}")
+        click.echo(f"  Unchanged: {rel}")
         return False
 
     path.write_text(content, encoding="utf-8")
-    click.echo(f"  Wrote: .claude/skills/{filename}")
+    click.echo(f"  Wrote: {rel}")
     return True
 
 
