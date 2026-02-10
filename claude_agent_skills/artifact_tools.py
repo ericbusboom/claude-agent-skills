@@ -22,7 +22,6 @@ from claude_agent_skills.state_db import (
 from claude_agent_skills.templates import (
     slugify,
     SPRINT_TEMPLATE,
-    SPRINT_BRIEF_TEMPLATE,
     SPRINT_USECASES_TEMPLATE,
     SPRINT_TECHNICAL_PLAN_TEMPLATE,
     TICKET_TEMPLATE,
@@ -104,7 +103,7 @@ def create_sprint(title: str) -> str:
     """Create a new sprint directory with template planning documents.
 
     Auto-assigns the next sprint number and creates the full directory
-    structure: sprint.md, brief.md, usecases.md, technical-plan.md,
+    structure: sprint.md, usecases.md, technical-plan.md,
     and tickets/ + tickets/done/ directories.
 
     Args:
@@ -126,7 +125,6 @@ def create_sprint(title: str) -> str:
     files = {}
     for name, template in [
         ("sprint.md", SPRINT_TEMPLATE),
-        ("brief.md", SPRINT_BRIEF_TEMPLATE),
         ("usecases.md", SPRINT_USECASES_TEMPLATE),
         ("technical-plan.md", SPRINT_TECHNICAL_PLAN_TEMPLATE),
     ]:

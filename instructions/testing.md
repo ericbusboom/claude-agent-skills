@@ -142,6 +142,19 @@ pytest --cov=src
 pytest -v
 ```
 
+## Sprint Test Strategy
+
+Each sprint's `sprint.md` includes a **Test Strategy** section that describes
+the overall testing approach for that sprint. This section should cover:
+
+- What types of tests are needed (unit, system, dev)
+- Which areas need coverage
+- Any integration or system-level testing required
+- Any special testing considerations (fixtures, test data, etc.)
+
+Individual ticket plans reference the sprint test strategy and specify the
+specific tests for that ticket.
+
 ## Relationship to Tickets
 
 - Every ticket must have tests that exercise its changes.

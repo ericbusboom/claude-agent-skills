@@ -48,7 +48,7 @@ class TestCreateSprint:
         sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-test-sprint"
         assert sprint_dir.is_dir()
         assert (sprint_dir / "sprint.md").exists()
-        assert (sprint_dir / "brief.md").exists()
+        assert not (sprint_dir / "brief.md").exists()
         assert (sprint_dir / "usecases.md").exists()
         assert (sprint_dir / "technical-plan.md").exists()
         assert (sprint_dir / "tickets").is_dir()
@@ -66,6 +66,15 @@ class TestCreateSprint:
         r2 = json.loads(create_sprint("Test Sprint"))
         assert r1["id"] == "001"
         assert r2["id"] == "002"
+
+    def test_sprint_template_has_merged_sections(self, work_dir):
+        create_sprint("My Sprint")
+        sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-my-sprint"
+        content = (sprint_dir / "sprint.md").read_text()
+        assert "## Problem" in content
+        assert "## Solution" in content
+        assert "## Success Criteria" in content
+        assert "## Test Strategy" in content
 
 
 class TestCreateTicket:
