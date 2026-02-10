@@ -88,22 +88,7 @@ Parent: UC-009
   - [ ] Instructions reflect the new startup workflow
   - [ ] MCP tools for top-level artifacts updated
 
-## SUC-006: Use Scenarios Instead of Use Cases
-Parent: UC-004
-
-- **Actor**: AI agent (any)
-- **Preconditions**: Process previously used "use cases" terminology.
-- **Main Flow**:
-  1. Agent follows instructions referencing "scenarios."
-  2. All templates, instructions, and skills use "scenario" terminology.
-  3. Identifiers use `SC-`/`SSC-` prefixes.
-- **Postconditions**: Process terminology is consistent.
-- **Acceptance Criteria**:
-  - [ ] Instructions use "scenario" instead of "use case"
-  - [ ] Templates use scenario headers and identifiers
-  - [ ] Skills reference scenarios not use cases
-
-## SUC-007: Include Mermaid Diagrams in Technical Plans
+## SUC-006: Include Mermaid Diagrams in Technical Plans
 Parent: UC-004
 
 - **Actor**: AI agent (architect)
@@ -121,23 +106,7 @@ Parent: UC-004
   - [ ] Guidance specifies when to use and when not to
   - [ ] Covers subsystem interaction and module dependency diagrams
 
-## SUC-008: Version Bumped and Tagged on Sprint Merge
-Parent: UC-004
-
-- **Actor**: AI agent (project-manager) or close-sprint skill
-- **Preconditions**: Sprint is being closed, branch merged to main.
-- **Main Flow**:
-  1. Close-sprint workflow determines the next version number.
-  2. Build number increments (resets to 1 if date changed).
-  3. pyproject.toml version is updated.
-  4. Commit is tagged with `vMAJOR.ISODATE.BUILD`.
-- **Postconditions**: Main branch has correct version and git tag.
-- **Acceptance Criteria**:
-  - [ ] Version scheme `major.isodate.build` documented in instructions
-  - [ ] Close-sprint updates version automatically
-  - [ ] Git tag created on merge commit
-
-## SUC-009: Access Language-Specific Instructions via MCP
+## SUC-007: Access Language-Specific Instructions via MCP
 Parent: UC-009
 
 - **Actor**: AI agent (python-expert or other dev agent)

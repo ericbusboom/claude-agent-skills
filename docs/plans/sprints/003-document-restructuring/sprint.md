@@ -42,19 +42,12 @@ instruction support.
    The overview covers project identity, high-level requirements, tech stack,
    and a rough sprint roadmap. All detailed planning lives inside sprints.
 
-7. **Rename use cases to scenarios**: Throughout instructions, templates, and
-   process docs. Less formal, better matches actual usage. Prefix changes from
-   `UC-`/`SUC-` to `SC-`/`SSC-`.
-
-8. **Mermaid diagram guidance**: Add guidance to instructions on when and how
+7. **Mermaid diagram guidance**: Add guidance to instructions on when and how
    to include Mermaid diagrams in technical plans.
 
-9. **Versioning scheme**: Implement `major.isodate.build` version numbering.
-   Build number increments on sprint merge to main. Git tag `vX.Y.Z` on merge.
-
-10. **Per-language instructions**: Create `instructions/languages/` with Python
-    as the first language. Add MCP tools for listing and reading language
-    instructions.
+8. **Per-language instructions**: Create `instructions/languages/` with Python
+   as the first language. Add MCP tools for listing and reading language
+   instructions.
 
 ### Out of Scope
 
@@ -71,8 +64,6 @@ instruction support.
   and skills — minimal new Python modules.
 - Template changes must handle backward compatibility: old sprints with
   separate brief.md still exist in `done/` and should not break.
-- Versioning involves both pyproject.toml updates and git tagging in the
-  close-sprint workflow.
 
 ## Source TODOs
 

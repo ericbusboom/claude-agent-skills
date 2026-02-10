@@ -38,10 +38,8 @@ The SE process has several rough edges identified through daily use:
 2. Merge sprint.md and brief.md into a single document. Add a test strategy
    section.
 3. Replace three top-level planning docs with a single overview document.
-4. Rename "use cases" to "scenarios" throughout.
-5. Add Mermaid diagram guidance to technical plan instructions.
-6. Implement `major.isodate.build` versioning with git tagging on merge.
-7. Create per-language instruction files with MCP tool support.
+4. Add Mermaid diagram guidance to technical plan instructions.
+5. Create per-language instruction files with MCP tool support.
 
 ## Success Criteria
 
@@ -51,7 +49,5 @@ The SE process has several rough edges identified through daily use:
 - Sprint template has a single document (no separate brief.md) with test
   strategy section.
 - Single `docs/plans/overview.md` replaces three separate top-level docs.
-- All instructions/templates/skills use "scenario" instead of "use case."
 - Technical plan instructions include Mermaid diagram guidance.
-- Versioning scheme documented and automated in close-sprint workflow.
 - `instructions/languages/python.md` exists and is accessible via MCP.

@@ -22,13 +22,13 @@ from claude_agent_skills.state_db import (
 from claude_agent_skills.templates import (
     slugify,
     SPRINT_TEMPLATE,
-    SPRINT_BRIEF_TEMPLATE,
     SPRINT_USECASES_TEMPLATE,
     SPRINT_TECHNICAL_PLAN_TEMPLATE,
     TICKET_TEMPLATE,
     BRIEF_TEMPLATE,
     TECHNICAL_PLAN_TEMPLATE,
     USE_CASES_TEMPLATE,
+    OVERVIEW_TEMPLATE,
 )
 
 
@@ -104,7 +104,7 @@ def create_sprint(title: str) -> str:
     """Create a new sprint directory with template planning documents.
 
     Auto-assigns the next sprint number and creates the full directory
-    structure: sprint.md, brief.md, usecases.md, technical-plan.md,
+    structure: sprint.md, usecases.md, technical-plan.md,
     and tickets/ + tickets/done/ directories.
 
     Args:
@@ -126,7 +126,6 @@ def create_sprint(title: str) -> str:
     files = {}
     for name, template in [
         ("sprint.md", SPRINT_TEMPLATE),
-        ("brief.md", SPRINT_BRIEF_TEMPLATE),
         ("usecases.md", SPRINT_USECASES_TEMPLATE),
         ("technical-plan.md", SPRINT_TECHNICAL_PLAN_TEMPLATE),
     ]:
@@ -210,8 +209,30 @@ def create_ticket(sprint_id: str, title: str) -> str:
 
 
 @server.tool()
+def create_overview() -> str:
+    """Create the top-level project overview (docs/plans/overview.md).
+
+    This is the recommended way to start a new project. The overview
+    replaces the separate brief, use cases, and technical plan files
+    with a single lightweight document. Detailed planning lives in sprints.
+
+    Returns an error if the file already exists.
+    """
+    path = _plans_dir() / "overview.md"
+    if path.exists():
+        raise ValueError(f"Overview already exists: {path}")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(OVERVIEW_TEMPLATE, encoding="utf-8")
+
+    return json.dumps({"path": str(path)}, indent=2)
+
+
+@server.tool()
 def create_brief() -> str:
     """Create the top-level project brief (docs/plans/brief.md).
+
+    Deprecated: prefer create_overview() for new projects.
 
     Returns an error if the file already exists.
     """
@@ -229,6 +250,8 @@ def create_brief() -> str:
 def create_technical_plan() -> str:
     """Create the top-level technical plan (docs/plans/technical-plan.md).
 
+    Deprecated: prefer create_overview() for new projects.
+
     Returns an error if the file already exists.
     """
     path = _plans_dir() / "technical-plan.md"
@@ -244,6 +267,8 @@ def create_technical_plan() -> str:
 @server.tool()
 def create_use_cases() -> str:
     """Create the top-level use cases file (docs/plans/usecases.md).
+
+    Deprecated: prefer create_overview() for new projects.
 
     Returns an error if the file already exists.
     """

@@ -40,6 +40,18 @@ use-cases: []
 
 (Describe what this sprint aims to accomplish.)
 
+## Problem
+
+(What problem does this sprint address?)
+
+## Solution
+
+(High-level description of the approach.)
+
+## Success Criteria
+
+(How will we know the sprint succeeded?)
+
 ## Scope
 
 ### In Scope
@@ -50,6 +62,11 @@ use-cases: []
 
 (List what is explicitly excluded.)
 
+## Test Strategy
+
+(Describe the overall testing approach for this sprint: what types of tests,
+what areas need coverage, any integration or system-level testing needed.)
+
 ## Architecture Notes
 
 (Key design decisions and constraints.)
@@ -58,7 +75,7 @@ use-cases: []
 
 Before tickets can be created, all of the following must be true:
 
-- [ ] Sprint planning documents are complete (sprint.md, brief, use cases, technical plan)
+- [ ] Sprint planning documents are complete (sprint.md, use cases, technical plan)
 - [ ] Architecture review passed
 - [ ] Stakeholder has approved the sprint plan
 
@@ -230,4 +247,44 @@ status: draft
 - **Postconditions**: (What is true after)
 - **Acceptance Criteria**:
   - [ ] (Criterion)
+"""
+
+OVERVIEW_TEMPLATE = """\
+---
+status: draft
+---
+
+# Project Overview
+
+## Project Name
+
+(Name)
+
+## Problem Statement
+
+(What problem does this project solve? Who has this problem?)
+
+## Target Users
+
+(Who will use this system?)
+
+## Key Constraints
+
+(Timeline, technology, budget, team size.)
+
+## High-Level Requirements
+
+(Key scenarios the system must support. Detailed scenarios live in sprints.)
+
+## Technology Stack
+
+(Languages, frameworks, infrastructure.)
+
+## Sprint Roadmap
+
+(Rough plan of sprints — what will be tackled in what order.)
+
+## Out of Scope
+
+(What is explicitly excluded from this project.)
 """

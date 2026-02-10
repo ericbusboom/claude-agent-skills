@@ -50,43 +50,56 @@ Supporting skills used during ticket execution:
 
 ## Artifacts
 
-### 1. Brief (`docs/plans/brief.md`)
+### 1. Project Overview (`docs/plans/overview.md`) — Recommended
 
-A one-page project description written first. Everything else derives from it.
+A single lightweight document created at project start. Replaces the separate
+brief, use cases, and technical plan files for new projects. Detailed planning
+lives in sprints.
 
 Contents:
 - Project name
 - Problem statement (what problem, who has it)
-- Proposed solution (high-level)
 - Target users
 - Key constraints (timeline, technology, budget)
-- Success criteria (measurable outcomes)
+- High-level requirements (key scenarios)
+- Technology stack
+- Sprint roadmap (rough plan of sprints)
 - Out of scope
 
-### 2. Use Cases (`docs/plans/usecases.md`)
+### Legacy: Brief, Use Cases, Technical Plan
 
-Enumerated use cases derived from the brief. Each use case has:
-- ID (UC-001, UC-002, ...)
-- Title
-- Actor
-- Preconditions
-- Main flow (numbered steps)
-- Postconditions
-- Acceptance criteria (checkboxes)
+For existing projects that predate the overview document, these separate
+top-level files remain valid:
 
-### 3. Technical Plan (`docs/plans/technical-plan.md`)
+- **Brief** (`docs/plans/brief.md`) — One-page project description.
+- **Use Cases** (`docs/plans/usecases.md`) — Enumerated use cases (UC-001, etc.)
+  with actor, preconditions, main flow, postconditions, acceptance criteria.
+- **Technical Plan** (`docs/plans/technical-plan.md`) — Architecture, tech stack,
+  component design, data model, APIs, deployment, security.
 
-Architecture and design decisions. Must trace back to use cases.
+New projects should use `create_overview` instead of the three separate tools.
 
-Contents:
-- Architecture overview
-- Technology stack
-- Component design (each component lists use cases it addresses)
-- Data model
-- API design
-- Deployment strategy
-- Security considerations
-- Open questions
+### Diagrams in Technical Plans
+
+Use Mermaid diagrams in technical plans when they clarify structure that is
+hard to convey in text alone. Diagrams should show the target state at the
+end of the sprint.
+
+**When to use diagrams:**
+- Subsystem/component interaction diagrams (flowchart or C4-style)
+- Module dependency diagrams showing how packages relate
+- Data flow diagrams for complex pipelines
+
+**When NOT to use diagrams:**
+- Swim lane / sequence diagrams unless multi-system sequencing is involved
+- Exhaustive class diagrams (too detailed, go stale quickly)
+- Diagrams that merely restate what the text already says
+
+**Best practices:**
+- Keep diagrams small: 5-10 nodes maximum
+- Use Mermaid syntax (renders in GitHub, VS Code, most markdown viewers)
+- Label edges with the relationship (calls, depends-on, produces)
+- One diagram per concern; do not overload a single diagram
 
 ### 4. Sprints (`docs/plans/sprints/NNN-slug/`)
 
@@ -96,8 +109,7 @@ Ticket numbering is per-sprint (starts at 001 within each sprint).
 Directory structure:
 ```
 docs/plans/sprints/NNN-slug/
-├── sprint.md              # Sprint goals, scope, architecture notes
-├── brief.md               # Sprint-level brief
+├── sprint.md              # Sprint goals, scope, problem, solution, test strategy
 ├── usecases.md            # Sprint-level use cases (SUC-NNN)
 ├── technical-plan.md      # Sprint-level technical plan
 └── tickets/
@@ -160,31 +172,43 @@ Every ticket plan must include:
 A ticket plan without a testing section and a documentation section is
 incomplete.
 
+### 7. TODO Directory (`docs/plans/todo/`)
+
+A lightweight capture area for ideas, improvements, and future work items.
+Stakeholders and developers add ideas here at any time — especially when the
+AI agent is busy with other work.
+
+**File format:**
+- One markdown file per idea (descriptive filename, e.g., `versioning.md`).
+- Each file has a single level-1 heading (`# Title`) followed by description.
+- Files with multiple level-1 headings should be split using `clasi todo-split`.
+
+**Lifecycle:**
+1. **Capture**: Create a `.md` file in `docs/plans/todo/` with the idea.
+2. **Mine**: During sprint planning, the project-manager scans the TODO
+   directory and discusses relevant items with the stakeholder.
+3. **Consume**: When a TODO is incorporated into a sprint, move the file
+   to `docs/plans/todo/done/`.
+
+Files in `todo/` are unordered and unprioritized — sprint planning is when
+prioritization happens. The `done/` subdirectory preserves consumed TODOs
+for reference.
+
 ## Workflow
 
-### Stage 1a: Requirements (requirements-analyst)
+### Project Setup (requirements-analyst)
 
 Skill: **elicit-requirements**
 
 1. Take the stakeholder's narrative about the project.
 2. Ask clarifying questions about stakeholders, components, requirements,
    constraints, and success criteria.
-3. Write the brief.
-4. Derive use cases from the brief.
-5. **Review gate**: Present the brief and use cases to the stakeholder.
-   Wait for approval before proceeding. If the stakeholder requests changes,
-   revise and re-present.
-
-### Stage 1b: Architecture (architect)
-
-Skill: **create-technical-plan**
-
-1. Read the brief and use cases.
-2. Design the architecture and write the technical plan.
-3. Verify every component traces to at least one use case.
-4. **Review gate**: Present the technical plan to the stakeholder.
-   Wait for approval before proceeding. If the stakeholder requests changes,
-   revise and re-present.
+3. Write the project overview (`docs/plans/overview.md`) using the
+   `create_overview` MCP tool. The overview covers problem, users,
+   constraints, high-level requirements, tech stack, and sprint roadmap.
+4. **Review gate**: Present the overview to the stakeholder. Wait for
+   approval before proceeding. If the stakeholder requests changes, revise
+   and re-present.
 
 ### Sprints (Default Working Mode)
 
@@ -364,9 +388,14 @@ Things go wrong during implementation. Here is what to do.
 
 ```
 docs/plans/
-├── brief.md                     # Top-level project brief
-├── usecases.md                  # Top-level use cases
-├── technical-plan.md            # Top-level technical plan
+├── overview.md                  # Project overview (recommended)
+├── brief.md                     # Top-level brief (legacy)
+├── usecases.md                  # Top-level use cases (legacy)
+├── technical-plan.md            # Top-level technical plan (legacy)
+├── todo/                        # Ideas and future work
+│   ├── some-idea.md             # One idea per file
+│   └── done/                    # Consumed TODOs (archived)
+│       └── ...
 └── sprints/
     ├── 001-mcp-server/          # Active sprint directory
     │   ├── sprint.md            # Sprint goals, scope, notes
