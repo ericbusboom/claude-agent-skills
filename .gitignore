@@ -38,6 +38,9 @@ env/
 .github/copilot/
 .claude/
 
+# CLASI state database (local coordination, not versioned)
+.clasi.db
+
 # Testing
 .pytest_cache/
 .coverage
