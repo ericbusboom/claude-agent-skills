@@ -1,0 +1,224 @@
+"""
+Artifact templates for sprints, tickets, briefs, technical plans, and use cases.
+
+Templates use str.format() with named placeholders for dynamic values.
+"""
+
+import re
+import unicodedata
+
+
+def slugify(title: str) -> str:
+    """Convert a title to a filesystem-safe slug.
+
+    >>> slugify("Add User Authentication")
+    'add-user-authentication'
+    >>> slugify("MCP Server & Tools!")
+    'mcp-server-tools'
+    """
+    # Normalize unicode, lowercase
+    s = unicodedata.normalize("NFKD", title).lower()
+    # Replace non-alphanumeric with hyphens
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    # Strip leading/trailing hyphens
+    s = s.strip("-")
+    return s
+
+
+SPRINT_TEMPLATE = """\
+---
+id: "{id}"
+title: {title}
+status: planning
+branch: sprint/{id}-{slug}
+use-cases: []
+---
+
+# Sprint {id}: {title}
+
+## Goals
+
+(Describe what this sprint aims to accomplish.)
+
+## Scope
+
+### In Scope
+
+(List what is included in this sprint.)
+
+### Out of Scope
+
+(List what is explicitly excluded.)
+
+## Architecture Notes
+
+(Key design decisions and constraints.)
+
+## Tickets
+
+(To be created after sprint approval.)
+"""
+
+SPRINT_BRIEF_TEMPLATE = """\
+---
+status: draft
+---
+
+# Sprint {id} Brief
+
+## Problem
+
+(What problem does this sprint address?)
+
+## Solution
+
+(High-level description of the approach.)
+
+## Success Criteria
+
+(How will we know the sprint succeeded?)
+"""
+
+SPRINT_USECASES_TEMPLATE = """\
+---
+status: draft
+---
+
+# Sprint {id} Use Cases
+
+## SUC-001: (Title)
+
+- **Actor**: (Who)
+- **Preconditions**: (What must be true before)
+- **Main Flow**:
+  1. (Step)
+- **Postconditions**: (What is true after)
+- **Acceptance Criteria**:
+  - [ ] (Criterion)
+"""
+
+SPRINT_TECHNICAL_PLAN_TEMPLATE = """\
+---
+status: draft
+---
+
+# Sprint {id} Technical Plan
+
+## Architecture Overview
+
+(How the components fit together.)
+
+## Component Design
+
+### Component: (Name)
+
+**Use Cases**: (SUC-NNN)
+
+(Description, key functions, interfaces.)
+
+## Open Questions
+
+(Unresolved design decisions.)
+"""
+
+TICKET_TEMPLATE = """\
+---
+id: "{id}"
+title: {title}
+status: todo
+use-cases: []
+depends-on: []
+---
+
+# {title}
+
+## Description
+
+(What needs to be done and why.)
+
+## Acceptance Criteria
+
+- [ ] (Criterion)
+"""
+
+BRIEF_TEMPLATE = """\
+---
+status: draft
+---
+
+# Project Brief
+
+## Project Name
+
+(Name)
+
+## Problem Statement
+
+(What problem, who has it.)
+
+## Proposed Solution
+
+(High-level approach.)
+
+## Target Users
+
+(Who will use this.)
+
+## Key Constraints
+
+(Timeline, technology, budget.)
+
+## Success Criteria
+
+(Measurable outcomes.)
+
+## Out of Scope
+
+(What is explicitly excluded.)
+"""
+
+TECHNICAL_PLAN_TEMPLATE = """\
+---
+status: draft
+---
+
+# Technical Plan
+
+## Architecture Overview
+
+(High-level system design.)
+
+## Technology Stack
+
+(Languages, frameworks, tools.)
+
+## Component Design
+
+### Component: (Name)
+
+**Use Cases Addressed**: (UC-NNN)
+
+(Description.)
+
+## Open Questions
+
+(Unresolved decisions.)
+"""
+
+USE_CASES_TEMPLATE = """\
+---
+status: draft
+---
+
+# Use Cases
+
+## UC-001: (Title)
+
+- **Actor**: (Who)
+- **Preconditions**: (What must be true before)
+- **Main Flow**:
+  1. (Step)
+- **Postconditions**: (What is true after)
+- **Acceptance Criteria**:
+  - [ ] (Criterion)
+"""
