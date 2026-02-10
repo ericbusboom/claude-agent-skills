@@ -13,17 +13,17 @@ into actionable, sequenced implementation tickets.
 
 Given a completed brief, use cases, and technical plan, produce:
 
-1. **Tickets** in `docs/plans/tickets/` — numbered implementation units
+1. **Tickets** in the sprint's `tickets/` directory — numbered implementation units
 2. **Ticket plans** — detailed plans created before work begins on each ticket
 
 ## Creating Tickets
 
 Read the technical plan and break it into tickets. Each ticket should be a
-single coherent unit of work.
+single coherent unit of work. Tickets are numbered per-sprint (001, 002, ...).
 
 ### Ticket Format
 
-File: `docs/plans/tickets/NNN-slug.md`
+File: `<sprint-dir>/tickets/NNN-slug.md`
 
 ```yaml
 ---
@@ -51,7 +51,7 @@ implementation notes.
 
 Before implementation begins on a ticket, create a plan file:
 
-File: `docs/plans/tickets/NNN-slug-plan.md`
+File: `<sprint-dir>/tickets/NNN-slug-plan.md`
 
 The plan has the same number and slug as the ticket, with `-plan` appended.
 
@@ -77,8 +77,8 @@ A ticket must satisfy the **Definition of Done** (see
 3. Set the ticket's `status` to `done` in the frontmatter.
 4. Commit all changes following `instructions/git-workflow.md` with a
    message referencing the ticket ID.
-5. Move the ticket file to `docs/plans/tickets/done/`.
-6. Move the ticket plan file to `docs/plans/tickets/done/`.
+5. Move the ticket file to the sprint's `tickets/done/` directory.
+6. Move the ticket plan file to the sprint's `tickets/done/` directory.
 
 ## Quality Checks
 

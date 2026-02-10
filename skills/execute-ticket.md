@@ -22,11 +22,11 @@ completion, coordinating multiple agents.
 
 ## Process
 
-1. **Select ticket**: Find the next `todo` ticket in `docs/plans/tickets/`
-   whose `depends-on` entries are all `done`. Read its description and
-   acceptance criteria.
-2. **Create ticket plan**: Write `docs/plans/tickets/NNN-<slug>-plan.md`
-   containing:
+1. **Select ticket**: Find the next `todo` ticket in the active sprint's
+   `tickets/` directory whose `depends-on` entries are all `done`. Read its
+   description and acceptance criteria.
+2. **Create ticket plan**: Write `NNN-<slug>-plan.md` in the same `tickets/`
+   directory, containing:
    - Approach and key design decisions
    - Files to create or modify
    - Testing plan (test type, verification strategy)
@@ -57,11 +57,11 @@ completion, coordinating multiple agents.
 11. **Complete the ticket**:
    - Set `status` to `done` in the ticket's YAML frontmatter.
    - Check off all acceptance criteria (`- [x]`).
-   - Move the ticket file to `docs/plans/tickets/done/`.
-   - Move the ticket plan file to `docs/plans/tickets/done/`.
+   - Move the ticket file to the sprint's `tickets/done/` directory.
+   - Move the ticket plan file to the sprint's `tickets/done/` directory.
 
 ## Output
 
 - Implemented code with passing tests
 - Updated documentation
-- Ticket and plan moved to `docs/plans/tickets/done/`
+- Ticket and plan moved to the sprint's `tickets/done/` directory

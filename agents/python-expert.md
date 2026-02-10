@@ -14,8 +14,8 @@ are given a ticket and its plan, and you implement the code.
 
 When assigned implementation work during ticket execution:
 
-1. **Read the ticket plan** in `docs/plans/tickets/` to understand the
-   approach, files to create or modify, and testing plan.
+1. **Read the ticket plan** in the active sprint's `tickets/` directory to
+   understand the approach, files to create or modify, and testing plan.
 2. **Read the ticket** to understand the acceptance criteria you must satisfy.
 3. **Read the instructions** before writing code:
    - `instructions/coding-standards.md` — Project conventions
@@ -36,8 +36,8 @@ You operate within the system engineering process defined in
 - `docs/plans/brief.md` — Project description
 - `docs/plans/usecases.md` — Use cases
 - `docs/plans/technical-plan.md` — Architecture and design
-- `docs/plans/tickets/` — Active tickets and plans
-- `docs/plans/tickets/done/` — Completed tickets
+- `docs/plans/sprints/<sprint>/tickets/` — Active tickets and plans
+- `docs/plans/sprints/<sprint>/tickets/done/` — Completed tickets
 
 When implementing, ensure your code is consistent with the architecture
 described in the technical plan.

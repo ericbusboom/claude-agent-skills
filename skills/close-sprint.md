@@ -14,19 +14,19 @@ the sprint branch, and archive the sprint document.
 
 ## Inputs
 
-- Active sprint document in `docs/plans/sprints/NNN-slug.md`
+- Active sprint directory in `docs/plans/sprints/NNN-slug/`
 - All tickets for this sprint should be `done`
 
 ## Process
 
-1. **Identify the sprint**: Read the active sprint document from
+1. **Identify the sprint**: Read active sprint directories from
    `docs/plans/sprints/`. If multiple sprints are active, confirm with
    the stakeholder which one to close.
 
-2. **Verify all tickets are done**: Read each ticket listed in the sprint
-   document. Every ticket must:
+2. **Verify all tickets are done**: Read each ticket in the sprint's
+   `tickets/` directory. Every ticket must:
    - Have status `done` in its YAML frontmatter
-   - Be located in `docs/plans/tickets/done/`
+   - Be located in the sprint's `tickets/done/` directory
    - Satisfy the Definition of Done (see SE instructions)
 
    If any ticket is not done, report which tickets remain and stop.
@@ -44,8 +44,8 @@ the sprint branch, and archive the sprint document.
 
 5. **Update sprint document**: Set the sprint status to `done`.
 
-6. **Archive sprint**: Move the sprint document to
-   `docs/plans/sprints/done/NNN-slug.md`.
+6. **Archive sprint**: Move the sprint directory to
+   `docs/plans/sprints/done/NNN-slug/`.
 
 7. **Report completion**: Summarize what was accomplished in the sprint —
    list of completed tickets, key changes, any notes for follow-up.

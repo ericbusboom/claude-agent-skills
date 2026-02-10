@@ -26,10 +26,10 @@ using the systems-engineer agent.
 3. **Order by dependency**: Number tickets so that foundation work comes
    before features that depend on it. Record dependencies in each ticket's
    `depends-on` field.
-4. **Create ticket files**: Write each ticket to
-   `docs/plans/tickets/NNN-slug.md` with YAML frontmatter (id, title,
-   status, use-cases, depends-on) and body (description, acceptance
-   criteria, implementation notes).
+4. **Create ticket files**: Write each ticket to the sprint's
+   `tickets/NNN-slug.md` with YAML frontmatter (id, title, status,
+   use-cases, depends-on) and body (description, acceptance criteria,
+   implementation notes). Ticket numbering is per-sprint (starts at 001).
 5. **Verify coverage**: Every use case must be covered by at least one
    ticket. Every ticket must trace to at least one use case.
 6. **Verify sequencing**: No circular dependencies. Foundation before
@@ -37,4 +37,5 @@ using the systems-engineer agent.
 
 ## Output
 
-Numbered ticket files in `docs/plans/tickets/` ready for implementation.
+Numbered ticket files in the sprint's `tickets/` directory, ready for
+implementation.

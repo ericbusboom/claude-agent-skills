@@ -27,21 +27,13 @@ create tickets.
    `docs/plans/sprints/done/` for existing sprints. The new sprint gets the
    next sequential number (NNN format: 001, 002, ...).
 
-2. **Create sprint document**: Write `docs/plans/sprints/NNN-slug.md` with:
-   ```yaml
-   ---
-   id: "NNN"
-   title: Sprint title
-   status: planning
-   branch: sprint/NNN-slug
-   use-cases: [UC-XXX, ...]
-   ---
-   ```
-   Followed by:
-   - **Goals**: What this sprint aims to accomplish.
-   - **Scope**: What is included and excluded.
-   - **Architecture notes**: Any relevant design decisions or constraints.
-   - **Tickets**: (filled in after ticket creation)
+2. **Create sprint directory**: Create `docs/plans/sprints/NNN-slug/` with:
+   - `sprint.md` — Sprint goals, scope, architecture notes, ticket list.
+     Frontmatter: id, title, status: planning, branch, use-cases.
+   - `brief.md` — Sprint-level brief (problem, solution, success criteria).
+   - `usecases.md` — Sprint-level use cases (SUC-NNN).
+   - `technical-plan.md` — Sprint-level architecture and component design.
+   - `tickets/` — Empty directory for tickets (with `done/` subdirectory).
 
 3. **Create sprint branch**: Run `git checkout -b sprint/NNN-slug` from main.
 
@@ -56,14 +48,15 @@ create tickets.
    revise and re-present.
 
 6. **Create tickets**: Delegate to the systems-engineer to create tickets
-   for this sprint. Tickets are created in `docs/plans/tickets/` with the
-   standard format. Update the sprint document's Tickets section with the
-   list of created tickets.
+   for this sprint. Tickets are created in the sprint's `tickets/` directory
+   with per-sprint numbering (001, 002, ...). Update the sprint document's
+   Tickets section with the list of created tickets.
 
 7. **Set sprint status**: Update the sprint document status to `active`.
 
 ## Output
 
-- Sprint document in `docs/plans/sprints/NNN-slug.md` with status `active`
+- Sprint directory `docs/plans/sprints/NNN-slug/` with planning documents
+- Sprint `sprint.md` status set to `active`
 - Sprint branch `sprint/NNN-slug` created
-- Tickets in `docs/plans/tickets/` ready for execution
+- Tickets in the sprint's `tickets/` directory ready for execution

@@ -51,8 +51,8 @@ You operate within the system engineering process defined in
 - `docs/plans/brief.md` — Project description
 - `docs/plans/usecases.md` — Use cases
 - `docs/plans/technical-plan.md` — Architecture and design
-- `docs/plans/tickets/` — Active tickets and plans
-- `docs/plans/tickets/done/` — Completed tickets
+- `docs/plans/sprints/<sprint>/tickets/` — Active tickets and plans
+- `docs/plans/sprints/<sprint>/tickets/done/` — Completed tickets
 - `instructions/coding-standards.md` — Coding conventions
 - `instructions/testing.md` — Testing requirements
 - `instructions/git-workflow.md` — Commit conventions

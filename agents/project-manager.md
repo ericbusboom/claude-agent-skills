@@ -31,7 +31,7 @@ Read the project artifacts to figure out where things stand:
 1. Does `docs/plans/brief.md` exist? If not → start Stage 1a.
 2. Does `docs/plans/usecases.md` exist? If not → continue Stage 1a.
 3. Does `docs/plans/technical-plan.md` exist? If not → start Stage 1b.
-4. Are there tickets in `docs/plans/tickets/`? If not → start Stage 2.
+4. Does the active sprint have tickets in its `tickets/` directory? If not → start Stage 2.
 5. Is there an active sprint in `docs/plans/sprints/`? → Resume sprint execution.
 6. Are there `todo` tickets? → Stage 3, pick the next one.
 7. All tickets `done`? → Close the sprint, then Stage 4 (maintenance).
@@ -96,7 +96,7 @@ For each ticket (in dependency order):
 8. Verify the **Definition of Done** (see SE instructions): acceptance
    criteria met, tests passing, review passed, docs updated, git committed.
 9. Set ticket status to `done`.
-10. Move ticket and plan to `docs/plans/tickets/done/`.
+10. Move ticket and plan to the sprint's `tickets/done/` directory.
 
 ### Stage 4: Maintenance
 

@@ -56,8 +56,8 @@ You operate within the system engineering process defined in
 - `docs/plans/brief.md` — Project description
 - `docs/plans/usecases.md` — Use cases
 - `docs/plans/technical-plan.md` — Architecture and design
-- `docs/plans/sprints/` — Active sprint documents
-- `docs/plans/tickets/` — Active tickets and plans
+- `docs/plans/sprints/` — Active sprint directories (each with tickets/)
+- `docs/plans/sprints/done/` — Completed sprint directories
 
 ## What You Do Not Do
 

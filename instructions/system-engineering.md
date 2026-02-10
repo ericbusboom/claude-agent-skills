@@ -88,9 +88,43 @@ Contents:
 - Security considerations
 - Open questions
 
-### 4. Tickets (`docs/plans/tickets/NNN-slug.md`)
+### 4. Sprints (`docs/plans/sprints/NNN-slug/`)
+
+Each sprint is a **directory** containing its planning documents and tickets.
+Ticket numbering is per-sprint (starts at 001 within each sprint).
+
+Directory structure:
+```
+docs/plans/sprints/NNN-slug/
+├── sprint.md              # Sprint goals, scope, architecture notes
+├── brief.md               # Sprint-level brief
+├── usecases.md            # Sprint-level use cases (SUC-NNN)
+├── technical-plan.md      # Sprint-level technical plan
+└── tickets/
+    ├── 001-first-task.md  # Active ticket
+    ├── 002-next-task.md   # Active ticket
+    └── done/              # Completed tickets and plans
+        └── ...
+```
+
+Sprint frontmatter (`sprint.md`):
+```yaml
+---
+id: "NNN"
+title: Sprint title
+status: planning | active | done
+branch: sprint/NNN-slug
+use-cases: [UC-XXX, ...]
+---
+```
+
+Active sprints live in `docs/plans/sprints/`. Completed sprints live in
+`docs/plans/sprints/done/`.
+
+### 5. Tickets (within sprint: `tickets/NNN-slug.md`)
 
 Numbered implementation tickets broken out from the technical plan.
+Tickets are numbered per-sprint starting at 001.
 
 File naming: `001-setup-project-skeleton.md`, `002-add-auth-endpoints.md`, etc.
 
@@ -100,19 +134,20 @@ Each ticket has YAML frontmatter:
 id: "NNN"
 title: Short title
 status: todo | in-progress | done
-use-cases: [UC-001, UC-002]
-depends-on: []
+use-cases: [SUC-001, SUC-002]
+depends-on: ["NNN"]
 ---
 ```
 
 Followed by: description, acceptance criteria (checkboxes), and
 implementation notes.
 
-### 5. Ticket Plans (`docs/plans/tickets/NNN-slug-plan.md`)
+### 6. Ticket Plans (`tickets/NNN-slug-plan.md`)
 
 Before starting work on a ticket, create a plan file with the same number
 and slug, ending in `-plan`. For example, ticket `003-add-auth.md` gets a
-plan file `003-add-auth-plan.md`.
+plan file `003-add-auth-plan.md`. The plan lives in the same `tickets/`
+directory as the ticket.
 
 Every ticket plan must include:
 1. **Approach** — How the work will be done, key decisions.
@@ -157,30 +192,23 @@ After Stages 1a and 1b are complete, all work is organized into sprints.
 A sprint is a focused batch of work with its own lifecycle, branch, and
 ticket set.
 
-**Sprint documents** live in `docs/plans/sprints/NNN-slug.md`. Each has
-YAML frontmatter:
-```yaml
----
-id: "NNN"
-title: Sprint title
-status: planning | active | done
-branch: sprint/NNN-slug
-use-cases: [UC-XXX, ...]
----
-```
+**Sprint directories** live in `docs/plans/sprints/NNN-slug/`. Each sprint
+directory contains `sprint.md`, `brief.md`, `usecases.md`,
+`technical-plan.md`, and a `tickets/` subdirectory (see Artifacts §4 above).
 
 **Sprint lifecycle** (skills: **plan-sprint**, **close-sprint**):
 1. Stakeholder describes the next batch of work.
-2. Create sprint document with goals, scope, and use case references.
+2. Create sprint directory with planning documents (brief, use cases,
+   technical plan) and a `tickets/` subdirectory.
 3. Create sprint branch (`sprint/NNN-slug`).
 4. **Architecture review**: Delegate to the **architecture-reviewer** to
    validate the plan against the existing codebase and technical plan.
 5. **Review gate**: Present the sprint plan and architecture review to the
    stakeholder. Wait for approval.
-6. Create tickets for the sprint (Stage 2 below).
+6. Create tickets for the sprint in `tickets/` (Stage 2 below).
 7. Execute tickets on the sprint branch (Stage 3 below).
 8. When all tickets are done, close the sprint: merge branch to main,
-   move sprint document to `docs/plans/sprints/done/`.
+   move sprint directory to `docs/plans/sprints/done/`.
 
 Active sprints live in `docs/plans/sprints/`. Completed sprints live in
 `docs/plans/sprints/done/`.
@@ -222,7 +250,7 @@ A ticket is not done until ALL of the following are true:
 - [ ] Code review passed by **code-reviewer** (coding standards, security, test coverage)
 - [ ] Documentation updated as specified in the ticket plan
 - [ ] Changes committed to git with a message referencing the ticket ID
-- [ ] Ticket and plan moved to `docs/plans/tickets/done/`
+- [ ] Ticket and plan moved to the sprint's `tickets/done/` directory
 
 Do not mark a ticket done if any item is incomplete. If an item cannot be
 satisfied, document why in the ticket before completing.
@@ -236,11 +264,11 @@ When a ticket satisfies the Definition of Done:
 3. Commit all changes following `instructions/git-workflow.md`. The commit
    message must reference the ticket ID and sprint number if applicable
    (e.g., `feat: add auth endpoint (#003, sprint 001)`).
-4. Move the ticket file to `docs/plans/tickets/done/`.
-5. Move the ticket plan file to `docs/plans/tickets/done/`.
+4. Move the ticket file to the sprint's `tickets/done/` directory.
+5. Move the ticket plan file to the sprint's `tickets/done/` directory.
 
-Active tickets live in `docs/plans/tickets/`. Completed tickets live in
-`docs/plans/tickets/done/`. This separation makes it easy to see at a glance
+Active tickets live in the sprint's `tickets/` directory. Completed tickets
+live in `tickets/done/`. This separation makes it easy to see at a glance
 what work remains (active directory) versus what has been finished (done
 directory).
 
@@ -285,22 +313,26 @@ Things go wrong during implementation. Here is what to do.
 
 ```
 docs/plans/
-├── brief.md
-├── usecases.md
-├── technical-plan.md
-├── sprints/
-│   ├── 001-initial-features.md  # Active sprint
-│   └── done/                    # Completed sprints
-│       └── ...
-└── tickets/
-    ├── 003-add-auth.md          # Active ticket
-    ├── 003-add-auth-plan.md     # Its plan
-    ├── 004-add-api.md           # Next ticket
-    └── done/                    # Completed tickets and plans
-        ├── 001-setup.md
-        ├── 001-setup-plan.md
-        ├── 002-data-model.md
-        └── 002-data-model-plan.md
+├── brief.md                     # Top-level project brief
+├── usecases.md                  # Top-level use cases
+├── technical-plan.md            # Top-level technical plan
+└── sprints/
+    ├── 001-mcp-server/          # Active sprint directory
+    │   ├── sprint.md            # Sprint goals, scope, notes
+    │   ├── brief.md             # Sprint-level brief
+    │   ├── usecases.md          # Sprint-level use cases
+    │   ├── technical-plan.md    # Sprint-level technical plan
+    │   └── tickets/
+    │       ├── 003-add-auth.md      # Active ticket
+    │       ├── 003-add-auth-plan.md # Its plan
+    │       └── done/                # Completed tickets
+    │           ├── 001-setup.md
+    │           └── 001-setup-plan.md
+    └── done/                    # Completed sprint directories
+        └── 000-initial-setup/
+            ├── sprint.md
+            └── tickets/done/
+                └── ...
 ```
 
 ## Rules for AI Assistants

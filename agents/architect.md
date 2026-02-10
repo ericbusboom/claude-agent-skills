@@ -40,8 +40,8 @@ You operate within the system engineering process defined in
 - `docs/plans/brief.md` — Project description (your input)
 - `docs/plans/usecases.md` — Use cases (your input)
 - `docs/plans/technical-plan.md` — Architecture and design (your output)
-- `docs/plans/tickets/` — Tickets derived from your plan
-- `docs/plans/tickets/done/` — Completed tickets
+- `docs/plans/sprints/<sprint>/tickets/` — Tickets derived from your plan
+- `docs/plans/sprints/<sprint>/tickets/done/` — Completed tickets
 
 ## Quality Checks
 

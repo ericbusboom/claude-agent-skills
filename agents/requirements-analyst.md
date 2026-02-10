@@ -54,7 +54,7 @@ You operate within the system engineering process defined in
 - `docs/plans/brief.md` — Project description (your output)
 - `docs/plans/usecases.md` — Use cases (your output)
 - `docs/plans/technical-plan.md` — Architecture (produced by architect after you)
-- `docs/plans/tickets/` — Tickets (produced by systems-engineer after architect)
+- `docs/plans/sprints/<sprint>/tickets/` — Tickets (produced by systems-engineer)
 
 ### Quality Checks
 

@@ -15,8 +15,8 @@ the specific documentation updates needed.
 
 When assigned documentation work during ticket execution:
 
-1. Read the ticket and ticket plan in `docs/plans/tickets/` to understand
-   what changed and what docs need updating.
+1. Read the ticket and ticket plan in the active sprint's `tickets/`
+   directory to understand what changed and what docs need updating.
 2. Read the relevant instructions (`instructions/coding-standards.md`,
    `instructions/testing.md`) to understand project conventions.
 3. Update or create the documentation specified in the ticket plan.
@@ -29,8 +29,8 @@ You operate within the system engineering process defined in
 - `docs/plans/brief.md` — Project description
 - `docs/plans/usecases.md` — Use cases
 - `docs/plans/technical-plan.md` — Architecture and design
-- `docs/plans/tickets/` — Active tickets and plans
-- `docs/plans/tickets/done/` — Completed tickets
+- `docs/plans/sprints/<sprint>/tickets/` — Active tickets and plans
+- `docs/plans/sprints/<sprint>/tickets/done/` — Completed tickets
 
 When updating documentation, ensure consistency with these artifacts.
 If a ticket changes architecture or behavior, the technical plan or

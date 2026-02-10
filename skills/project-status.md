@@ -20,8 +20,9 @@ stands and what should happen next.
    - `docs/plans/technical-plan.md`
 2. **Check sprints**: Scan `docs/plans/sprints/` for active sprints and
    `docs/plans/sprints/done/` for completed sprints.
-3. **Scan tickets**: Read all ticket files in `docs/plans/tickets/` and
-   `docs/plans/tickets/done/`. Extract frontmatter status for each.
+3. **Scan tickets**: For each active sprint, read ticket files in the
+   sprint's `tickets/` and `tickets/done/` directories. Extract frontmatter
+   status for each.
 4. **Determine stage**:
    - No brief → Stage 1 (Requirements) not started
    - Brief but no use cases → Stage 1 in progress
