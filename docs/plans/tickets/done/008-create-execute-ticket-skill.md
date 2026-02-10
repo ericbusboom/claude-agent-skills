@@ -1,7 +1,7 @@
 ---
 id: "008"
 title: Create execute-ticket skill
-status: todo
+status: done
 use-cases: [UC-001, UC-004]
 depends-on: ["007"]
 ---
@@ -16,6 +16,6 @@ multiple agents.
 
 ## Acceptance Criteria
 
-- [ ] `skills/execute-ticket.md` exists with YAML frontmatter
-- [ ] Describes multi-agent coordination per step
-- [ ] Process covers full lifecycle: plan, implement, test, document, verify, complete, move to done/
+- [x] `skills/execute-ticket.md` exists with YAML frontmatter
+- [x] Describes multi-agent coordination per step
+- [x] Process covers full lifecycle: plan, implement, test, document, verify, complete, move to done/

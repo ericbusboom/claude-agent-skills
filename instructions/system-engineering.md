@@ -10,14 +10,32 @@ artifacts live in `docs/plans/`.
 
 ## Agents
 
-Two specialized agents drive this process:
+Four specialized agents drive this process, orchestrated by the
+project-manager:
 
-- **requirements-analyst** — Takes stakeholder narratives and produces the
-  brief, use cases, and technical plan. Knows how to ask about stakeholders,
-  components, requirements, and success criteria.
-- **systems-engineer** — Takes the completed documents and breaks them into
-  sequenced, numbered tickets. Creates ticket plans before implementation
-  begins.
+- **project-manager** — Top-level orchestrator. Delegates to the other
+  agents, tracks project state, and coordinates the ticket execution loop.
+  Does not implement code or write documents itself.
+- **requirements-analyst** — Elicits requirements from stakeholder
+  narratives. Produces the brief and use cases.
+- **architect** — Designs system architecture. Takes the brief and use cases
+  and produces the technical plan.
+- **systems-engineer** — Breaks the technical plan into sequenced, numbered
+  tickets. Creates ticket plans before implementation begins.
+
+Supporting agents used during implementation:
+- **python-expert** — Implements Python code during ticket execution.
+- **documentation-expert** — Updates documentation during ticket execution.
+
+## Skills
+
+Reusable workflows that correspond to each phase:
+
+- **elicit-requirements** — Phase 1a: narrative → brief → use cases
+- **create-technical-plan** — Phase 1b: brief + use cases → technical plan
+- **create-tickets** — Phase 2: technical plan → numbered tickets
+- **execute-ticket** — Phase 3: ticket → plan → implement → test → done
+- **project-status** — Anytime: scan artifacts and report progress
 
 ## Artifacts
 
@@ -98,31 +116,45 @@ incomplete.
 
 ## Workflow
 
-### Phase 1: Requirements (requirements-analyst)
+### Phase 1a: Requirements (requirements-analyst)
+
+Skill: **elicit-requirements**
 
 1. Take the stakeholder's narrative about the project.
 2. Ask clarifying questions about stakeholders, components, requirements,
    constraints, and success criteria.
 3. Write the brief.
 4. Derive use cases from the brief.
-5. Write the technical plan referencing the use cases.
+
+### Phase 1b: Architecture (architect)
+
+Skill: **create-technical-plan**
+
+5. Read the brief and use cases.
+6. Design the architecture and write the technical plan.
+7. Verify every component traces to at least one use case.
 
 ### Phase 2: Ticketing (systems-engineer)
 
-6. Break the technical plan into numbered tickets in dependency order.
-7. Ensure every use case is covered by at least one ticket.
-8. Ensure every ticket traces to at least one use case.
+Skill: **create-tickets**
 
-### Phase 3: Implementation (per ticket)
+8. Break the technical plan into numbered tickets in dependency order.
+9. Ensure every use case is covered by at least one ticket.
+10. Ensure every ticket traces to at least one use case.
 
-9. Pick the next `todo` ticket whose dependencies are all `done`.
-10. Create the ticket plan (`NNN-slug-plan.md`).
-11. Set the ticket status to `in-progress` in its YAML frontmatter.
-12. Implement the ticket following its plan.
-13. Write tests as specified in the plan.
-14. Update documentation as specified in the plan.
-15. Verify all acceptance criteria are met and check them off (`[x]`).
-16. Complete the ticket (see **Completing a Ticket** below).
+### Phase 3: Implementation (project-manager coordinates)
+
+Skill: **execute-ticket** (repeated for each ticket)
+
+11. Pick the next `todo` ticket whose dependencies are all `done`.
+12. Create the ticket plan (`NNN-slug-plan.md`).
+13. Set the ticket status to `in-progress` in its YAML frontmatter.
+14. Implement the ticket following its plan (python-expert or appropriate
+    dev agent).
+15. Write tests as specified in the plan.
+16. Update documentation as specified in the plan (documentation-expert).
+17. Verify all acceptance criteria are met and check them off (`[x]`).
+18. Complete the ticket (see **Completing a Ticket** below).
 
 #### Completing a Ticket
 
@@ -164,6 +196,8 @@ docs/plans/
 
 ## Rules for AI Assistants
 
+- The **project-manager** is the entry point for new projects. It determines
+  current state and delegates to the right agent/skill.
 - When asked to plan work, produce or update these artifacts rather than
   jumping straight to code.
 - When asked to implement, find the next unfinished ticket and work from it.
@@ -175,3 +209,4 @@ docs/plans/
 - Do not create new artifacts without updating the existing ones to stay
   consistent.
 - If a change alters scope, update the brief and affected use cases first.
+- Use the **project-status** skill at any time to check where things stand.
