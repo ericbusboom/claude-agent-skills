@@ -1,3 +1,8 @@
+---
+name: generate-documentation
+description: Creates comprehensive project documentation including READMEs, API docs, user guides, and contributing guidelines
+---
+
 # Generate Project Documentation Skill
 
 This skill creates comprehensive project documentation using the Documentation Expert agent.

@@ -1,3 +1,8 @@
+---
+name: python-code-review
+description: Performs comprehensive code reviews of Python code checking for quality, PEP 8 compliance, security, and performance
+---
+
 # Python Code Review Skill
 
 This skill performs comprehensive code reviews of Python code using the Python Expert agent.

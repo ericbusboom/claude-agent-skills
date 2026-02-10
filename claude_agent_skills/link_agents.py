@@ -2,9 +2,21 @@
 """
 Link agent and skill definitions from this repository into target projects.
 
-This script creates directory symlinks from a target repository into the
-agents and skills directories in this repository, for both GitHub Copilot
-(.github/copilot/) and Claude Code (.claude/).
+This script creates symlinks from a target repository for both GitHub Copilot
+(.github/copilot/) and Claude Code (.claude/), adapting the layout to each
+tool's expected directory structure.
+
+Source layout (this repo):
+    agents/<name>.md
+    skills/<name>.md
+
+Copilot target layout:
+    .github/copilot/agents/  ->  <source>/agents/
+    .github/copilot/skills/  ->  <source>/skills/
+
+Claude Code target layout:
+    .claude/agents/           ->  <source>/agents/
+    .claude/skills/<name>/SKILL.md  ->  <source>/skills/<name>.md
 """
 
 import sys
@@ -21,13 +33,13 @@ def get_repo_root():
     package_dir = Path(__file__).parent.resolve()
     repo_root = package_dir.parent
 
-    copilot_dir = repo_root / ".github" / "copilot"
-    if not copilot_dir.exists():
-        raise RuntimeError(f"Could not find .github/copilot directory at {copilot_dir}")
-    if not (copilot_dir / "agents").exists():
-        raise RuntimeError(f"Could not find agents directory at {copilot_dir / 'agents'}")
-    if not (copilot_dir / "skills").exists():
-        raise RuntimeError(f"Could not find skills directory at {copilot_dir / 'skills'}")
+    agents_dir = repo_root / "agents"
+    skills_dir = repo_root / "skills"
+
+    if not agents_dir.exists():
+        raise RuntimeError(f"Could not find agents directory at {agents_dir}")
+    if not skills_dir.exists():
+        raise RuntimeError(f"Could not find skills directory at {skills_dir}")
 
     return repo_root
 
@@ -41,11 +53,12 @@ def link_directory(source_path, target_path, dry_run=False):
     """
     if target_path.is_symlink():
         if target_path.resolve() == source_path.resolve():
-            print(f"  Already linked: {target_path} -> {source_path}")
+            print(f"  Already linked: {target_path}")
             return
         else:
-            print(f"  Skipping (symlink exists to different target): {target_path}")
-            return
+            print(f"  Replacing stale symlink: {target_path}")
+            if not dry_run:
+                target_path.unlink()
 
     if target_path.exists():
         print(f"  Skipping (already exists): {target_path}")
@@ -57,15 +70,58 @@ def link_directory(source_path, target_path, dry_run=False):
         target_path.symlink_to(source_path)
 
 
+def link_file(source_file, target_file, dry_run=False):
+    """
+    Create a file symlink from target_file -> source_file.
+
+    If target_file already exists as a symlink pointing to source_file, skip.
+    If target_file already exists as something else, warn and skip.
+    """
+    if target_file.is_symlink():
+        if target_file.resolve() == source_file.resolve():
+            print(f"  Already linked: {target_file}")
+            return
+        else:
+            print(f"  Replacing stale symlink: {target_file}")
+            if not dry_run:
+                target_file.unlink()
+
+    if target_file.exists():
+        print(f"  Skipping (already exists): {target_file}")
+        return
+
+    print(f"  Linking: {target_file} -> {source_file}")
+    if not dry_run:
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        target_file.symlink_to(source_file)
+
+
+def link_claude_skills(source_skills_dir, target_claude_dir, dry_run=False):
+    """
+    Link skills for Claude Code, which expects:
+        .claude/skills/<skill-name>/SKILL.md
+
+    Each <source>/skills/<name>.md becomes:
+        <target>/.claude/skills/<name>/SKILL.md  ->  <source>/skills/<name>.md
+    """
+    target_skills = target_claude_dir / "skills"
+
+    # If skills is a stale directory symlink (from an older version of this
+    # script), remove it so we can create per-skill subdirectories instead.
+    if target_skills.is_symlink():
+        print(f"  Removing stale directory symlink: {target_skills}")
+        if not dry_run:
+            target_skills.unlink()
+
+    for source_file in sorted(source_skills_dir.glob("*.md")):
+        skill_name = source_file.stem
+        target_file = target_skills / skill_name / "SKILL.md"
+        link_file(source_file, target_file, dry_run)
+
+
 def link_agents_and_skills(target_repo, dry_run=False):
     """
-    Link agents and skills directories from the source repository to the target.
-
-    Creates symlinks for both GitHub Copilot and Claude Code:
-      - <target>/.github/copilot/agents -> <source>/.github/copilot/agents
-      - <target>/.github/copilot/skills -> <source>/.github/copilot/skills
-      - <target>/.claude/agents         -> <source>/.github/copilot/agents
-      - <target>/.claude/skills         -> <source>/.github/copilot/skills
+    Link agents and skills from this repository into the target.
     """
     if target_repo is None:
         target_repo = Path.cwd()
@@ -78,8 +134,8 @@ def link_agents_and_skills(target_repo, dry_run=False):
         print(f"Error: {e}")
         sys.exit(1)
 
-    source_agents = repo_root / ".github" / "copilot" / "agents"
-    source_skills = repo_root / ".github" / "copilot" / "skills"
+    source_agents = repo_root / "agents"
+    source_skills = repo_root / "skills"
 
     print(f"Source repo: {repo_root}")
     print(f"Target repo: {target_repo}")
@@ -100,7 +156,7 @@ def link_agents_and_skills(target_repo, dry_run=False):
     if not claude_dir.exists() and not dry_run:
         claude_dir.mkdir(parents=True, exist_ok=True)
     link_directory(source_agents, claude_dir / "agents", dry_run)
-    link_directory(source_skills, claude_dir / "skills", dry_run)
+    link_claude_skills(source_skills, claude_dir, dry_run)
     print()
 
     print("Done! Agent and skill definitions are now linked.")
