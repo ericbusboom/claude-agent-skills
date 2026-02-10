@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-agent-skills"
-version = "0.1.0"
-description = "Link Claude agent and skill definitions into your projects"
+version = "0.2.0"
+description = "MCP server for AI-driven software engineering process — agents, skills, instructions, and artifact management"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 authors = [
     {name = "Eric Busboom"}
 ]
@@ -16,9 +16,14 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "click>=8.0",
+    "mcp>=1.0",
+    "pyyaml>=6.0",
+]
 
 [project.scripts]
-link-claude-agents = "claude_agent_skills.link_agents:main"
+clasi = "claude_agent_skills.cli:cli"
 
 [tool.setuptools.packages.find]
 where = ["."]
