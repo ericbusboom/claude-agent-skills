@@ -160,6 +160,28 @@ Every ticket plan must include:
 A ticket plan without a testing section and a documentation section is
 incomplete.
 
+### 7. TODO Directory (`docs/plans/todo/`)
+
+A lightweight capture area for ideas, improvements, and future work items.
+Stakeholders and developers add ideas here at any time — especially when the
+AI agent is busy with other work.
+
+**File format:**
+- One markdown file per idea (descriptive filename, e.g., `versioning.md`).
+- Each file has a single level-1 heading (`# Title`) followed by description.
+- Files with multiple level-1 headings should be split using `clasi todo-split`.
+
+**Lifecycle:**
+1. **Capture**: Create a `.md` file in `docs/plans/todo/` with the idea.
+2. **Mine**: During sprint planning, the project-manager scans the TODO
+   directory and discusses relevant items with the stakeholder.
+3. **Consume**: When a TODO is incorporated into a sprint, move the file
+   to `docs/plans/todo/done/`.
+
+Files in `todo/` are unordered and unprioritized — sprint planning is when
+prioritization happens. The `done/` subdirectory preserves consumed TODOs
+for reference.
+
 ## Workflow
 
 ### Stage 1a: Requirements (requirements-analyst)
@@ -367,6 +389,10 @@ docs/plans/
 ├── brief.md                     # Top-level project brief
 ├── usecases.md                  # Top-level use cases
 ├── technical-plan.md            # Top-level technical plan
+├── todo/                        # Ideas and future work
+│   ├── some-idea.md             # One idea per file
+│   └── done/                    # Consumed TODOs (archived)
+│       └── ...
 └── sprints/
     ├── 001-mcp-server/          # Active sprint directory
     │   ├── sprint.md            # Sprint goals, scope, notes
