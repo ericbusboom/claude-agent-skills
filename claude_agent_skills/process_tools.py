@@ -167,6 +167,27 @@ def get_instruction(name: str) -> str:
     return _get_definition(root / "instructions", name)
 
 
+@server.tool()
+def list_language_instructions() -> str:
+    """List all available language instruction files.
+
+    Returns a JSON array of objects with 'name' and 'description' fields.
+    """
+    root = get_repo_root()
+    return json.dumps(_list_definitions(root / "instructions" / "languages"), indent=2)
+
+
+@server.tool()
+def get_language_instruction(language: str) -> str:
+    """Get the full markdown content of a language instruction file.
+
+    Args:
+        language: The language name (e.g., 'python')
+    """
+    root = get_repo_root()
+    return _get_definition(root / "instructions" / "languages", language)
+
+
 # Activity guide configuration: maps activity names to their relevant
 # agent, skill, and instruction files.
 ACTIVITY_GUIDES: dict[str, dict[str, list[str]]] = {

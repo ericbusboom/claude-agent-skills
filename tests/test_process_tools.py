@@ -15,6 +15,8 @@ from claude_agent_skills.process_tools import (
     get_skill_definition,
     get_instruction,
     get_activity_guide,
+    list_language_instructions,
+    get_language_instruction,
     ACTIVITY_GUIDES,
 )
 from claude_agent_skills.mcp_server import get_repo_root
@@ -79,6 +81,28 @@ class TestMCPTools:
     def test_get_instruction(self):
         result = get_instruction("system-engineering")
         assert "System Engineering" in result
+
+
+class TestLanguageInstructions:
+    def test_list_language_instructions(self):
+        result = json.loads(list_language_instructions())
+        assert isinstance(result, list)
+        assert any(lang["name"] == "python" for lang in result)
+        python_entry = next(l for l in result if l["name"] == "python")
+        assert python_entry["description"]
+
+    def test_get_language_instruction_python(self):
+        result = get_language_instruction("python")
+        assert "Python Language Instructions" in result
+        assert "Virtual Environments" in result
+        assert "uv" in result
+        assert "pyproject.toml" in result
+        assert "Type Hints" in result
+        assert "pytest" in result
+
+    def test_get_language_instruction_not_found(self):
+        with pytest.raises(ValueError, match="not found"):
+            get_language_instruction("nonexistent-language")
 
 
 class TestActivityGuide:
