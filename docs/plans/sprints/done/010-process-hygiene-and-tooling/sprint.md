@@ -1,7 +1,7 @@
 ---
 id: '010'
 title: Process Hygiene and Tooling
-status: active
+status: done
 branch: sprint/010-process-hygiene-and-tooling
 use-cases:
 - UC-010
