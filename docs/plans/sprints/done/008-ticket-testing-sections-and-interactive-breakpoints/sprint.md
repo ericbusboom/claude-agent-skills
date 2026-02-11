@@ -1,7 +1,7 @@
 ---
 id: 008
 title: Ticket Testing Sections and Interactive Breakpoints
-status: active
+status: done
 branch: sprint/008-ticket-testing-sections-and-interactive-breakpoints
 use-cases:
 - UC-007
