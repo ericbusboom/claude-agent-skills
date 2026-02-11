@@ -1,8 +1,9 @@
 ---
-id: "002"
+id: '002'
 title: Add MCP permission allowlist to clasi init
-status: todo
-use-cases: [SUC-002]
+status: done
+use-cases:
+- SUC-002
 depends-on: []
 ---
 
