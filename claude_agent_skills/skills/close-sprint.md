@@ -61,9 +61,10 @@ the sprint branch, and archive the sprint document.
    - Releases the execution lock
 
 8. **Commit the archive**: The `close_sprint` tool moves files and bumps
-   the version in `pyproject.toml` but does not commit. Run `git add` for
-   the moved sprint directory and `pyproject.toml`, then commit with a
-   message like `chore: close sprint NNN — archive to done, tag vX.Y.Z`.
+   the version in the project's version file (e.g., `pyproject.toml` or
+   `package.json`) but does not commit. Run `git add` for the moved sprint
+   directory and the version file, then commit with a message like
+   `chore: close sprint NNN — archive to done, tag vX.Y.Z`.
 
 9. **Push tags**: `git push` does not push tags by default. Run
    `git push --tags` to ensure the version tag created by `tag_version`

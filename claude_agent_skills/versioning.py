@@ -7,13 +7,19 @@ Version format: <major>.<YYYYMMDD>.<build>
 - build: auto-incremented within the same date, resets to 1 on new date
 """
 
+import json
 import re
 import subprocess
 from datetime import date
 from pathlib import Path
 
-
 VERSION_PATTERN = re.compile(r"^v?(\d+)\.(\d{8})\.(\d+)$")
+
+# Priority-ordered list of version file names and their types.
+_VERSION_FILES: list[tuple[str, str]] = [
+    ("pyproject.toml", "pyproject"),
+    ("package.json", "package_json"),
+]
 
 
 def _get_existing_tags() -> list[str]:
@@ -49,6 +55,19 @@ def compute_next_version(major: int = 0) -> str:
     return f"{major}.{today}.{max_build + 1}"
 
 
+def detect_version_file(project_root: Path) -> tuple[Path, str] | None:
+    """Detect the project's version file by checking known filenames.
+
+    Returns (path, file_type) or None if no version file is found.
+    Checks in priority order: pyproject.toml, package.json.
+    """
+    for filename, file_type in _VERSION_FILES:
+        path = project_root / filename
+        if path.exists():
+            return (path, file_type)
+    return None
+
+
 def update_pyproject_version(version: str, pyproject_path: Path) -> None:
     """Update the version field in pyproject.toml."""
     content = pyproject_path.read_text(encoding="utf-8")
@@ -62,6 +81,28 @@ def update_pyproject_version(version: str, pyproject_path: Path) -> None:
     if updated == content:
         raise ValueError(f"Could not find version field in {pyproject_path}")
     pyproject_path.write_text(updated, encoding="utf-8")
+
+
+def update_package_json_version(version: str, package_path: Path) -> None:
+    """Update the version field in package.json."""
+    content = package_path.read_text(encoding="utf-8")
+    data = json.loads(content)
+    if "version" not in data:
+        raise ValueError(f"No 'version' field in {package_path}")
+    data["version"] = version
+    package_path.write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def update_version_file(path: Path, file_type: str, version: str) -> None:
+    """Update the version in the detected file, dispatching by type."""
+    if file_type == "pyproject":
+        update_pyproject_version(version, path)
+    elif file_type == "package_json":
+        update_package_json_version(version, path)
+    else:
+        raise ValueError(f"Unknown version file type: {file_type}")
 
 
 def create_version_tag(version: str) -> None:
