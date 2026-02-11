@@ -1,9 +1,12 @@
 ---
-id: "007"
+id: '007'
 title: Package Content and Init Hardening
-status: planning
+status: done
 branch: sprint/007-package-content-and-init-hardening
-use-cases: [SUC-001, SUC-002, SUC-003]
+use-cases:
+- SUC-001
+- SUC-002
+- SUC-003
 ---
 
 # Sprint 007: Package Content and Init Hardening
