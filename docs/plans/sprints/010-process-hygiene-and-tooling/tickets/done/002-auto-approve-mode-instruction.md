@@ -1,7 +1,7 @@
 ---
 id: '002'
 title: Auto-approve mode instruction
-status: in-progress
+status: done
 use-cases:
 - SUC-002
 depends-on: []
