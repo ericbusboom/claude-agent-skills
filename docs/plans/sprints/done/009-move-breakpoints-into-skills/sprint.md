@@ -1,7 +1,7 @@
 ---
 id: 009
 title: Move Breakpoints Into Skills
-status: active
+status: done
 branch: sprint/009-move-breakpoints-into-skills
 use-cases:
 - UC-009
