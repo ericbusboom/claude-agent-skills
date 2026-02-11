@@ -5,8 +5,13 @@ import json
 import pytest
 
 from claude_agent_skills.init_command import (
-    run_init, INSTRUCTION_CONTENT, MCP_CONFIG, SKILL_STUBS, SETTINGS_PERMISSIONS,
+    run_init, MCP_CONFIG, SKILL_STUBS, _PACKAGE_ROOT,
 )
+
+
+def _read_rule(name: str) -> str:
+    """Read a rule file from the package for comparison."""
+    return (_PACKAGE_ROOT / "rules" / name).read_text(encoding="utf-8")
 
 
 @pytest.fixture
@@ -16,19 +21,30 @@ def target_dir(tmp_path):
 
 
 class TestRunInit:
-    def test_creates_instruction_files(self, target_dir):
+    def test_creates_rule_files(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
-        claude_rules = target_dir / ".claude" / "rules" / "clasi-se-process.md"
+        rules_dir = target_dir / ".claude" / "rules"
+        # All package rule files should be installed
+        for rule_file in sorted((_PACKAGE_ROOT / "rules").glob("*.md")):
+            installed = rules_dir / rule_file.name
+            assert installed.exists(), f"Missing rule: {rule_file.name}"
+            assert installed.read_text(encoding="utf-8") == rule_file.read_text(
+                encoding="utf-8"
+            )
+
+    def test_creates_copilot_mirror(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
         copilot_inst = (
             target_dir / ".github" / "copilot" / "instructions" / "clasi-se-process.md"
         )
-
-        assert claude_rules.exists()
         assert copilot_inst.exists()
-        assert claude_rules.read_text(encoding="utf-8") == INSTRUCTION_CONTENT
-        assert copilot_inst.read_text(encoding="utf-8") == INSTRUCTION_CONTENT
+        assert copilot_inst.read_text(encoding="utf-8") == _read_rule(
+            "clasi-se-process.md"
+        )
 
     def test_creates_mcp_json(self, target_dir):
         target_dir.mkdir()
@@ -50,7 +66,9 @@ class TestRunInit:
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
         claude_rules = target_dir / ".claude" / "rules" / "clasi-se-process.md"
-        assert claude_rules.read_text(encoding="utf-8") == INSTRUCTION_CONTENT
+        assert claude_rules.read_text(encoding="utf-8") == _read_rule(
+            "clasi-se-process.md"
+        )
 
     def test_merges_existing_mcp_json(self, target_dir):
         target_dir.mkdir()
@@ -120,13 +138,31 @@ class TestRunInit:
         for name in SKILL_STUBS:
             assert (skills_dir / name / "SKILL.md").exists()
 
-    def test_instruction_content_has_tool_reference(self):
-        assert "get_se_overview" in INSTRUCTION_CONTENT
-        assert "create_sprint" in INSTRUCTION_CONTENT
-        assert "get_activity_guide" in INSTRUCTION_CONTENT
-        assert "create_overview" in INSTRUCTION_CONTENT
+    def test_se_process_rule_has_tool_reference(self):
+        content = _read_rule("clasi-se-process.md")
+        assert "get_se_overview" in content
+        assert "create_sprint" in content
+        assert "get_activity_guide" in content
+        assert "create_overview" in content
 
-    def test_instruction_content_no_deprecated_tools(self):
-        assert "create_brief" not in INSTRUCTION_CONTENT
-        assert "create_technical_plan" not in INSTRUCTION_CONTENT
-        assert "create_use_cases" not in INSTRUCTION_CONTENT
+    def test_se_process_rule_no_deprecated_tools(self):
+        content = _read_rule("clasi-se-process.md")
+        assert "create_brief" not in content
+        assert "create_technical_plan" not in content
+        assert "create_use_cases" not in content
+
+    def test_installs_scold_detection_rule(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        rule = target_dir / ".claude" / "rules" / "scold-detection.md"
+        assert rule.exists()
+        assert "self-reflect" in rule.read_text(encoding="utf-8")
+
+    def test_installs_auto_approve_rule(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        rule = target_dir / ".claude" / "rules" / "auto-approve.md"
+        assert rule.exists()
+        assert "auto-approve" in rule.read_text(encoding="utf-8").lower()
