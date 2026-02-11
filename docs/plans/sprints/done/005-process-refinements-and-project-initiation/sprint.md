@@ -1,9 +1,14 @@
 ---
-id: "005"
+id: '005'
 title: Process Refinements and Project Initiation
-status: planning
+status: done
 branch: sprint/005-process-refinements-and-project-initiation
-use-cases: [SUC-001, SUC-002, SUC-003, SUC-004, SUC-005]
+use-cases:
+- SUC-001
+- SUC-002
+- SUC-003
+- SUC-004
+- SUC-005
 ---
 
 # Sprint 005: Process Refinements and Project Initiation
