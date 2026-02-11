@@ -1,8 +1,9 @@
 ---
-id: "003"
+id: '003'
 title: Add breakpoint to plan-sprint.md
-status: todo
-use-cases: [SUC-003]
+status: done
+use-cases:
+- SUC-003
 depends-on: []
 ---
 
