@@ -1,9 +1,10 @@
 ---
-id: "010"
+id: '010'
 title: Process Hygiene and Tooling
-status: planning
+status: active
 branch: sprint/010-process-hygiene-and-tooling
-use-cases: [UC-010]
+use-cases:
+- UC-010
 ---
 
 # Sprint 010: Process Hygiene and Tooling
@@ -97,4 +98,7 @@ Before tickets can be created, all of the following must be true:
 
 ## Tickets
 
-(To be created after sprint approval.)
+- #001 Scold detection and self-reflection (SUC-001)
+- #002 Auto-approve mode instruction (SUC-002)
+- #003 Multi-ecosystem version detection (SUC-003)
+- #004 VSCode MCP configuration (SUC-004)

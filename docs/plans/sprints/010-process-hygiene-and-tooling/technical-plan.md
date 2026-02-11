@@ -95,7 +95,17 @@ Refactor `claude_agent_skills/versioning.py`:
 **Modify** `tag_version` MCP tool in `artifact_tools.py`:
 - Call `detect_version_file` instead of hardcoding `pyproject.toml`.
 - If no version file found, still create git tag (tag-only mode).
-- Return the detected file type in the response.
+- Return the detected file type and path in the response.
+
+**Modify** `close_sprint` auto-versioning block in `artifact_tools.py`
+(lines 502-516):
+- This is a second call site that also hardcodes `pyproject.toml`. Replace
+  the inline `update_pyproject_version` call with `detect_version_file` +
+  `update_version_file`, sharing the same abstraction as `tag_version`.
+
+**Update** `close-sprint.md` skill step 8:
+- Replace hardcoded "pyproject.toml" reference with generic "the version
+  file" so the instruction works for any ecosystem.
 
 **Tests** (in `tests/unit/test_versioning.py`):
 - `test_detect_version_file_pyproject` — finds pyproject.toml
@@ -104,6 +114,7 @@ Refactor `claude_agent_skills/versioning.py`:
 - `test_detect_version_file_priority` — pyproject.toml wins when both exist
 - `test_detect_version_file_none` — returns None when neither exists
 - `test_update_package_json_version` — updates version field in JSON
+- `test_update_package_json_no_version_field` — handles missing version key
 - `test_tag_version_tag_only` — creates tag without version file
 
 ### Component: VSCode MCP Configuration
@@ -131,4 +142,13 @@ Single file creation, no code changes.
 
 ## Decisions
 
-No open questions — all four features have clear, independent designs.
+**Architecture review findings incorporated:**
+
+1. (Medium) `close_sprint` auto-versioning block (artifact_tools.py lines
+   502-516) is a second hardcoded `pyproject.toml` call site — added as an
+   explicit modification target sharing the same new abstraction.
+2. (Low) `close-sprint.md` step 8 hardcodes "pyproject.toml" — added skill
+   text update to the version detection component.
+3. (Low) Added `test_update_package_json_no_version_field` edge case test.
+
+No open questions remaining.
