@@ -37,8 +37,8 @@ before that phase. Follow the phases in order.
 2. **Mine the TODO directory**: Scan `docs/plans/todo/` for ideas relevant
    to the upcoming sprint. Discuss relevant TODOs with the stakeholder and
    incorporate selected items into the sprint scope. After the sprint
-   directory is created (step 3), move consumed TODO files to
-   `docs/plans/todo/done/`.
+   branch is created (step 4), move consumed TODO files to
+   `docs/plans/todo/done/` and commit the moves on the sprint branch.
 
 3. **Create sprint directory**: Use the `create_sprint` MCP tool. This
    creates the directory structure and registers the sprint in the state

@@ -59,6 +59,8 @@ completion, coordinating multiple agents.
    - Check off all acceptance criteria (`- [x]`).
    - Move the ticket file to the sprint's `tickets/done/` directory.
    - Move the ticket plan file to the sprint's `tickets/done/` directory.
+   - **Commit the moves**: `git add` the moved files and commit with a
+     message like `chore: move ticket #NNN to done`.
 
 ## Output
 

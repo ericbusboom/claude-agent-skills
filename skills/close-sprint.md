@@ -52,9 +52,14 @@ the sprint branch, and archive the sprint document.
    - Advances the state database phase to `done`
    - Releases the execution lock
 
-7. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
+7. **Commit the archive**: The `close_sprint` tool moves files and bumps
+   the version in `pyproject.toml` but does not commit. Run `git add` for
+   the moved sprint directory and `pyproject.toml`, then commit with a
+   message like `chore: close sprint NNN — archive to done, tag vX.Y.Z`.
 
-8. **Report completion**: Summarize what was accomplished in the sprint —
+8. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
+
+9. **Report completion**: Summarize what was accomplished in the sprint —
    list of completed tickets, key changes, any notes for follow-up.
 
 ## Output
