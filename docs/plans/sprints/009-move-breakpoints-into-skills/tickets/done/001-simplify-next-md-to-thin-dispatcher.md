@@ -1,8 +1,9 @@
 ---
-id: "001"
+id: '001'
 title: Simplify next.md to thin dispatcher
-status: todo
-use-cases: [SUC-002]
+status: done
+use-cases:
+- SUC-002
 depends-on: []
 ---
 
