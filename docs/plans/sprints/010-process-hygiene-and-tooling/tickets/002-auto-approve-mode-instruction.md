@@ -1,8 +1,9 @@
 ---
-id: "002"
+id: '002'
 title: Auto-approve mode instruction
-status: todo
-use-cases: [SUC-002]
+status: in-progress
+use-cases:
+- SUC-002
 depends-on: []
 ---
 
