@@ -1,9 +1,11 @@
 ---
-id: "003"
+id: '003'
 title: Add content access smoke test
-status: todo
-use-cases: [SUC-003]
-depends-on: ["001"]
+status: done
+use-cases:
+- SUC-003
+depends-on:
+- '001'
 ---
 
 # Add content access smoke test
