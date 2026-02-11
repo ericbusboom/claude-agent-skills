@@ -1,8 +1,10 @@
 ---
-id: "003"
+id: '003'
 title: Add interactive breakpoints to next skill
-status: todo
-use-cases: [SUC-003, SUC-004]
+status: done
+use-cases:
+- SUC-003
+- SUC-004
 depends-on: []
 ---
 
