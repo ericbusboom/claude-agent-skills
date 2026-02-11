@@ -89,6 +89,18 @@ class TestCreateTicket:
         result = json.loads(create_ticket("001", "Second"))
         assert result["id"] == "002"
 
+    def test_ticket_template_includes_testing_section(self, work_dir):
+        create_sprint("My Sprint")
+        _advance_to_ticketing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Test Feature"))
+        from pathlib import Path
+        content = Path(ticket["path"]).read_text(encoding="utf-8")
+        assert "## Testing" in content
+        assert "Existing tests to run" in content
+        assert "New tests to write" in content
+        assert "Verification command" in content
+        assert "`uv run pytest`" in content
+
     def test_invalid_sprint(self, work_dir):
         with pytest.raises(ValueError, match="not found"):
             create_ticket("999", "Orphan")
