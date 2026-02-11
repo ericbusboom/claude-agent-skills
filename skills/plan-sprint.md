@@ -59,26 +59,39 @@ create tickets.
 7. **Advance to stakeholder-review**: If architecture review passed, call
    `advance_sprint_phase` to move to `stakeholder-review`.
 
-8. **Stakeholder review gate**: Present the sprint plan and architecture
+8. **Resolve open questions**: Before presenting to the stakeholder, check
+   the sprint's `technical-plan.md` for a `## Open Questions` section. If
+   open questions exist:
+   - Parse each numbered question into a separate `AskUserQuestion` call.
+   - For each question, provide 2–4 concrete options where possible (infer
+     reasonable choices from the technical plan context). Include a brief
+     description for each option explaining its trade-offs.
+   - After all questions are answered, replace the `## Open Questions`
+     section in the technical plan with a `## Decisions` section listing
+     each question and the stakeholder's chosen answer.
+   - Update any affected parts of the sprint plan or technical plan to
+     reflect the decisions (e.g. adjust scope, add/remove components).
+
+9. **Stakeholder review gate**: Present the sprint plan and architecture
    review to the stakeholder. Wait for approval. If changes are requested,
    revise and re-present.
    - Call `record_gate_result` with gate `stakeholder_approval` and result
      `passed` or `failed`.
 
-9. **Advance to ticketing**: If stakeholder approved, call
-   `advance_sprint_phase` to move to `ticketing`.
+10. **Advance to ticketing**: If stakeholder approved, call
+    `advance_sprint_phase` to move to `ticketing`.
 
-10. **Create tickets**: Delegate to the technical-lead to create tickets
+11. **Create tickets**: Delegate to the technical-lead to create tickets
     for this sprint. Tickets are created in the sprint's `tickets/` directory
     with per-sprint numbering (001, 002, ...). Update the sprint document's
     Tickets section with the list of created tickets.
 
-11. **Acquire execution lock and advance to executing**: Call
+12. **Acquire execution lock and advance to executing**: Call
     `acquire_execution_lock` to claim the lock for this sprint, then call
     `advance_sprint_phase` to move to `executing`. Only one sprint can hold
     the execution lock at a time.
 
-12. **Set sprint status**: Update the sprint document status to `active`.
+13. **Set sprint status**: Update the sprint document status to `active`.
 
 ## Output
 
