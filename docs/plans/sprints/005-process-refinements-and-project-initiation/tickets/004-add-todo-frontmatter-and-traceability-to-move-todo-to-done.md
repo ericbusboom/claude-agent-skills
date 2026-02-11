@@ -1,8 +1,9 @@
 ---
-id: "004"
+id: '004'
 title: Add TODO frontmatter and traceability to move_todo_to_done
-status: todo
-use-cases: [SUC-003]
+status: in-progress
+use-cases:
+- SUC-003
 depends-on: []
 ---
 

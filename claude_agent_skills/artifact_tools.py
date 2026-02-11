@@ -659,11 +659,17 @@ def list_todos() -> str:
 
 
 @server.tool()
-def move_todo_to_done(filename: str) -> str:
+def move_todo_to_done(
+    filename: str,
+    sprint_id: str | None = None,
+    ticket_ids: list[str] | None = None,
+) -> str:
     """Move a TODO file to the done/ subdirectory.
 
     Args:
         filename: The TODO filename (e.g., 'my-idea.md')
+        sprint_id: Optional sprint ID that consumed this TODO
+        ticket_ids: Optional list of ticket IDs that address this TODO
 
     Returns JSON with {old_path, new_path}.
     """
@@ -671,6 +677,15 @@ def move_todo_to_done(filename: str) -> str:
     src = todo / filename
     if not src.exists():
         raise ValueError(f"TODO not found: {filename}")
+
+    # Write traceability frontmatter before moving
+    fm = read_frontmatter(src)
+    fm["status"] = "done"
+    if sprint_id is not None:
+        fm["sprint"] = sprint_id
+    if ticket_ids is not None:
+        fm["tickets"] = ticket_ids
+    write_frontmatter(src, fm)
 
     done = todo / "done"
     done.mkdir(parents=True, exist_ok=True)

@@ -12,6 +12,7 @@ TODO directory.
 
 1. Take the user's input (everything after `/todo`).
 2. Create a markdown file in `docs/plans/todo/` with:
+   - YAML frontmatter: `status: pending`
    - A `# ` heading summarizing the idea
    - A description section expanding on the idea
 3. Filename: slugified version of the heading (e.g., `my-idea.md`).

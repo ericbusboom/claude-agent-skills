@@ -1,7 +1,7 @@
 ---
 id: '003'
 title: Create product-manager agent and project-initiation skill
-status: in-progress
+status: done
 use-cases:
 - SUC-002
 depends-on:

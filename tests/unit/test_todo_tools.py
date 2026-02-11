@@ -72,3 +72,33 @@ class TestMoveTodoToDone:
     def test_error_on_nonexistent(self, todo_dir):
         with pytest.raises(ValueError, match="TODO not found"):
             move_todo_to_done("nonexistent.md")
+
+    def test_writes_traceability_frontmatter(self, todo_dir):
+        (todo_dir / "idea.md").write_text("# Idea\n\nDetails.\n")
+
+        move_todo_to_done("idea.md", sprint_id="005", ticket_ids=["001", "002"])
+
+        content = (todo_dir / "done" / "idea.md").read_text()
+        assert "status: done" in content
+        assert 'sprint: "005"' in content or "sprint: '005'" in content
+        assert "001" in content
+        assert "002" in content
+
+    def test_writes_status_done_without_sprint(self, todo_dir):
+        (todo_dir / "idea.md").write_text("# Idea\n")
+
+        move_todo_to_done("idea.md")
+
+        content = (todo_dir / "done" / "idea.md").read_text()
+        assert "status: done" in content
+
+    def test_preserves_existing_frontmatter(self, todo_dir):
+        (todo_dir / "idea.md").write_text(
+            "---\nstatus: pending\n---\n\n# Idea\n"
+        )
+
+        move_todo_to_done("idea.md", sprint_id="005")
+
+        content = (todo_dir / "done" / "idea.md").read_text()
+        assert "status: done" in content
+        assert 'sprint: "005"' in content or "sprint: '005'" in content
