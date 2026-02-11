@@ -504,13 +504,14 @@ def close_sprint(sprint_id: str) -> str:
     try:
         from claude_agent_skills.versioning import (
             compute_next_version,
-            update_pyproject_version,
             create_version_tag,
+            detect_version_file,
+            update_version_file,
         )
         version = compute_next_version()
-        pyproject = Path.cwd() / "pyproject.toml"
-        if pyproject.exists():
-            update_pyproject_version(version, pyproject)
+        detected = detect_version_file(Path.cwd())
+        if detected:
+            update_version_file(detected[0], detected[1], version)
         create_version_tag(version)
     except Exception:
         pass  # Versioning is best-effort
@@ -771,17 +772,22 @@ def tag_version(major: int = 0) -> str:
     """
     from claude_agent_skills.versioning import (
         compute_next_version,
-        update_pyproject_version,
         create_version_tag,
+        detect_version_file,
+        update_version_file,
     )
 
     version = compute_next_version(major)
-    pyproject = Path.cwd() / "pyproject.toml"
-    if pyproject.exists():
-        update_pyproject_version(version, pyproject)
+    detected = detect_version_file(Path.cwd())
+    if detected:
+        update_version_file(detected[0], detected[1], version)
     create_version_tag(version)
 
-    return json.dumps({
+    result = {
         "version": version,
         "tag": f"v{version}",
-    }, indent=2)
+    }
+    if detected:
+        result["file_type"] = detected[1]
+        result["file_path"] = str(detected[0])
+    return json.dumps(result, indent=2)

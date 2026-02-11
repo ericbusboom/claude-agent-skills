@@ -1,5 +1,7 @@
 ---
-status: pending
+status: done
+sprint: '010'
+consumed-by: sprint-010
 ---
 
 # VSCode MCP Configuration
