@@ -1,9 +1,10 @@
 ---
-id: "006"
+id: '006'
 title: Commit After Artifact Moves
-status: planning
+status: done
 branch: sprint/006-commit-after-artifact-moves
-use-cases: [SUC-001]
+use-cases:
+- SUC-001
 ---
 
 # Sprint 006: Commit After Artifact Moves
