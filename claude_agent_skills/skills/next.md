@@ -18,8 +18,39 @@ and begins executing it.
    - Technical plan, no sprint → Plan a sprint
    - Active sprint with todo tickets → Execute next ticket
    - All tickets done → Close the sprint
-3. Begin executing the determined next action using the appropriate
-   skill and agent.
+3. **Breakpoint check** — before executing the action, check whether a
+   stakeholder confirmation is needed:
+
+   a. **Before sprint planning**: If the action is "Plan a sprint"
+      (technical plan exists, no active sprint), present an
+      `AskUserQuestion`:
+      - "Plan a new sprint" (recommended)
+      - "Review project status first"
+
+      If the stakeholder chooses to review, present the status report
+      and stop. Otherwise proceed to sprint planning.
+
+   b. **Before first ticket execution**: If the action is "Execute next
+      ticket" AND no tickets are in-progress or done yet (all are todo —
+      this is the first ticket of the sprint), present an
+      `AskUserQuestion`:
+      - "Start executing tickets" (recommended)
+      - "Review tickets first"
+
+      If the stakeholder chooses to review, list the tickets and stop.
+      Otherwise proceed to execute the first ticket.
+
+   c. **All other cases**: Proceed without asking. This includes:
+      - Mid-execution (some tickets already in-progress or done)
+      - Sprint closing
+      - Requirements and architecture stages
+
+   **IMPORTANT**: Do NOT add breakpoints between individual tickets.
+   Once ticket execution has started (at least one ticket is in-progress
+   or done), continue executing tickets without interruption until all
+   are done.
+
+4. Execute the determined action using the appropriate skill and agent.
 
 ## Output
 
