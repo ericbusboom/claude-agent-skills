@@ -1,3 +1,7 @@
+---
+status: done
+sprint: '005'
+---
 # TODO Frontmatter and Traceability
 
 TODO files should have YAML frontmatter tracking their lifecycle state and

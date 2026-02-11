@@ -21,6 +21,13 @@ create tickets.
 - `docs/plans/usecases.md` (must exist)
 - `docs/plans/technical-plan.md` (must exist)
 
+## Critical Rule
+
+**DO NOT create tickets** during steps 1–9 of this process. Tickets are
+only created in step 11, after the sprint has advanced to the `ticketing`
+phase. The `create_ticket` MCP tool will reject attempts to create tickets
+before that phase. Follow the phases in order.
+
 ## Process
 
 1. **Determine sprint number**: Check `docs/plans/sprints/` and

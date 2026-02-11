@@ -287,9 +287,12 @@ via `acquire_execution_lock`. The lock is released when the sprint is closed
 
 **Ticket creation gate enforcement:**
 
-The `create_ticket` tool checks the state database and blocks ticket creation
-if the sprint is before the `ticketing` phase. This prevents tickets from
-being created before architecture and stakeholder reviews are complete.
+**IMPORTANT: DO NOT create tickets until the sprint reaches the `ticketing`
+phase.** The `create_ticket` tool checks the state database and blocks ticket
+creation if the sprint is before the `ticketing` phase. This prevents tickets
+from being created before architecture and stakeholder reviews are complete.
+Always follow the phase order: populate planning docs first, pass architecture
+review, pass stakeholder review, then and only then create tickets.
 
 ### Stage 2: Ticketing (technical-lead)
 

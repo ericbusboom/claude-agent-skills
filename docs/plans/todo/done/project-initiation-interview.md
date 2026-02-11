@@ -1,3 +1,7 @@
+---
+status: done
+sprint: '005'
+---
 # Project Initiation Interview
 
 When starting a new project, the current process creates separate brief,

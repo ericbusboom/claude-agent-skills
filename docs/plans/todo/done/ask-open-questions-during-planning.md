@@ -1,3 +1,7 @@
+---
+status: done
+sprint: '005'
+---
 # Ask Open Questions During Sprint Planning
 
 When a sprint's planning documents are finished and the technical plan has
