@@ -112,6 +112,17 @@ before that phase. Follow the phases in order.
 
 14. **Set sprint status**: Update the sprint document status to `active`.
 
+15. **Confirm before execution**: Present the list of tickets to the
+    stakeholder. Use `AskUserQuestion`:
+    - "Start executing tickets" (recommended)
+    - "Review tickets first"
+
+    If the stakeholder chooses to review, list the tickets with their
+    descriptions and stop. Otherwise proceed to execute the first ticket.
+
+    **Do NOT ask again between individual tickets** — once execution starts,
+    tickets proceed without interruption until all are done.
+
 ## Output
 
 - Sprint directory `docs/plans/sprints/NNN-slug/` with planning documents
