@@ -1,8 +1,9 @@
 ---
-id: "001"
+id: '001'
 title: Scold detection and self-reflection
-status: todo
-use-cases: [SUC-001]
+status: done
+use-cases:
+- SUC-001
 depends-on: []
 ---
 
