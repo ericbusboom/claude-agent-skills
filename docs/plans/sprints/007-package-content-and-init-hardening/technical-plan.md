@@ -118,7 +118,8 @@ New test file that imports and calls the actual MCP tool functions:
   with `content_path()` calls
 - `tests/unit/test_init_command.py`: Add test for settings.local.json creation
 
-## Open Questions
+## Decisions
 
-1. Should `content_path()` validate that the resolved path exists, or leave
-   that to callers? (Callers already raise their own errors for missing files.)
+1. **`content_path()` does NOT validate** — it is a pure path resolver.
+   Callers already raise context-specific errors for missing files.
+   (Architecture review recommendation, accepted.)
