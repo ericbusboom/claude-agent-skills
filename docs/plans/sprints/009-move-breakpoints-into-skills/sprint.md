@@ -1,9 +1,10 @@
 ---
-id: "009"
+id: 009
 title: Move Breakpoints Into Skills
-status: planning
+status: active
 branch: sprint/009-move-breakpoints-into-skills
-use-cases: [UC-009]
+use-cases:
+- UC-009
 ---
 
 # Sprint 009: Move Breakpoints Into Skills
@@ -84,4 +85,7 @@ Before tickets can be created, all of the following must be true:
 
 ## Tickets
 
-(To be created after sprint approval.)
+- #001 Simplify next.md to thin dispatcher (SUC-002)
+- #002 Add breakpoint to close-sprint.md (SUC-001)
+- #003 Add breakpoint to plan-sprint.md (SUC-003)
+- #004 Explicit AskUserQuestion in approval steps (SUC-004)
