@@ -1,9 +1,11 @@
 ---
-id: "002"
+id: '002'
 title: Update execute-ticket skill to reference Testing section
-status: todo
-use-cases: [SUC-002]
-depends-on: ["001"]
+status: done
+use-cases:
+- SUC-002
+depends-on:
+- '001'
 ---
 
 # Update execute-ticket skill to reference Testing section
