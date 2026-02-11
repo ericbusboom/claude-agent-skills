@@ -1,8 +1,9 @@
 ---
-id: "004"
+id: '004'
 title: Explicit AskUserQuestion in approval steps
-status: todo
-use-cases: [SUC-004]
+status: done
+use-cases:
+- SUC-004
 depends-on: []
 ---
 
