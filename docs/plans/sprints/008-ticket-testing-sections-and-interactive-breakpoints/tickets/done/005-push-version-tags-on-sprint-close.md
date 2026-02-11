@@ -1,7 +1,7 @@
 ---
 id: '005'
 title: Push version tags on sprint close
-status: in-progress
+status: done
 use-cases:
 - UC-013
 depends-on: []
