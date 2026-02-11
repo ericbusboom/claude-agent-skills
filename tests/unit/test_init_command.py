@@ -4,7 +4,9 @@ import json
 
 import pytest
 
-from claude_agent_skills.init_command import run_init, INSTRUCTION_CONTENT, MCP_CONFIG, SKILL_STUBS
+from claude_agent_skills.init_command import (
+    run_init, INSTRUCTION_CONTENT, MCP_CONFIG, SKILL_STUBS, SETTINGS_PERMISSIONS,
+)
 
 
 @pytest.fixture
@@ -62,12 +64,36 @@ class TestRunInit:
         assert data["mcpServers"]["other"] == {"command": "other"}
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
-    def test_does_not_create_settings_json(self, target_dir):
+    def test_creates_settings_local_json(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
-        settings_path = target_dir / ".claude" / "settings.json"
-        assert not settings_path.exists()
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        assert settings_path.exists()
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        assert "mcp__clasi__*" in data["permissions"]["allow"]
+
+    def test_settings_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        assert data["permissions"]["allow"].count("mcp__clasi__*") == 1
+
+    def test_settings_merges_existing(self, target_dir):
+        target_dir.mkdir()
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        existing = {"permissions": {"allow": ["Bash(*)"]}}
+        settings_path.write_text(json.dumps(existing), encoding="utf-8")
+
+        run_init(str(target_dir))
+
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        assert "Bash(*)" in data["permissions"]["allow"]
+        assert "mcp__clasi__*" in data["permissions"]["allow"]
 
     def test_installs_skill_stubs(self, target_dir):
         target_dir.mkdir()

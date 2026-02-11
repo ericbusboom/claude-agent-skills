@@ -185,6 +185,47 @@ def _update_mcp_json(mcp_json_path: Path) -> bool:
     return True
 
 
+SETTINGS_PERMISSIONS = {
+    "permissions": {
+        "allow": [
+            "mcp__clasi__*",
+        ]
+    }
+}
+
+
+def _update_settings_json(settings_path: Path) -> bool:
+    """Merge MCP permission allowlist into .claude/settings.local.json.
+
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    rel = str(settings_path.relative_to(settings_path.parent.parent.parent))
+
+    if settings_path.exists():
+        try:
+            data = json.loads(settings_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+    else:
+        data = {}
+
+    permissions = data.setdefault("permissions", {})
+    allow = permissions.setdefault("allow", [])
+
+    target_perm = "mcp__clasi__*"
+    if target_perm in allow:
+        click.echo(f"  Unchanged: {rel}")
+        return False
+
+    allow.append(target_perm)
+    settings_path.write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8"
+    )
+    click.echo(f"  Updated: {rel}")
+    return True
+
+
 def run_init(target: str) -> None:
     """Initialize a repository for the CLASI SE process.
 
@@ -212,6 +253,12 @@ def run_init(target: str) -> None:
     click.echo("MCP server configuration:")
     mcp_json = target_path / ".mcp.json"
     _update_mcp_json(mcp_json)
+    click.echo()
+
+    # Configure MCP permissions in .claude/settings.local.json
+    click.echo("MCP permissions:")
+    settings_json = target_path / ".claude" / "settings.local.json"
+    _update_settings_json(settings_json)
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")
