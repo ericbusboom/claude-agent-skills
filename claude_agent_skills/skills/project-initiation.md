@@ -40,7 +40,12 @@ with the stakeholder, using the product-manager agent.
      for GitHub Copilot
 
 5. **Stakeholder review**: Present the completed overview to the stakeholder.
-   If they request changes, revise and re-present. Only proceed when approved.
+   Use `AskUserQuestion`:
+   - "Approve overview" (recommended)
+   - "Request changes"
+
+   If the stakeholder requests changes, revise and re-present. Only proceed
+   when approved.
 
 ## Output
 

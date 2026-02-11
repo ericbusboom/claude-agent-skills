@@ -92,8 +92,12 @@ before that phase. Follow the phases in order.
      reflect the decisions (e.g. adjust scope, add/remove components).
 
 10. **Stakeholder review gate**: Present the sprint plan and architecture
-    review to the stakeholder. Wait for approval. If changes are requested,
-    revise and re-present.
+    review to the stakeholder. Use `AskUserQuestion`:
+    - "Approve sprint plan" (recommended)
+    - "Request changes"
+
+    If the stakeholder requests changes, revise and re-present. Only proceed
+    when approved.
     - Call `record_gate_result` with gate `stakeholder_approval` and result
       `passed` or `failed`.
 
