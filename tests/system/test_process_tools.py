@@ -19,13 +19,12 @@ from claude_agent_skills.process_tools import (
     get_language_instruction,
     ACTIVITY_GUIDES,
 )
-from claude_agent_skills.mcp_server import get_repo_root
+from claude_agent_skills.mcp_server import content_path
 
 
 class TestListDefinitions:
     def test_lists_agents(self):
-        root = get_repo_root()
-        results = _list_definitions(root / "agents")
+        results = _list_definitions(content_path("agents"))
         names = [r["name"] for r in results]
         assert "project-manager" in names
         assert "python-expert" in names
@@ -38,14 +37,12 @@ class TestListDefinitions:
 
 class TestGetDefinition:
     def test_gets_agent(self):
-        root = get_repo_root()
-        content = _get_definition(root / "agents", "project-manager")
+        content = _get_definition(content_path("agents"), "project-manager")
         assert "Project Manager" in content
 
     def test_not_found(self):
-        root = get_repo_root()
         with pytest.raises(ValueError, match="not found"):
-            _get_definition(root / "agents", "nonexistent-agent")
+            _get_definition(content_path("agents"), "nonexistent-agent")
 
 
 class TestMCPTools:

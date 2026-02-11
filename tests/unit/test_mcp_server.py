@@ -1,14 +1,23 @@
 """Tests for claude_agent_skills.mcp_server module."""
 
-from claude_agent_skills.mcp_server import server, get_repo_root
+from claude_agent_skills.mcp_server import server, content_path
 
 
-class TestGetRepoRoot:
-    def test_finds_repo_root(self):
-        root = get_repo_root()
-        assert (root / "agents").is_dir()
-        assert (root / "skills").is_dir()
-        assert (root / "instructions").is_dir()
+class TestContentPath:
+    def test_resolves_agents_directory(self):
+        assert content_path("agents").is_dir()
+
+    def test_resolves_skills_directory(self):
+        assert content_path("skills").is_dir()
+
+    def test_resolves_instructions_directory(self):
+        assert content_path("instructions").is_dir()
+
+    def test_resolves_nested_path(self):
+        assert content_path("instructions", "languages").is_dir()
+
+    def test_resolves_specific_file(self):
+        assert content_path("agents", "project-manager.md").is_file()
 
 
 class TestServer:

@@ -18,20 +18,18 @@ server = FastMCP(
 )
 
 
-def get_repo_root() -> Path:
-    """Locate the repository root containing agents/, skills/, instructions/.
+_CONTENT_ROOT = Path(__file__).parent.resolve()
 
-    For editable installs, this is the original repository location.
+
+def content_path(*parts: str) -> Path:
+    """Resolve a relative content path to an absolute path inside the package.
+
+    Examples:
+        content_path("agents")                       → .../claude_agent_skills/agents/
+        content_path("agents", "technical-lead.md")   → .../claude_agent_skills/agents/technical-lead.md
+        content_path("instructions", "languages")     → .../claude_agent_skills/instructions/languages/
     """
-    package_dir = Path(__file__).parent.resolve()
-    repo_root = package_dir.parent
-
-    if not (repo_root / "agents").exists():
-        raise RuntimeError(f"Could not find agents directory at {repo_root / 'agents'}")
-    if not (repo_root / "skills").exists():
-        raise RuntimeError(f"Could not find skills directory at {repo_root / 'skills'}")
-
-    return repo_root
+    return _CONTENT_ROOT.joinpath(*parts)
 
 
 def run_server() -> None:

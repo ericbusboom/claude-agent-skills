@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from claude_agent_skills.frontmatter import read_document
-from claude_agent_skills.mcp_server import server, get_repo_root
+from claude_agent_skills.mcp_server import server, content_path
 
 
 def _list_definitions(directory: Path) -> list[dict[str, str]]:
@@ -44,10 +44,9 @@ def get_se_overview() -> str:
     Returns a summary of the process stages, available agents and skills,
     and guidance on which MCP tools to use for each activity.
     """
-    root = get_repo_root()
-    agents = _list_definitions(root / "agents")
-    skills = _list_definitions(root / "skills")
-    instructions = _list_definitions(root / "instructions")
+    agents = _list_definitions(content_path("agents"))
+    skills = _list_definitions(content_path("skills"))
+    instructions = _list_definitions(content_path("instructions"))
 
     agent_lines = "\n".join(
         f"- **{a['name']}**: {a['description']}" for a in agents
@@ -110,8 +109,7 @@ def list_agents() -> str:
 
     Returns a JSON array of objects with 'name' and 'description' fields.
     """
-    root = get_repo_root()
-    return json.dumps(_list_definitions(root / "agents"), indent=2)
+    return json.dumps(_list_definitions(content_path("agents")), indent=2)
 
 
 @server.tool()
@@ -120,8 +118,7 @@ def list_skills() -> str:
 
     Returns a JSON array of objects with 'name' and 'description' fields.
     """
-    root = get_repo_root()
-    return json.dumps(_list_definitions(root / "skills"), indent=2)
+    return json.dumps(_list_definitions(content_path("skills")), indent=2)
 
 
 @server.tool()
@@ -130,8 +127,7 @@ def list_instructions() -> str:
 
     Returns a JSON array of objects with 'name' and 'description' fields.
     """
-    root = get_repo_root()
-    return json.dumps(_list_definitions(root / "instructions"), indent=2)
+    return json.dumps(_list_definitions(content_path("instructions")), indent=2)
 
 
 @server.tool()
@@ -141,8 +137,7 @@ def get_agent_definition(name: str) -> str:
     Args:
         name: The agent name (e.g., 'project-manager', 'python-expert')
     """
-    root = get_repo_root()
-    return _get_definition(root / "agents", name)
+    return _get_definition(content_path("agents"), name)
 
 
 @server.tool()
@@ -152,8 +147,7 @@ def get_skill_definition(name: str) -> str:
     Args:
         name: The skill name (e.g., 'execute-ticket', 'plan-sprint')
     """
-    root = get_repo_root()
-    return _get_definition(root / "skills", name)
+    return _get_definition(content_path("skills"), name)
 
 
 @server.tool()
@@ -163,8 +157,7 @@ def get_instruction(name: str) -> str:
     Args:
         name: The instruction name (e.g., 'software-engineering', 'coding-standards')
     """
-    root = get_repo_root()
-    return _get_definition(root / "instructions", name)
+    return _get_definition(content_path("instructions"), name)
 
 
 @server.tool()
@@ -173,8 +166,7 @@ def list_language_instructions() -> str:
 
     Returns a JSON array of objects with 'name' and 'description' fields.
     """
-    root = get_repo_root()
-    return json.dumps(_list_definitions(root / "instructions" / "languages"), indent=2)
+    return json.dumps(_list_definitions(content_path("instructions", "languages")), indent=2)
 
 
 @server.tool()
@@ -184,8 +176,7 @@ def get_language_instruction(language: str) -> str:
     Args:
         language: The language name (e.g., 'python')
     """
-    root = get_repo_root()
-    return _get_definition(root / "instructions" / "languages", language)
+    return _get_definition(content_path("instructions", "languages"), language)
 
 
 # Activity guide configuration: maps activity names to their relevant
@@ -254,24 +245,23 @@ def get_activity_guide(activity: str) -> str:
         )
 
     guide = ACTIVITY_GUIDES[activity]
-    root = get_repo_root()
     sections = []
 
     sections.append(f"# Activity Guide: {activity}\n")
 
     # Agent definitions
     for agent_name in guide["agents"]:
-        content = _get_definition(root / "agents", agent_name)
+        content = _get_definition(content_path("agents"), agent_name)
         sections.append(f"## Agent: {agent_name}\n\n{content}")
 
     # Skill workflows
     for skill_name in guide["skills"]:
-        content = _get_definition(root / "skills", skill_name)
+        content = _get_definition(content_path("skills"), skill_name)
         sections.append(f"## Skill: {skill_name}\n\n{content}")
 
     # Instructions
     for instr_name in guide["instructions"]:
-        content = _get_definition(root / "instructions", instr_name)
+        content = _get_definition(content_path("instructions"), instr_name)
         sections.append(f"## Instruction: {instr_name}\n\n{content}")
 
     return "\n\n---\n\n".join(sections)
