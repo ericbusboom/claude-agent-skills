@@ -10,14 +10,16 @@ artifacts live in `docs/plans/`.
 
 ## Agents
 
-Six specialized agents drive this process, orchestrated by the
+Seven specialized agents drive this process, orchestrated by the
 project-manager:
 
 - **project-manager** — Top-level orchestrator. Delegates to the other
   agents, tracks project state, and coordinates sprints and ticket execution.
   Does not implement code or write documents itself.
-- **requirements-analyst** — Elicits requirements from stakeholder
-  narratives. Produces the brief and use cases.
+- **product-manager** — Guides project initiation interviews. Takes a
+  stakeholder narration and produces the project overview document.
+- **requirements-analyst** — Elicits detailed requirements from stakeholder
+  narratives. Produces the brief and use cases for complex projects.
 - **architect** — Designs system architecture. Takes the brief and use cases
   and produces the technical plan.
 - **technical-lead** — Breaks the technical plan into sequenced, numbered
@@ -35,7 +37,8 @@ Supporting agents used during implementation:
 
 Reusable workflows that correspond to each stage:
 
-- **elicit-requirements** — Stage 1a: narrative → brief → use cases
+- **project-initiation** — New project: narration → project overview
+- **elicit-requirements** — Stage 1a: narrative → brief → use cases (detailed)
 - **create-technical-plan** — Stage 1b: brief + use cases → technical plan
 - **create-tickets** — Stage 2: technical plan → numbered tickets
 - **execute-ticket** — Stage 3: ticket → plan → implement → test → done

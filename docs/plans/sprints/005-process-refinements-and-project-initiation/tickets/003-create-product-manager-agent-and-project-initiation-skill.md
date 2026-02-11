@@ -1,9 +1,11 @@
 ---
-id: "003"
+id: '003'
 title: Create product-manager agent and project-initiation skill
-status: todo
-use-cases: [SUC-002]
-depends-on: ["001"]
+status: in-progress
+use-cases:
+- SUC-002
+depends-on:
+- '001'
 ---
 
 # Create product-manager agent and project-initiation skill

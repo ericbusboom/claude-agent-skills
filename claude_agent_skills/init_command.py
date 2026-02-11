@@ -109,6 +109,17 @@ To execute this skill, call the CLASI MCP tool
 `get_skill_definition("project-status")` to retrieve the full instructions,
 then follow them.
 """,
+    "project-initiation": """\
+---
+description: Start a new project with a guided interview
+---
+
+# /project-initiation
+
+To execute this skill, call the CLASI MCP tool
+`get_skill_definition("project-initiation")` to retrieve the full
+instructions, then follow them.
+""",
 }
 
 
