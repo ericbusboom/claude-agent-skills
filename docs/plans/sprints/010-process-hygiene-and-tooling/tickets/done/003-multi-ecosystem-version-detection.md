@@ -1,8 +1,9 @@
 ---
-id: "003"
+id: '003'
 title: Multi-ecosystem version detection
-status: todo
-use-cases: [SUC-003]
+status: done
+use-cases:
+- SUC-003
 depends-on: []
 ---
 
