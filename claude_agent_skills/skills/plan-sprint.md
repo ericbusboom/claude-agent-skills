@@ -23,8 +23,8 @@ create tickets.
 
 ## Critical Rule
 
-**DO NOT create tickets** during steps 1–9 of this process. Tickets are
-only created in step 11, after the sprint has advanced to the `ticketing`
+**DO NOT create tickets** during steps 1–10 of this process. Tickets are
+only created in step 12, after the sprint has advanced to the `ticketing`
 phase. The `create_ticket` MCP tool will reject attempts to create tickets
 before that phase. Follow the phases in order.
 
@@ -66,7 +66,19 @@ before that phase. Follow the phases in order.
 7. **Advance to stakeholder-review**: If architecture review passed, call
    `advance_sprint_phase` to move to `stakeholder-review`.
 
-8. **Resolve open questions**: Before presenting to the stakeholder, check
+8. **Breakpoint (conditional)**: Check the sprint's `technical-plan.md`
+   for a `## Open Questions` section.
+   - If open questions **exist**: skip this breakpoint and proceed directly
+     to step 9 (which resolves them interactively via `AskUserQuestion`).
+   - If **no open questions** exist (section is empty or absent): present
+     an `AskUserQuestion` to confirm continuation:
+     - "Continue to stakeholder review" (recommended)
+     - "Review architecture feedback first"
+
+     If the stakeholder chooses to review, present the architecture review
+     findings and stop. Otherwise proceed.
+
+9. **Resolve open questions**: Before presenting to the stakeholder, check
    the sprint's `technical-plan.md` for a `## Open Questions` section. If
    open questions exist:
    - Parse each numbered question into a separate `AskUserQuestion` call.
@@ -79,26 +91,26 @@ before that phase. Follow the phases in order.
    - Update any affected parts of the sprint plan or technical plan to
      reflect the decisions (e.g. adjust scope, add/remove components).
 
-9. **Stakeholder review gate**: Present the sprint plan and architecture
-   review to the stakeholder. Wait for approval. If changes are requested,
-   revise and re-present.
-   - Call `record_gate_result` with gate `stakeholder_approval` and result
-     `passed` or `failed`.
+10. **Stakeholder review gate**: Present the sprint plan and architecture
+    review to the stakeholder. Wait for approval. If changes are requested,
+    revise and re-present.
+    - Call `record_gate_result` with gate `stakeholder_approval` and result
+      `passed` or `failed`.
 
-10. **Advance to ticketing**: If stakeholder approved, call
+11. **Advance to ticketing**: If stakeholder approved, call
     `advance_sprint_phase` to move to `ticketing`.
 
-11. **Create tickets**: Delegate to the technical-lead to create tickets
+12. **Create tickets**: Delegate to the technical-lead to create tickets
     for this sprint. Tickets are created in the sprint's `tickets/` directory
     with per-sprint numbering (001, 002, ...). Update the sprint document's
     Tickets section with the list of created tickets.
 
-12. **Acquire execution lock and advance to executing**: Call
+13. **Acquire execution lock and advance to executing**: Call
     `acquire_execution_lock` to claim the lock for this sprint, then call
     `advance_sprint_phase` to move to `executing`. Only one sprint can hold
     the execution lock at a time.
 
-13. **Set sprint status**: Update the sprint document status to `active`.
+14. **Set sprint status**: Update the sprint document status to `active`.
 
 ## Output
 
