@@ -57,10 +57,14 @@ the sprint branch, and archive the sprint document.
    the moved sprint directory and `pyproject.toml`, then commit with a
    message like `chore: close sprint NNN — archive to done, tag vX.Y.Z`.
 
-8. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
+8. **Push tags**: `git push` does not push tags by default. Run
+   `git push --tags` to ensure the version tag created by `tag_version`
+   is pushed to the remote.
 
-9. **Report completion**: Summarize what was accomplished in the sprint —
-   list of completed tickets, key changes, any notes for follow-up.
+9. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
+
+10. **Report completion**: Summarize what was accomplished in the sprint —
+    list of completed tickets, key changes, any notes for follow-up.
 
 ## Output
 

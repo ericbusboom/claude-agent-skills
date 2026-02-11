@@ -89,3 +89,4 @@ Before tickets can be created, all of the following must be true:
 - **002**: Update execute-ticket skill to reference Testing section (SUC-002, depends on 001)
 - **003**: Add interactive breakpoints to next skill (SUC-003, SUC-004)
 - **004**: Add conditional breakpoint to plan-sprint skill (SUC-004)
+- **005**: Push version tags on sprint close (UC-013)
