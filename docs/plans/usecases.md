@@ -166,7 +166,7 @@ status: draft
   3. architecture-reviewer reviews the sprint plan against the existing codebase
      and technical plan.
   4. Stakeholder reviews and approves the sprint plan.
-  5. systems-engineer creates tickets within the sprint.
+  5. technical-lead creates tickets within the sprint.
   6. project-manager creates a branch `sprint/NNN-slug`.
   7. Tickets are executed on the sprint branch.
   8. When all tickets are done, sprint is validated and closed.

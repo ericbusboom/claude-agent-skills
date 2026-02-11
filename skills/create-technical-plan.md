@@ -27,7 +27,7 @@ using the architect agent.
 4. **Write technical plan**: Produce `docs/plans/technical-plan.md` with
    all sections. Each component must list which use cases it addresses.
    Include Mermaid diagrams where they clarify structure (see "Diagrams in
-   Technical Plans" in `instructions/system-engineering.md`).
+   Technical Plans" in `instructions/software-engineering.md`).
 5. **Verify traceability**: Every component addresses at least one use case.
    Every use case is addressed by at least one component.
 6. **Flag open questions**: Anything ambiguous or requiring a decision is

@@ -1,11 +1,11 @@
 ---
-name: system-engineering
-description: Instructions for the system engineering process using brief, use cases, technical plan, tickets, and ticket plans
+name: software-engineering
+description: Instructions for the software engineering process using brief, use cases, technical plan, tickets, and ticket plans
 ---
 
-# System Engineering Process
+# Software Engineering Process
 
-This project follows a structured systems engineering workflow. All planning
+This project follows a structured software engineering workflow. All planning
 artifacts live in `docs/plans/`.
 
 ## Agents
@@ -20,7 +20,7 @@ project-manager:
   narratives. Produces the brief and use cases.
 - **architect** — Designs system architecture. Takes the brief and use cases
   and produces the technical plan.
-- **systems-engineer** — Breaks the technical plan into sequenced, numbered
+- **technical-lead** — Breaks the technical plan into sequenced, numbered
   tickets. Creates ticket plans before implementation begins.
 - **architecture-reviewer** — Reviews sprint plans against the existing
   codebase and technical plan. Produces architectural review verdicts.
@@ -288,7 +288,7 @@ The `create_ticket` tool checks the state database and blocks ticket creation
 if the sprint is before the `ticketing` phase. This prevents tickets from
 being created before architecture and stakeholder reviews are complete.
 
-### Stage 2: Ticketing (systems-engineer)
+### Stage 2: Ticketing (technical-lead)
 
 Skill: **create-tickets**
 

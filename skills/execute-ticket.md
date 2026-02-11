@@ -10,7 +10,7 @@ completion, coordinating multiple agents.
 
 ## Agents Used
 
-- **systems-engineer** — creates the ticket plan
+- **technical-lead** — creates the ticket plan
 - **python-expert** (or appropriate dev agent) — implements the code
 - **code-reviewer** — reviews the implementation
 - **documentation-expert** — updates documentation

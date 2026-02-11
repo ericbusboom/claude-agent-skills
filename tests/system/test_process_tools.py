@@ -68,7 +68,7 @@ class TestMCPTools:
     def test_list_instructions(self):
         result = json.loads(list_instructions())
         assert isinstance(result, list)
-        assert any(i["name"] == "system-engineering" for i in result)
+        assert any(i["name"] == "software-engineering" for i in result)
 
     def test_get_agent_definition(self):
         result = get_agent_definition("project-manager")
@@ -79,8 +79,8 @@ class TestMCPTools:
         assert "Execute Ticket" in result
 
     def test_get_instruction(self):
-        result = get_instruction("system-engineering")
-        assert "System Engineering" in result
+        result = get_instruction("software-engineering")
+        assert "Software Engineering" in result
 
 
 class TestLanguageInstructions:

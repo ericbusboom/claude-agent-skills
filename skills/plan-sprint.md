@@ -12,7 +12,7 @@ create tickets.
 ## Agent Used
 
 **project-manager** (orchestrates), **architecture-reviewer** (reviews plan),
-**systems-engineer** (creates tickets)
+**technical-lead** (creates tickets)
 
 ## Inputs
 
@@ -68,7 +68,7 @@ create tickets.
 9. **Advance to ticketing**: If stakeholder approved, call
    `advance_sprint_phase` to move to `ticketing`.
 
-10. **Create tickets**: Delegate to the systems-engineer to create tickets
+10. **Create tickets**: Delegate to the technical-lead to create tickets
     for this sprint. Tickets are created in the sprint's `tickets/` directory
     with per-sprint numbering (001, 002, ...). Update the sprint document's
     Tickets section with the list of created tickets.

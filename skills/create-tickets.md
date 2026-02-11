@@ -6,11 +6,11 @@ description: Breaks a technical plan into sequenced, numbered implementation tic
 # Create Tickets Skill
 
 This skill breaks a technical plan into actionable implementation tickets
-using the systems-engineer agent.
+using the technical-lead agent.
 
 ## Agent Used
 
-**systems-engineer**
+**technical-lead**
 
 ## Inputs
 

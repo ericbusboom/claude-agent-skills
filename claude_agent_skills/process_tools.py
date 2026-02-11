@@ -70,7 +70,7 @@ def get_se_overview() -> str:
 3. **Sprints**: Organize work into sprint directories with planning docs and tickets
    - Skills: `plan-sprint`, `close-sprint` | Agent: `project-manager`
 4. **Stage 2 — Ticketing**: Break plan into numbered tickets
-   - Skill: `create-tickets` | Agent: `systems-engineer`
+   - Skill: `create-tickets` | Agent: `technical-lead`
 5. **Stage 3 — Implementation**: Execute tickets (plan → implement → test → review → done)
    - Skill: `execute-ticket` | Agents: `python-expert`, `code-reviewer`, `documentation-expert`
 
@@ -161,7 +161,7 @@ def get_instruction(name: str) -> str:
     """Get the full markdown content of a named instruction file.
 
     Args:
-        name: The instruction name (e.g., 'system-engineering', 'coding-standards')
+        name: The instruction name (e.g., 'software-engineering', 'coding-standards')
     """
     root = get_repo_root()
     return _get_definition(root / "instructions", name)
@@ -194,22 +194,22 @@ ACTIVITY_GUIDES: dict[str, dict[str, list[str]]] = {
     "requirements": {
         "agents": ["requirements-analyst"],
         "skills": ["elicit-requirements"],
-        "instructions": ["system-engineering"],
+        "instructions": ["software-engineering"],
     },
     "architecture": {
         "agents": ["architect"],
         "skills": ["create-technical-plan"],
-        "instructions": ["system-engineering"],
+        "instructions": ["software-engineering"],
     },
     "ticketing": {
-        "agents": ["systems-engineer"],
+        "agents": ["technical-lead"],
         "skills": ["create-tickets"],
-        "instructions": ["system-engineering"],
+        "instructions": ["software-engineering"],
     },
     "implementation": {
-        "agents": ["python-expert", "systems-engineer"],
+        "agents": ["python-expert", "technical-lead"],
         "skills": ["execute-ticket"],
-        "instructions": ["system-engineering", "coding-standards", "languages/python", "testing", "git-workflow"],
+        "instructions": ["software-engineering", "coding-standards", "languages/python", "testing", "git-workflow"],
     },
     "testing": {
         "agents": ["python-expert"],
@@ -224,12 +224,12 @@ ACTIVITY_GUIDES: dict[str, dict[str, list[str]]] = {
     "sprint-planning": {
         "agents": ["project-manager", "architecture-reviewer"],
         "skills": ["plan-sprint"],
-        "instructions": ["system-engineering", "git-workflow"],
+        "instructions": ["software-engineering", "git-workflow"],
     },
     "sprint-closing": {
         "agents": ["project-manager"],
         "skills": ["close-sprint"],
-        "instructions": ["system-engineering", "git-workflow"],
+        "instructions": ["software-engineering", "git-workflow"],
     },
 }
 

@@ -125,7 +125,7 @@ plans, instructions, and acceptance criteria.
 - `agents/documentation-expert.md` — Add `Write` and `Edit` tools. Add SE
   process awareness.
 
-## Component: Updated SE Instructions (`instructions/system-engineering.md`)
+## Component: Updated SE Instructions (`instructions/software-engineering.md`)
 
 **Purpose**: Add review gates, error recovery, code review step, and
 definition of done to the SE workflow.
@@ -239,7 +239,7 @@ conversation.
 3. Create sprint branch (`sprint/NNN-slug`)
 4. Delegate architecture review to architecture-reviewer
 5. Present sprint plan to stakeholder for approval
-6. On approval, delegate ticket creation to systems-engineer
+6. On approval, delegate ticket creation to technical-lead
 
 ## Component: Close Sprint Skill (`skills/close-sprint.md`)
 
@@ -267,7 +267,7 @@ conversation.
 - Commit message format: `<type>: <summary> (#NNN, sprint NNN)`
 - No feature branches within sprints (tickets commit directly to sprint branch)
 
-## Component: Updated SE Instructions (`instructions/system-engineering.md`)
+## Component: Updated SE Instructions (`instructions/software-engineering.md`)
 
 **Purpose**: Integrate sprints into the SE workflow. Rename "phases" to
 "stages" to free the term. Add sprint as the default working mode after

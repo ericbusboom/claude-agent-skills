@@ -15,7 +15,7 @@ Given `docs/plans/brief.md` and `docs/plans/usecases.md`, produce
 `docs/plans/technical-plan.md`.
 
 You do not elicit requirements (that is the requirements-analyst's job) and
-you do not create tickets (that is the systems-engineer's job).
+you do not create tickets (that is the technical-lead's job).
 
 ## How You Work
 
@@ -34,8 +34,8 @@ you do not create tickets (that is the systems-engineer's job).
 
 ## SE Process Context
 
-You operate within the system engineering process defined in
-`instructions/system-engineering.md`. Key artifacts:
+You operate within the software engineering process defined in
+`instructions/software-engineering.md`. Key artifacts:
 
 - `docs/plans/brief.md` — Project description (your input)
 - `docs/plans/usecases.md` — Use cases (your input)

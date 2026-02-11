@@ -50,8 +50,8 @@ Structure your review as:
 
 ## SE Process Context
 
-You operate within the system engineering process defined in
-`instructions/system-engineering.md`. Key artifacts:
+You operate within the software engineering process defined in
+`instructions/software-engineering.md`. Key artifacts:
 
 - `docs/plans/brief.md` — Project description
 - `docs/plans/usecases.md` — Use cases
@@ -62,6 +62,6 @@ You operate within the system engineering process defined in
 ## What You Do Not Do
 
 - You do not implement code (that is the python-expert's job).
-- You do not create tickets or plans (that is the systems-engineer's job).
+- You do not create tickets or plans (that is the technical-lead's job).
 - You do not make final approval decisions (that is the stakeholder's job).
 - You do not review individual code changes (that is the code-reviewer's job).
