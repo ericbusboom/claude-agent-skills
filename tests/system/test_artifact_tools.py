@@ -8,9 +8,6 @@ import pytest
 from claude_agent_skills.artifact_tools import (
     create_sprint,
     create_ticket,
-    create_brief,
-    create_technical_plan,
-    create_use_cases,
     list_sprints,
     list_tickets,
     get_sprint_status,
@@ -102,23 +99,6 @@ class TestCreateTicket:
             create_ticket("001", "Too Early")
 
 
-class TestCreateTopLevelArtifacts:
-    def test_create_brief(self, work_dir):
-        result = json.loads(create_brief())
-        assert (work_dir / "docs" / "plans" / "brief.md").exists()
-
-    def test_create_technical_plan(self, work_dir):
-        result = json.loads(create_technical_plan())
-        assert (work_dir / "docs" / "plans" / "technical-plan.md").exists()
-
-    def test_create_use_cases(self, work_dir):
-        result = json.loads(create_use_cases())
-        assert (work_dir / "docs" / "plans" / "usecases.md").exists()
-
-    def test_refuses_overwrite(self, work_dir):
-        create_brief()
-        with pytest.raises(ValueError, match="already exists"):
-            create_brief()
 
 
 class TestListSprints:

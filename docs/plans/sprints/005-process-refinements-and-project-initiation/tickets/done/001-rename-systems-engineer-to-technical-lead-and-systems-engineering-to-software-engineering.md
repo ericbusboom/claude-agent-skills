@@ -2,7 +2,7 @@
 id: '001'
 title: Rename systems-engineer to technical-lead and Systems Engineering to Software
   Engineering
-status: in-progress
+status: done
 use-cases:
 - SUC-001
 depends-on: []

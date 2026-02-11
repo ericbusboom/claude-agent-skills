@@ -1,9 +1,11 @@
 ---
-id: "002"
+id: '002'
 title: Remove deprecated create_brief, create_technical_plan, create_use_cases tools
-status: todo
-use-cases: [SUC-002]
-depends-on: ["001"]
+status: in-progress
+use-cases:
+- SUC-002
+depends-on:
+- '001'
 ---
 
 # Remove deprecated create_brief, create_technical_plan, create_use_cases tools

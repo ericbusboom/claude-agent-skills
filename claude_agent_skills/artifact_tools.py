@@ -25,9 +25,6 @@ from claude_agent_skills.templates import (
     SPRINT_USECASES_TEMPLATE,
     SPRINT_TECHNICAL_PLAN_TEMPLATE,
     TICKET_TEMPLATE,
-    BRIEF_TEMPLATE,
-    TECHNICAL_PLAN_TEMPLATE,
-    USE_CASES_TEMPLATE,
     OVERVIEW_TEMPLATE,
 )
 
@@ -256,60 +253,6 @@ def create_overview() -> str:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(OVERVIEW_TEMPLATE, encoding="utf-8")
-
-    return json.dumps({"path": str(path)}, indent=2)
-
-
-@server.tool()
-def create_brief() -> str:
-    """Create the top-level project brief (docs/plans/brief.md).
-
-    Deprecated: prefer create_overview() for new projects.
-
-    Returns an error if the file already exists.
-    """
-    path = _plans_dir() / "brief.md"
-    if path.exists():
-        raise ValueError(f"Brief already exists: {path}")
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(BRIEF_TEMPLATE, encoding="utf-8")
-
-    return json.dumps({"path": str(path)}, indent=2)
-
-
-@server.tool()
-def create_technical_plan() -> str:
-    """Create the top-level technical plan (docs/plans/technical-plan.md).
-
-    Deprecated: prefer create_overview() for new projects.
-
-    Returns an error if the file already exists.
-    """
-    path = _plans_dir() / "technical-plan.md"
-    if path.exists():
-        raise ValueError(f"Technical plan already exists: {path}")
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(TECHNICAL_PLAN_TEMPLATE, encoding="utf-8")
-
-    return json.dumps({"path": str(path)}, indent=2)
-
-
-@server.tool()
-def create_use_cases() -> str:
-    """Create the top-level use cases file (docs/plans/usecases.md).
-
-    Deprecated: prefer create_overview() for new projects.
-
-    Returns an error if the file already exists.
-    """
-    path = _plans_dir() / "usecases.md"
-    if path.exists():
-        raise ValueError(f"Use cases file already exists: {path}")
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(USE_CASES_TEMPLATE, encoding="utf-8")
 
     return json.dumps({"path": str(path)}, indent=2)
 

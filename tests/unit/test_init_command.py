@@ -98,3 +98,9 @@ class TestRunInit:
         assert "get_se_overview" in INSTRUCTION_CONTENT
         assert "create_sprint" in INSTRUCTION_CONTENT
         assert "get_activity_guide" in INSTRUCTION_CONTENT
+        assert "create_overview" in INSTRUCTION_CONTENT
+
+    def test_instruction_content_no_deprecated_tools(self):
+        assert "create_brief" not in INSTRUCTION_CONTENT
+        assert "create_technical_plan" not in INSTRUCTION_CONTENT
+        assert "create_use_cases" not in INSTRUCTION_CONTENT

@@ -51,11 +51,9 @@ SE process:
 
 | Tool | Description |
 |------|-------------|
+| `create_overview()` | Create project overview document |
 | `create_sprint(title)` | Create a new sprint directory |
 | `create_ticket(sprint_id, title)` | Create a ticket in a sprint |
-| `create_brief()` | Create top-level brief |
-| `create_technical_plan()` | Create top-level technical plan |
-| `create_use_cases()` | Create top-level use cases |
 | `list_sprints(status?)` | List sprints |
 | `list_tickets(sprint_id?, status?)` | List tickets |
 | `get_sprint_status(sprint_id)` | Sprint summary with ticket counts |
