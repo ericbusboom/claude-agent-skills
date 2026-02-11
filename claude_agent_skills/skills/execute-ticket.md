@@ -34,10 +34,15 @@ completion, coordinating multiple agents.
 3. **Set in-progress**: Update the ticket's `status` to `in-progress`.
 4. **Implement**: Write the code following the plan. Use the appropriate
    development agent (python-expert for Python work, etc.).
-5. **Write tests**: Create tests as specified in the plan. Follow the
-   testing instructions (unit tests in `tests/unit/`, system tests in
-   `tests/system/`, dev tests in `tests/dev/`).
-6. **Run tests**: Verify all tests pass.
+5. **Write tests**: Read the ticket's `## Testing` section for guidance
+   on which new tests to write and where to place them. Create tests as
+   specified, following the testing instructions (unit tests in
+   `tests/unit/`, system tests in `tests/system/`, dev tests in
+   `tests/dev/`).
+6. **Run tests**: Execute the verification command from the ticket's
+   `## Testing` section (default: `uv run pytest`). Also run any existing
+   tests listed in the Testing section to verify no regressions. All tests
+   must pass.
 7. **Code review** (agent: **code-reviewer**): Delegate review to the
    code-reviewer agent, which checks:
    - Coding standards (`instructions/coding-standards.md`)
