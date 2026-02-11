@@ -127,7 +127,7 @@ wheels = [
 
 [[package]]
 name = "claude-agent-skills"
-version = "0.2.0"
+version = "0.20260210.1"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
