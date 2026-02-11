@@ -1,8 +1,9 @@
 ---
-id: "004"
+id: '004'
 title: Add conditional breakpoint to plan-sprint skill
-status: todo
-use-cases: [SUC-004]
+status: done
+use-cases:
+- SUC-004
 depends-on: []
 ---
 
