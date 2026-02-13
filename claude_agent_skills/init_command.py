@@ -64,6 +64,28 @@ To execute this skill, call the CLASI MCP tool
 `get_skill_definition("project-initiation")` to retrieve the full
 instructions, then follow them.
 """,
+    "report": """\
+---
+description: Report a bug or issue with CLASI tools
+---
+
+# /report
+
+To execute this skill, call the CLASI MCP tool
+`get_skill_definition("report")` to retrieve the full instructions,
+then follow them.
+""",
+    "ghtodo": """\
+---
+description: Create a GitHub issue from user input
+---
+
+# /ghtodo
+
+To execute this skill, call the CLASI MCP tool
+`get_skill_definition("ghtodo")` to retrieve the full instructions,
+then follow them.
+""",
 }
 
 
