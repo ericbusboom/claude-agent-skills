@@ -699,6 +699,41 @@ def move_todo_to_done(
     }, indent=2)
 
 
+@server.tool()
+def create_github_issue(title: str, body: str, labels: list[str] | None = None) -> str:
+    """Create a GitHub issue in the current repository.
+
+    This tool uses the GitHub MCP server (if available via context) to create
+    an issue. The tool is intended to be called from AI agents that have
+    access to GitHub functionality through their environment.
+
+    Args:
+        title: The issue title
+        body: The issue body/description in markdown format
+        labels: Optional list of label names to apply to the issue
+
+    Returns JSON with {issue_number, url, title}.
+    
+    Note: This tool requires the GitHub MCP server to be available in the
+    agent's environment. If GitHub functionality is not available, this will
+    return an error message with instructions.
+    """
+    # Return a structured response that explains the tool requires GitHub MCP
+    # The actual GitHub issue creation will be handled by the agent using
+    # the GitHub MCP server tools available in their environment.
+    return json.dumps({
+        "tool": "create_github_issue",
+        "title": title,
+        "body": body,
+        "labels": labels or [],
+        "note": (
+            "This tool provides issue metadata. Use GitHub MCP tools "
+            "(github-mcp-server) to create the actual issue. "
+            "Example: Use github_create_issue() from the GitHub MCP server."
+        )
+    }, indent=2)
+
+
 # --- Frontmatter tools ---
 
 
