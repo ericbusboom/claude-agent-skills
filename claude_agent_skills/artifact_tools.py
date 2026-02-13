@@ -5,7 +5,12 @@ Read-write tools for creating, querying, and updating SE artifacts
 """
 
 import json
+import os
+import re
 import shutil
+import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -703,9 +708,9 @@ def move_todo_to_done(
 def create_github_issue(title: str, body: str, labels: list[str] | None = None) -> str:
     """Create a GitHub issue in the current repository.
 
-    This tool uses the GitHub MCP server (if available via context) to create
-    an issue. The tool is intended to be called from AI agents that have
-    access to GitHub functionality through their environment.
+    This tool prefers direct GitHub API access when a token is available in
+    the environment. If the token is missing or API access fails, it returns
+    metadata so an agent can use the GitHub MCP server instead.
 
     Args:
         title: The issue title
@@ -713,14 +718,50 @@ def create_github_issue(title: str, body: str, labels: list[str] | None = None) 
         labels: Optional list of label names to apply to the issue
 
     Returns JSON with {issue_number, url, title}.
-    
-    Note: This tool requires the GitHub MCP server to be available in the
-    agent's environment. If GitHub functionality is not available, this will
-    return an error message with instructions.
+
+    Note: This tool prefers direct GitHub API access when a token is available in
+    the environment. If the token is missing or API access fails, it returns
+    metadata so an agent can use the GitHub MCP server instead.
     """
-    # Return a structured response that explains the tool requires GitHub MCP
-    # The actual GitHub issue creation will be handled by the agent using
-    # the GitHub MCP server tools available in their environment.
+    repo = _get_github_repo()
+    token = _get_github_token()
+    if token and repo and not os.environ.get("PYTEST_CURRENT_TEST"):
+        try:
+            issue = _create_github_issue_api(
+                repo=repo,
+                title=title,
+                body=body,
+                labels=labels or [],
+                token=token,
+            )
+            return json.dumps({
+                "issue_number": issue.get("number"),
+                "url": issue.get("html_url"),
+                "title": issue.get("title"),
+            }, indent=2)
+        except Exception as exc:
+            return json.dumps({
+                "tool": "create_github_issue",
+                "title": title,
+                "body": body,
+                "labels": labels or [],
+                "error": str(exc),
+                "note": (
+                    "Direct GitHub API creation failed. Use GitHub MCP tools "
+                    "(github-mcp-server) to create the actual issue. "
+                    "Example: Use github_create_issue() from the GitHub MCP server."
+                )
+            }, indent=2)
+
+    note_bits = []
+    if not token:
+        note_bits.append("missing GITHUB_TOKEN or GH_TOKEN")
+    if not repo:
+        note_bits.append("could not resolve repository")
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        note_bits.append("disabled during tests")
+
+    note_suffix = f" ({', '.join(note_bits)})" if note_bits else ""
     return json.dumps({
         "tool": "create_github_issue",
         "title": title,
@@ -730,8 +771,77 @@ def create_github_issue(title: str, body: str, labels: list[str] | None = None) 
             "This tool provides issue metadata. Use GitHub MCP tools "
             "(github-mcp-server) to create the actual issue. "
             "Example: Use github_create_issue() from the GitHub MCP server."
+            f"{note_suffix}"
         )
     }, indent=2)
+
+
+def _get_github_token() -> str | None:
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    return token.strip() if token else None
+
+
+def _get_github_repo() -> str | None:
+    env_repo = os.environ.get("GITHUB_REPOSITORY")
+    if env_repo:
+        return env_repo.strip()
+
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+    remote = result.stdout.strip()
+    if not remote:
+        return None
+
+    match = re.search(r"github\.com[:/](?P<repo>[^\s]+)", remote)
+    if not match:
+        return None
+
+    repo = match.group("repo")
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+    return repo.strip("/")
+
+
+def _create_github_issue_api(
+    *,
+    repo: str,
+    title: str,
+    body: str,
+    labels: list[str],
+    token: str,
+) -> dict:
+    url = f"https://api.github.com/repos/{repo}/issues"
+    payload = {
+        "title": title,
+        "body": body,
+    }
+    if labels:
+        payload["labels"] = labels
+
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(url, data=data, method="POST")
+    request.add_header("Authorization", f"Bearer {token}")
+    request.add_header("Accept", "application/vnd.github+json")
+    request.add_header("X-GitHub-Api-Version", "2022-11-28")
+    request.add_header("Content-Type", "application/json")
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            body_text = response.read().decode("utf-8")
+            return json.loads(body_text)
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8") if exc.fp else ""
+        raise RuntimeError(
+            f"GitHub API error {exc.code}: {error_body or exc.reason}"
+        )
 
 
 # --- Frontmatter tools ---

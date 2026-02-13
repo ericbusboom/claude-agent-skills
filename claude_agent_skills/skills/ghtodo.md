@@ -14,8 +14,10 @@ This skill captures an idea or task as a GitHub issue in the current repository.
    - Issue title (first line or summary)
    - Issue body (remaining content)
    - Optional labels (if specified)
-3. Use the GitHub MCP server to create the issue:
-   - Call the appropriate GitHub tool to create an issue
+3. Create the issue using direct GitHub API access:
+   - Prefer the `create_github_issue` CLASI MCP tool, which uses `GITHUB_TOKEN`
+     or `GH_TOKEN` from the environment for authentication
+   - Fallback: use the `gh` CLI (`gh issue create`)
    - Use markdown formatting for the issue body
 4. Confirm the issue was created and provide:
    - Issue number
@@ -31,9 +33,9 @@ Confirm the issue was created with:
 
 ## Requirements
 
-This skill requires the GitHub MCP server to be available in the agent's
-environment. The agent must have appropriate GitHub credentials and permissions
-to create issues in the repository.
+This skill requires `GITHUB_TOKEN` or `GH_TOKEN` to be set in the environment
+for direct GitHub API access. The `gh` CLI is supported as a fallback. The agent
+must have appropriate permissions to create issues in the repository.
 
 ## Example Usage
 
