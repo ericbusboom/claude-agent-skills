@@ -302,17 +302,13 @@ def run_init(target: str) -> None:
         click.echo("  Wrote: AGENTS.md")
     click.echo()
 
-    # Install rule files from the package into .claude/rules/ (and Copilot mirror)
+    # Install rule files from the package into .claude/rules/
     rules_dir = _PACKAGE_ROOT / "rules"
     rule_files = sorted(rules_dir.glob("*.md"))
 
     click.echo("Rule files:")
     for rule_path in rule_files:
         _write_rule_file(target_path, rule_path.name, ".claude/rules")
-    # Mirror all rules for GitHub Copilot
-    click.echo("\nCopilot instructions:")
-    for rule_path in rule_files:
-        _write_rule_file(target_path, rule_path.name, ".github/copilot/instructions")
     click.echo()
 
     # Install skill stubs
