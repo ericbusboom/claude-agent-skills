@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '011'
+tickets:
+- '003'
 ---
 
 # Add VS Code Copilot support to `clasi init`
