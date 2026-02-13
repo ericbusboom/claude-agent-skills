@@ -5,7 +5,7 @@ import json
 import pytest
 
 from claude_agent_skills.init_command import (
-    run_init, MCP_CONFIG, SKILL_STUBS, _PACKAGE_ROOT,
+    run_init, MCP_CONFIG, SKILL_STUBS, AGENTS_MD_CONTENT, _PACKAGE_ROOT,
 )
 
 
@@ -177,3 +177,26 @@ class TestRunInit:
         rule = target_dir / ".claude" / "rules" / "auto-approve.md"
         assert rule.exists()
         assert "auto-approve" in rule.read_text(encoding="utf-8").lower()
+
+    def test_creates_agents_md(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        agents_md = target_dir / "AGENTS.md"
+        assert agents_md.exists()
+        assert agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT
+
+    def test_agents_md_has_process_sections(self):
+        assert "Starting a new project" in AGENTS_MD_CONTENT
+        assert "Planning a sprint" in AGENTS_MD_CONTENT
+        assert "Working on a ticket" in AGENTS_MD_CONTENT
+        assert "Closing a sprint" in AGENTS_MD_CONTENT
+        assert "get_skill_definition" in AGENTS_MD_CONTENT
+
+    def test_agents_md_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        agents_md = target_dir / "AGENTS.md"
+        assert agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT

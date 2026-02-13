@@ -21,6 +21,88 @@ MCP_CONFIG = {
 
 # Thin skill stubs that delegate to MCP for real instructions.
 # Each key is the subdirectory name under .claude/skills/<name>/SKILL.md.
+AGENTS_MD_CONTENT = """\
+# CLASI Software Engineering Process
+
+This project uses the **CLASI** (Claude Agent Skills Instructions)
+software engineering process, managed via an MCP server.
+
+## How It Works
+
+All work follows a structured lifecycle. The MCP server (`clasi`)
+provides tools, skills, and instructions that guide you through each
+step. When in doubt, call `get_se_overview()` for the full process map.
+
+## What To Do
+
+### Starting a new project
+
+Run the project initiation interview to produce a project overview:
+
+```
+get_skill_definition("project-initiation")
+```
+
+### Planning a sprint
+
+Create a sprint with planning documents, use cases, and a technical plan:
+
+```
+get_skill_definition("plan-sprint")
+```
+
+### Working on a ticket
+
+Execute a ticket through the full lifecycle (plan, implement, test, review):
+
+```
+get_skill_definition("execute-ticket")
+```
+
+### Closing a sprint
+
+Verify all tickets are done, merge, archive, and tag a release:
+
+```
+get_skill_definition("close-sprint")
+```
+
+### Checking project status
+
+See where the project stands — active sprints, tickets, and next actions:
+
+```
+get_skill_definition("project-status")
+```
+
+### Reporting a bug with the tools
+
+File an issue against the CLASI tools themselves:
+
+```
+get_skill_definition("report")
+```
+
+## MCP Tools Quick Reference
+
+| Tool | Purpose |
+|------|---------|
+| `get_se_overview()` | Full process overview |
+| `get_activity_guide(activity)` | Guidance for a specific activity |
+| `get_skill_definition(name)` | Load a skill's full instructions |
+| `get_agent_definition(name)` | Load an agent definition |
+| `get_instruction(name)` | Load a process instruction file |
+| `create_sprint(title)` | Create a new sprint |
+| `create_ticket(sprint_id, title)` | Create a ticket in a sprint |
+| `list_sprints()` / `list_tickets()` | List sprints and tickets |
+
+## Key Principle
+
+**The SE process is the default.** When asked to build a feature, fix a
+bug, or make any code change, follow this process unless the stakeholder
+explicitly says "out of process" or "direct change".
+"""
+
 SKILL_STUBS = {
     "todo": """\
 ---
@@ -208,6 +290,16 @@ def run_init(target: str) -> None:
     """
     target_path = Path(target).resolve()
     click.echo(f"Initializing CLASI in {target_path}")
+    click.echo()
+
+    # Write AGENTS.md at project root
+    click.echo("AGENTS.md:")
+    agents_md = target_path / "AGENTS.md"
+    if agents_md.exists() and agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT:
+        click.echo("  Unchanged: AGENTS.md")
+    else:
+        agents_md.write_text(AGENTS_MD_CONTENT, encoding="utf-8")
+        click.echo("  Wrote: AGENTS.md")
     click.echo()
 
     # Install rule files from the package into .claude/rules/ (and Copilot mirror)
