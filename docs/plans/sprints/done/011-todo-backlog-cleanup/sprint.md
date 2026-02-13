@@ -1,9 +1,12 @@
 ---
-id: "011"
+id: '011'
 title: TODO Backlog Cleanup
-status: planning
+status: done
 branch: sprint/011-todo-backlog-cleanup
-use-cases: [SUC-001, SUC-002, SUC-003]
+use-cases:
+- SUC-001
+- SUC-002
+- SUC-003
 ---
 
 # Sprint 011: TODO Backlog Cleanup
