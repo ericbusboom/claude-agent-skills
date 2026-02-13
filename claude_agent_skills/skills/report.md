@@ -5,12 +5,12 @@ description: Create a GitHub issue on the claude-agent-skills repository to repo
 
 # Report Issue Skill
 
-This skill creates a GitHub issue on the `ericbusboom/claude-agent-skills` repository using the GitHub CLI (`gh`). Use this when working in another repository with the SE process MCP server to report bugs, issues, or problems with the CLASI tools, agents, skills, or instructions.
+This skill creates a GitHub issue on the `ericbusboom/claude-agent-skills` repository using direct GitHub API access (preferred) or the GitHub CLI (`gh`) as a fallback. Use this when working in another repository with the SE process MCP server to report bugs, issues, or problems with the CLASI tools, agents, skills, or instructions.
 
 ## Process
 
 1. Collect the issue information from the user:
-   - **Title**: A concise summary of the bug or problem
+  - **Title**: A concise summary of the bug or problem (auto-generate if missing)
    - **Description**: Detailed explanation of the issue including:
      - What you were trying to do
      - What went wrong
@@ -19,7 +19,7 @@ This skill creates a GitHub issue on the `ericbusboom/claude-agent-skills` repos
      - Any error messages or logs
      - Context (which skill/agent/instruction was involved)
 
-2. Use `gh` to create the issue on the `ericbusboom/claude-agent-skills` repository:
+2. Prefer direct GitHub API creation when `GITHUB_TOKEN` or `GH_TOKEN` is available. If not, use `gh` to create the issue on the `ericbusboom/claude-agent-skills` repository:
    ```bash
    gh issue create \
      --repo ericbusboom/claude-agent-skills \
@@ -54,8 +54,8 @@ The python-expert agent suggests using deprecated libraries without checking the
 ```
 
 **Process:**
-1. Parse the user input into title and description
-2. Execute: `gh issue create --repo ericbusboom/claude-agent-skills --title "Python-expert agent suggests deprecated libraries" --body "The python-expert agent suggests using deprecated libraries without checking their support status. This can lead to security vulnerabilities and maintenance issues."`
+1. Parse the user input into title and description (auto-generate title if missing)
+2. Execute (API preferred): create the issue on `ericbusboom/claude-agent-skills`
 3. Report success with issue URL
 
 **Output:**
@@ -77,6 +77,7 @@ The issue has been reported and will be reviewed by the maintainers.
 
 ## Notes
 
-- Requires GitHub CLI (`gh`) to be installed and authenticated
+- Direct API creation requires `GITHUB_TOKEN` or `GH_TOKEN`
+- GitHub CLI (`gh`) is supported as a fallback if API access is unavailable
 - Issues are created with default labels (none) - maintainers will triage
 - For urgent issues or discussions, consider creating the issue manually for more control over labels, assignees, etc.

@@ -4,8 +4,8 @@ The `/report` skill allows you to quickly create GitHub issues on the `ericbusbo
 
 ## Prerequisites
 
-- GitHub CLI (`gh`) must be installed
-- You must be authenticated with GitHub (run `gh auth login` if needed)
+- Preferred: `GITHUB_TOKEN` or `GH_TOKEN` set in the environment
+- Fallback: GitHub CLI (`gh`) installed and authenticated (`gh auth login`)
 
 ## Usage Examples
 
@@ -57,8 +57,8 @@ counts which makes it hard to quickly assess progress.
 
 When you invoke `/report`, the skill will:
 
-1. Parse your input into a title and description
-2. Execute the `gh` command to create the issue on the claude-agent-skills repo:
+1. Parse your input into a title and description (auto-generate title if missing)
+2. Create the issue via the GitHub API when a token is available; otherwise use `gh`:
    ```bash
    gh issue create \
      --repo ericbusboom/claude-agent-skills \
