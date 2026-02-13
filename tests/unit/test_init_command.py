@@ -38,13 +38,24 @@ class TestRunInit:
         target_dir.mkdir()
         run_init(str(target_dir))
 
-        copilot_inst = (
-            target_dir / ".github" / "copilot" / "instructions" / "clasi-se-process.md"
-        )
-        assert copilot_inst.exists()
-        assert copilot_inst.read_text(encoding="utf-8") == _read_rule(
-            "clasi-se-process.md"
-        )
+        copilot_dir = target_dir / ".github" / "copilot" / "instructions"
+        # All package rule files should be mirrored for Copilot
+        for rule_file in sorted((_PACKAGE_ROOT / "rules").glob("*.md")):
+            installed = copilot_dir / rule_file.name
+            assert installed.exists(), f"Missing Copilot mirror: {rule_file.name}"
+            assert installed.read_text(encoding="utf-8") == rule_file.read_text(
+                encoding="utf-8"
+            )
+
+    def test_copilot_mirror_when_github_dir_exists(self, target_dir):
+        target_dir.mkdir()
+        (target_dir / ".github").mkdir()
+        run_init(str(target_dir))
+
+        copilot_dir = target_dir / ".github" / "copilot" / "instructions"
+        for rule_file in sorted((_PACKAGE_ROOT / "rules").glob("*.md")):
+            installed = copilot_dir / rule_file.name
+            assert installed.exists(), f"Missing Copilot mirror: {rule_file.name}"
 
     def test_creates_mcp_json(self, target_dir):
         target_dir.mkdir()

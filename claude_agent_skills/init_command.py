@@ -195,12 +195,10 @@ def run_init(target: str) -> None:
     click.echo("Rule files:")
     for rule_path in rule_files:
         _write_rule_file(target_path, rule_path.name, ".claude/rules")
-    # Mirror the SE process rule for GitHub Copilot
-    _write_rule_file(
-        target_path,
-        "clasi-se-process.md",
-        ".github/copilot/instructions",
-    )
+    # Mirror all rules for GitHub Copilot
+    click.echo("\nCopilot instructions:")
+    for rule_path in rule_files:
+        _write_rule_file(target_path, rule_path.name, ".github/copilot/instructions")
     click.echo()
 
     # Install skill stubs

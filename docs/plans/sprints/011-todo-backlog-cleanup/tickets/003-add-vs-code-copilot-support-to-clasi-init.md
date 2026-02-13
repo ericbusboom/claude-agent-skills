@@ -1,8 +1,9 @@
 ---
-id: "003"
+id: '003'
 title: Add VS Code Copilot support to clasi init
-status: todo
-use-cases: [SUC-003]
+status: in-progress
+use-cases:
+- SUC-003
 depends-on: []
 ---
 
