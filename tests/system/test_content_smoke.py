@@ -54,3 +54,18 @@ class TestContentSmoke:
         content = get_skill_definition("execute-ticket")
         assert "# " in content
         assert len(content) > 100
+
+    def test_report_skill_exists(self):
+        """Verify the report skill is discoverable and has proper content."""
+        result = json.loads(list_skills())
+        report_skills = [s for s in result if s["name"] == "report"]
+        assert len(report_skills) == 1, "Report skill should exist"
+        assert "GitHub issue" in report_skills[0]["description"]
+
+    def test_report_skill_content(self):
+        """Verify the report skill has proper markdown content."""
+        content = get_skill_definition("report")
+        assert "# Report Issue Skill" in content
+        assert "gh issue create" in content
+        assert "ericbusboom/claude-agent-skills" in content
+        assert len(content) > 500
