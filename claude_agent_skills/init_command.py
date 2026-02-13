@@ -323,6 +323,21 @@ def run_init(target: str) -> None:
     _update_mcp_json(mcp_json)
     click.echo()
 
+    # Create .codex symlink to .claude for ChatGPT Codex
+    click.echo("Codex symlink:")
+    codex_link = target_path / ".codex"
+    if codex_link.is_symlink():
+        if codex_link.resolve() == (target_path / ".claude").resolve():
+            click.echo("  Unchanged: .codex -> .claude")
+        else:
+            click.echo(f"  Warning: .codex points to {codex_link.readlink()}, skipping")
+    elif codex_link.exists():
+        click.echo("  Warning: .codex exists as file/directory, skipping")
+    else:
+        codex_link.symlink_to(".claude")
+        click.echo("  Created: .codex -> .claude")
+    click.echo()
+
     # Configure MCP permissions in .claude/settings.local.json
     click.echo("MCP permissions:")
     settings_json = target_path / ".claude" / "settings.local.json"

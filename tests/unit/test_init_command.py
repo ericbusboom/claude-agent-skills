@@ -184,3 +184,29 @@ class TestRunInit:
 
         agents_md = target_dir / "AGENTS.md"
         assert agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT
+
+    def test_creates_codex_symlink(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        codex = target_dir / ".codex"
+        assert codex.is_symlink()
+        assert codex.resolve() == (target_dir / ".claude").resolve()
+
+    def test_codex_symlink_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        codex = target_dir / ".codex"
+        assert codex.is_symlink()
+        assert codex.resolve() == (target_dir / ".claude").resolve()
+
+    def test_codex_skips_existing_file(self, target_dir):
+        target_dir.mkdir()
+        (target_dir / ".codex").write_text("existing", encoding="utf-8")
+        run_init(str(target_dir))
+
+        codex = target_dir / ".codex"
+        assert not codex.is_symlink()
+        assert codex.read_text(encoding="utf-8") == "existing"
