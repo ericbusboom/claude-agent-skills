@@ -1,8 +1,9 @@
 ---
-id: "002"
+id: '002'
 title: Ensure report and ghtodo use direct GitHub API with GITHUB_TOKEN
-status: todo
-use-cases: [SUC-002]
+status: done
+use-cases:
+- SUC-002
 depends-on: []
 ---
 

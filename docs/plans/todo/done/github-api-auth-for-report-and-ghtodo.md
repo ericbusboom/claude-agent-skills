@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '011'
+tickets:
+- '002'
 ---
 
 # Ensure /report and /ghtodo use direct GitHub API access with GITHUB_TOKEN
