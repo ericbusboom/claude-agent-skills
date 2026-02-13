@@ -3,25 +3,6 @@
 This project uses the CLASI (Claude Agent Skills Instructions) software
 engineering process, served via MCP tools.
 
-## Default Behavior
-
-**The CLASI SE process is the default process for ALL requests to implement
-code changes.** When the stakeholder asks you to build a feature, fix a bug,
-refactor code, or make any other code change, you MUST follow this process
-(create or use a sprint, write tickets, execute through the lifecycle).
-
-**The only exception** is when the stakeholder explicitly opts out using
-phrases like:
-
-- "out of process"
-- "direct"
-- "direct change"
-- "skip the process"
-- "just make the change"
-
-If you are unsure whether a request is in-process or out-of-process, default
-to following the process.
-
 ## Process Overview
 
 The SE process has four stages:
