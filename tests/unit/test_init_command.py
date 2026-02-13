@@ -5,7 +5,8 @@ import json
 import pytest
 
 from claude_agent_skills.init_command import (
-    run_init, MCP_CONFIG, SKILL_STUBS, AGENTS_MD_CONTENT, _PACKAGE_ROOT,
+    run_init, MCP_CONFIG, SKILL_STUBS, AGENTS_MD_CONTENT,
+    _GITIGNORE_MARKER, _PACKAGE_ROOT,
 )
 
 
@@ -210,3 +211,34 @@ class TestRunInit:
         codex = target_dir / ".codex"
         assert not codex.is_symlink()
         assert codex.read_text(encoding="utf-8") == "existing"
+
+    def test_creates_gitignore(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        gitignore = target_dir / ".gitignore"
+        assert gitignore.exists()
+        content = gitignore.read_text(encoding="utf-8")
+        assert _GITIGNORE_MARKER in content
+        assert ".claude/" in content
+        assert ".codex" in content
+        assert ".mcp.json" in content
+        assert "AGENTS.md" in content
+
+    def test_gitignore_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        gitignore = target_dir / ".gitignore"
+        content = gitignore.read_text(encoding="utf-8")
+        assert content.count(_GITIGNORE_MARKER) == 1
+
+    def test_gitignore_preserves_existing(self, target_dir):
+        target_dir.mkdir()
+        (target_dir / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
+        run_init(str(target_dir))
+
+        content = (target_dir / ".gitignore").read_text(encoding="utf-8")
+        assert "node_modules/" in content
+        assert _GITIGNORE_MARKER in content
