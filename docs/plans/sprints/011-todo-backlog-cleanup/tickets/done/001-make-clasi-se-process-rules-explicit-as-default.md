@@ -1,7 +1,7 @@
 ---
 id: '001'
 title: Make CLASI SE process rules explicit as default
-status: in-progress
+status: done
 use-cases:
 - SUC-001
 depends-on: []
