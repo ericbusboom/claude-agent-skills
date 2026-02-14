@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-agent-skills"
-version = "0.20260213.4"
+version = "0.20260214.1"
 description = "MCP server for AI-driven software engineering process — agents, skills, instructions, and artifact management"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,8 +25,26 @@ dependencies = [
 [project.scripts]
 clasi = "claude_agent_skills.cli:cli"
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=claude_agent_skills --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+]
 
 [tool.setuptools.package-data]
 claude_agent_skills = [
