@@ -7,6 +7,7 @@ from the installed package.
 import json
 from pathlib import Path
 
+from claude_agent_skills import __version__
 from claude_agent_skills.frontmatter import read_document
 from claude_agent_skills.mcp_server import server, content_path
 
@@ -342,4 +343,15 @@ def get_use_case_coverage() -> str:
         "total_use_cases": len(top_level),
         "covered": covered,
         "uncovered": uncovered,
+    }, indent=2)
+
+
+@server.tool()
+def get_version() -> str:
+    """Return the installed CLASI package version.
+
+    Useful for verifying which version of the MCP server is running.
+    """
+    return json.dumps({
+        "version": __version__,
     }, indent=2)
