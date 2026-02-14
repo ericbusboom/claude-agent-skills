@@ -2,23 +2,27 @@
 
 import json
 import os
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from claude_agent_skills.artifact_tools import (
+    close_sprint,
     create_sprint,
     create_ticket,
+    get_sprint_status,
     insert_sprint,
     list_sprints,
     list_tickets,
-    get_sprint_status,
-    update_ticket_status,
     move_ticket_to_done,
-    close_sprint,
+    update_ticket_status,
 )
 from claude_agent_skills.frontmatter import read_frontmatter
 from claude_agent_skills.state_db import (
+    acquire_lock,
     advance_phase,
+    get_sprint_state,
     record_gate,
 )
 
@@ -371,3 +375,116 @@ class TestCreateOverview:
         create_overview()
         with pytest.raises(ValueError, match="already exists"):
             create_overview()
+
+
+def _advance_to_executing(work_dir, sprint_id: str) -> None:
+    """Advance a sprint all the way to executing phase."""
+    db_path = work_dir / "docs" / "plans" / ".clasi.db"
+    _advance_to_ticketing(work_dir, sprint_id)
+    acquire_lock(str(db_path), sprint_id)
+    advance_phase(str(db_path), sprint_id)  # ticketing → executing
+
+
+class TestCloseSprintEdgeCases:
+    def test_close_updates_status_and_moves(self, work_dir):
+        create_sprint("Sprint")
+        result = json.loads(close_sprint("001"))
+        assert "done" in result["new_path"]
+        assert not os.path.exists(result["old_path"])
+        sprint_file = Path(result["new_path"]) / "sprint.md"
+        fm = read_frontmatter(sprint_file)
+        assert fm["status"] == "done"
+
+    def test_close_advances_state_db(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_executing(work_dir, "001")
+        close_sprint("001")
+        db_path = work_dir / "docs" / "plans" / ".clasi.db"
+        state = get_sprint_state(str(db_path), "001")
+        assert state["phase"] == "done"
+
+    def test_close_releases_lock(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_executing(work_dir, "001")
+        close_sprint("001")
+        db_path = work_dir / "docs" / "plans" / ".clasi.db"
+        state = get_sprint_state(str(db_path), "001")
+        assert state["lock"] is None
+
+    @patch("claude_agent_skills.versioning.create_version_tag")
+    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260214.1")
+    def test_close_includes_version(self, mock_version, mock_tag, work_dir):
+        # Create a pyproject.toml so versioning can find it
+        (work_dir / "pyproject.toml").write_text(
+            '[project]\nname = "test"\nversion = "0.0.0"\n'
+        )
+        create_sprint("Sprint")
+        result = json.loads(close_sprint("001"))
+        assert result["version"] == "0.20260214.1"
+        assert result["tag"] == "v0.20260214.1"
+        mock_tag.assert_called_once_with("0.20260214.1")
+
+    def test_close_without_version_file(self, work_dir):
+        """close_sprint should still succeed when no version file exists."""
+        create_sprint("Sprint")
+        result = json.loads(close_sprint("001"))
+        # Should not include version keys (or version is None)
+        assert "done" in result["new_path"]
+
+    def test_close_nonexistent_sprint(self, work_dir):
+        with pytest.raises(ValueError, match="not found"):
+            close_sprint("999")
+
+    def test_close_destination_already_exists(self, work_dir):
+        create_sprint("Sprint")
+        done_dir = work_dir / "docs" / "plans" / "sprints" / "done"
+        done_dir.mkdir(parents=True)
+        (done_dir / "001-sprint").mkdir()
+        with pytest.raises(ValueError, match="already exists"):
+            close_sprint("001")
+
+
+class TestMoveTicketToDoneEdgeCases:
+    def test_moves_ticket_preserves_frontmatter(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        update_ticket_status(ticket["path"], "done")
+        result = json.loads(move_ticket_to_done(ticket["path"]))
+        fm = read_frontmatter(result["new_path"])
+        assert fm["status"] == "done"
+        assert fm["title"] == "Task"
+
+    def test_moves_plan_file_alongside_ticket(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        plan_path = Path(ticket["path"]).parent / "001-task-plan.md"
+        plan_path.write_text("---\ntitle: Plan\n---\n\n# Plan\n", encoding="utf-8")
+        result = json.loads(move_ticket_to_done(ticket["path"]))
+        assert "plan_new_path" in result
+        assert Path(result["plan_new_path"]).exists()
+        assert not plan_path.exists()
+
+    def test_no_plan_file_only_moves_ticket(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        result = json.loads(move_ticket_to_done(ticket["path"]))
+        assert "plan_new_path" not in result
+        assert Path(result["new_path"]).exists()
+
+    def test_ticket_not_found(self, work_dir):
+        with pytest.raises(ValueError, match="not found"):
+            move_ticket_to_done("/nonexistent/ticket.md")
+
+    def test_resolves_done_path_for_already_moved_ticket(self, work_dir):
+        """If ticket is already in done/, resolve_artifact_path still finds it."""
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        result = json.loads(move_ticket_to_done(ticket["path"]))
+        # Trying to move again using the original path should still find the file
+        # in its new done/ location and attempt to move it
+        result2 = json.loads(move_ticket_to_done(ticket["path"]))
+        assert Path(result2["new_path"]).exists()
