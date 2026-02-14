@@ -39,6 +39,7 @@ addopts = "--cov=claude_agent_skills --cov-report=term-missing"
 branch = true
 
 [tool.coverage.report]
+fail_under = 85
 show_missing = true
 exclude_lines = [
     "pragma: no cover",
