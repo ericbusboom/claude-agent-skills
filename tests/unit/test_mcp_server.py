@@ -1,6 +1,12 @@
 """Tests for claude_agent_skills.mcp_server module."""
 
+from mcp.server.fastmcp import FastMCP
+
 from claude_agent_skills.mcp_server import server, content_path
+
+# Trigger lazy tool registration (normally done by run_server)
+import claude_agent_skills.process_tools  # noqa: F401
+import claude_agent_skills.artifact_tools  # noqa: F401
 
 
 class TestContentPath:
@@ -19,8 +25,91 @@ class TestContentPath:
     def test_resolves_specific_file(self):
         assert content_path("agents", "project-manager.md").is_file()
 
+    def test_resolves_rules_directory(self):
+        assert content_path("rules").is_dir()
+
 
 class TestServer:
     def test_server_instance_exists(self):
         assert server is not None
+
+    def test_server_is_fastmcp(self):
+        assert isinstance(server, FastMCP)
+
+    def test_server_name(self):
         assert server.name == "clasi"
+
+
+class TestToolRegistration:
+    """Verify all expected MCP tools are registered on the server."""
+
+    EXPECTED_PROCESS_TOOLS = {
+        "get_se_overview",
+        "list_agents",
+        "list_skills",
+        "list_instructions",
+        "get_agent_definition",
+        "get_skill_definition",
+        "get_instruction",
+        "list_language_instructions",
+        "get_language_instruction",
+        "get_activity_guide",
+        "get_use_case_coverage",
+        "get_version",
+    }
+
+    EXPECTED_ARTIFACT_TOOLS = {
+        "create_sprint",
+        "insert_sprint",
+        "create_ticket",
+        "create_overview",
+        "list_sprints",
+        "list_tickets",
+        "get_sprint_status",
+        "update_ticket_status",
+        "move_ticket_to_done",
+        "close_sprint",
+        "get_sprint_phase",
+        "advance_sprint_phase",
+        "record_gate_result",
+        "acquire_execution_lock",
+        "release_execution_lock",
+        "list_todos",
+        "move_todo_to_done",
+        "create_github_issue",
+        "read_artifact_frontmatter",
+        "write_artifact_frontmatter",
+        "tag_version",
+    }
+
+    EXPECTED_ALL = EXPECTED_PROCESS_TOOLS | EXPECTED_ARTIFACT_TOOLS
+
+    def _registered_tool_names(self) -> set[str]:
+        """Get the set of tool names registered on the server."""
+        # FastMCP stores tools in _tool_manager._tools dict
+        tools = server._tool_manager._tools
+        return set(tools.keys())
+
+    def test_all_expected_tools_registered(self):
+        registered = self._registered_tool_names()
+        missing = self.EXPECTED_ALL - registered
+        assert not missing, f"Missing tools: {missing}"
+
+    def test_no_unexpected_tools(self):
+        registered = self._registered_tool_names()
+        unexpected = registered - self.EXPECTED_ALL
+        assert not unexpected, f"Unexpected tools: {unexpected}"
+
+    def test_tool_count(self):
+        registered = self._registered_tool_names()
+        assert len(registered) == 33
+
+    def test_process_tools_registered(self):
+        registered = self._registered_tool_names()
+        missing = self.EXPECTED_PROCESS_TOOLS - registered
+        assert not missing, f"Missing process tools: {missing}"
+
+    def test_artifact_tools_registered(self):
+        registered = self._registered_tool_names()
+        missing = self.EXPECTED_ARTIFACT_TOOLS - registered
+        assert not missing, f"Missing artifact tools: {missing}"
