@@ -7,7 +7,10 @@ import pytest
 from claude_agent_skills.process_tools import (
     _list_definitions,
     _get_definition,
+    _parse_parent_refs,
     get_se_overview,
+    get_use_case_coverage,
+    get_version,
     list_agents,
     list_skills,
     list_instructions,
@@ -118,3 +121,124 @@ class TestActivityGuide:
         assert "Skill: execute-ticket" in result
         assert "Instruction: coding-standards" in result
         assert "Instruction: testing" in result
+
+
+class TestParseParentRefs:
+    def test_parses_uc_refs(self):
+        content = "Parent: UC-001\nSome text\nParent: UC-002\n"
+        assert _parse_parent_refs(content) == ["UC-001", "UC-002"]
+
+    def test_parses_sc_refs(self):
+        content = "Parent: SC-001\n"
+        assert _parse_parent_refs(content) == ["SC-001"]
+
+    def test_no_refs(self):
+        assert _parse_parent_refs("No parent references here.") == []
+
+    def test_mixed_content(self):
+        content = "## SUC-001: Feature\nParent: UC-003\n\n- Step 1\n"
+        assert _parse_parent_refs(content) == ["UC-003"]
+
+
+class TestGetUseCaseCoverage:
+    def _setup_project(self, tmp_path, *, top_level_ucs, sprints=None):
+        """Create a project structure for use case coverage testing."""
+        plans = tmp_path / "docs" / "plans"
+        plans.mkdir(parents=True)
+
+        # Write top-level use cases
+        uc_lines = []
+        for uc_id, title in top_level_ucs.items():
+            uc_lines.append(f"## {uc_id}: {title}\n\nDescription.\n")
+        (plans / "usecases.md").write_text(
+            "---\nstatus: draft\n---\n\n# Use Cases\n\n" + "\n".join(uc_lines)
+        )
+
+        # Create sprint directories
+        if sprints:
+            for sprint in sprints:
+                loc = sprint.get("location", "active")
+                if loc == "done":
+                    sprint_dir = plans / "sprints" / "done" / sprint["dir"]
+                else:
+                    sprint_dir = plans / "sprints" / sprint["dir"]
+                sprint_dir.mkdir(parents=True)
+                (sprint_dir / "sprint.md").write_text(
+                    f"---\nid: \"{sprint['id']}\"\nstatus: {sprint['status']}\n---\n"
+                )
+                if sprint.get("parents"):
+                    parent_lines = "\n".join(
+                        f"Parent: {p}" for p in sprint["parents"]
+                    )
+                    (sprint_dir / "usecases.md").write_text(
+                        f"---\nstatus: draft\n---\n\n## SUC-001\n{parent_lines}\n"
+                    )
+
+    def test_covered_and_uncovered(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        self._setup_project(tmp_path, top_level_ucs={
+            "UC-001": "Authentication",
+            "UC-002": "Authorization",
+            "UC-003": "Logging",
+        }, sprints=[
+            {
+                "dir": "001-auth",
+                "id": "001",
+                "status": "planning",
+                "parents": ["UC-001"],
+            },
+        ])
+
+        result = json.loads(get_use_case_coverage())
+        assert result["total_use_cases"] == 3
+        assert len(result["covered"]) == 1
+        assert result["covered"][0]["id"] == "UC-001"
+        assert result["covered"][0]["sprints"][0]["sprint_id"] == "001"
+        assert len(result["uncovered"]) == 2
+        uncovered_ids = [u["id"] for u in result["uncovered"]]
+        assert "UC-002" in uncovered_ids
+        assert "UC-003" in uncovered_ids
+
+    def test_done_sprint_coverage(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        self._setup_project(tmp_path, top_level_ucs={
+            "UC-001": "Feature A",
+        }, sprints=[
+            {
+                "dir": "001-done-sprint",
+                "id": "001",
+                "status": "done",
+                "location": "done",
+                "parents": ["UC-001"],
+            },
+        ])
+
+        result = json.loads(get_use_case_coverage())
+        assert result["total_use_cases"] == 1
+        assert len(result["covered"]) == 1
+        assert result["covered"][0]["sprints"][0]["sprint_status"] == "done"
+
+    def test_no_usecases_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "docs" / "plans").mkdir(parents=True)
+        result = json.loads(get_use_case_coverage())
+        assert result["total_use_cases"] == 0
+        assert result["covered"] == []
+        assert result["uncovered"] == []
+
+    def test_empty_usecases_file(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        plans = tmp_path / "docs" / "plans"
+        plans.mkdir(parents=True)
+        (plans / "usecases.md").write_text("---\nstatus: draft\n---\n\n# Use Cases\n")
+        result = json.loads(get_use_case_coverage())
+        assert result["total_use_cases"] == 0
+
+
+class TestGetVersion:
+    def test_returns_version_json(self):
+        result = json.loads(get_version())
+        assert "version" in result
+        # Version should be a non-empty string
+        assert isinstance(result["version"], str)
+        assert len(result["version"]) > 0
