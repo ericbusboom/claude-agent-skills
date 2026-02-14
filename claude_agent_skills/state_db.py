@@ -381,6 +381,61 @@ def release_lock(db_path: str | Path, sprint_id: str) -> dict[str, Any]:
         conn.close()
 
 
+def rename_sprint(
+    db_path: str | Path,
+    old_id: str,
+    new_id: str,
+    new_branch: Optional[str] = None,
+) -> dict[str, Any]:
+    """Rename a sprint's ID in the state database.
+
+    Updates the sprints table and any references in sprint_gates.
+    Does NOT touch execution_locks (only planning-docs sprints should
+    be renamed, and they can't hold locks).
+
+    Raises ValueError if old_id is not registered or new_id already exists.
+    """
+    init_db(db_path)
+    conn = _connect(db_path)
+    try:
+        row = conn.execute(
+            "SELECT id, slug, phase, branch FROM sprints WHERE id = ?",
+            (old_id,),
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Sprint '{old_id}' is not registered")
+
+        existing = conn.execute(
+            "SELECT id FROM sprints WHERE id = ?", (new_id,)
+        ).fetchone()
+        if existing is not None:
+            raise ValueError(f"Sprint '{new_id}' already exists in database")
+
+        now = _now()
+        branch = new_branch if new_branch is not None else row["branch"]
+
+        # Update sprint_gates first (foreign key references)
+        conn.execute("PRAGMA foreign_keys=OFF")
+        conn.execute(
+            "UPDATE sprint_gates SET sprint_id = ? WHERE sprint_id = ?",
+            (new_id, old_id),
+        )
+        conn.execute(
+            "UPDATE sprints SET id = ?, branch = ?, updated_at = ? WHERE id = ?",
+            (new_id, branch, now, old_id),
+        )
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.commit()
+
+        return {
+            "old_id": old_id,
+            "new_id": new_id,
+            "branch": branch,
+        }
+    finally:
+        conn.close()
+
+
 def get_lock_holder(db_path: str | Path) -> Optional[dict[str, Any]]:
     """Return the current lock holder, or None if no lock is held."""
     init_db(db_path)

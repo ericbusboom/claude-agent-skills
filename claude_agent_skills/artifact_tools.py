@@ -17,12 +17,14 @@ from typing import Optional
 from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
 from claude_agent_skills.mcp_server import server
 from claude_agent_skills.state_db import (
+    PHASES as _PHASES,
     advance_phase as _advance_phase,
     record_gate as _record_gate,
     acquire_lock as _acquire_lock,
     release_lock as _release_lock,
     get_sprint_state as _get_sprint_state,
     register_sprint as _register_sprint,
+    rename_sprint as _rename_sprint,
 )
 from claude_agent_skills.templates import (
     slugify,
@@ -184,6 +186,211 @@ def create_sprint(title: str) -> str:
     }, indent=2)
 
 
+def _list_active_sprints() -> list[dict]:
+    """Return all active (non-done) sprints sorted by numeric ID.
+
+    Each entry has keys: id (int), str_id (str), dir (Path), slug (str).
+    """
+    sprints = _sprints_dir()
+    if not sprints.exists():
+        return []
+
+    results = []
+    for d in sorted(sprints.iterdir()):
+        if not d.is_dir() or d.name == "done":
+            continue
+        sprint_file = d / "sprint.md"
+        if not sprint_file.exists():
+            continue
+        fm = read_frontmatter(sprint_file)
+        str_id = fm.get("id", "")
+        try:
+            num_id = int(str_id)
+        except (ValueError, TypeError):
+            continue
+        # Extract slug: directory name minus the "NNN-" prefix
+        slug = d.name[len(str_id) + 1:] if d.name.startswith(str_id) else d.name
+        results.append({
+            "id": num_id,
+            "str_id": str_id,
+            "dir": d,
+            "slug": slug,
+        })
+
+    return sorted(results, key=lambda s: s["id"])
+
+
+def _get_sprint_phase_safe(sprint_id: str) -> str | None:
+    """Get a sprint's phase from the state DB, or None if unavailable."""
+    db = _db_path()
+    if not db.exists():
+        return None
+    try:
+        state = _get_sprint_state(str(db), sprint_id)
+        return state["phase"]
+    except (ValueError, Exception):
+        return None
+
+
+def _renumber_sprint_dir(sprint_dir: Path, old_id: str, new_id: str) -> Path:
+    """Rename a sprint directory and update all internal references.
+
+    Updates:
+    - Directory name (NNN-slug -> MMM-slug)
+    - sprint.md frontmatter (id, branch)
+    - sprint.md body references to "Sprint NNN"
+    - Ticket frontmatter (no sprint_id field, but just in case)
+    - usecases.md body references to "Sprint NNN"
+    - technical-plan.md body references to "Sprint NNN"
+
+    Returns the new directory path.
+    """
+    # Rename directory
+    slug = sprint_dir.name[len(old_id) + 1:] if sprint_dir.name.startswith(old_id) else sprint_dir.name
+    new_dir_name = f"{new_id}-{slug}"
+    new_dir = sprint_dir.parent / new_dir_name
+
+    sprint_dir.rename(new_dir)
+
+    # Update sprint.md frontmatter
+    sprint_file = new_dir / "sprint.md"
+    if sprint_file.exists():
+        fm = read_frontmatter(sprint_file)
+        fm["id"] = new_id
+        fm["branch"] = f"sprint/{new_id}-{slug}"
+        write_frontmatter(sprint_file, fm)
+
+        # Update body references: "Sprint NNN" -> "Sprint MMM"
+        content = sprint_file.read_text(encoding="utf-8")
+        content = content.replace(f"Sprint {old_id}", f"Sprint {new_id}")
+        sprint_file.write_text(content, encoding="utf-8")
+
+    # Update body references in usecases.md and technical-plan.md
+    for doc_name in ("usecases.md", "technical-plan.md"):
+        doc = new_dir / doc_name
+        if doc.exists():
+            content = doc.read_text(encoding="utf-8")
+            updated = content.replace(f"Sprint {old_id}", f"Sprint {new_id}")
+            if updated != content:
+                doc.write_text(updated, encoding="utf-8")
+
+    # Update ticket frontmatter (sprint_id field if present)
+    for ticket_location in [new_dir / "tickets", new_dir / "tickets" / "done"]:
+        if not ticket_location.exists():
+            continue
+        for ticket_file in ticket_location.glob("*.md"):
+            fm = read_frontmatter(ticket_file)
+            if fm.get("sprint_id") == old_id:
+                fm["sprint_id"] = new_id
+                write_frontmatter(ticket_file, fm)
+
+    return new_dir
+
+
+@server.tool()
+def insert_sprint(after_sprint_id: str, title: str) -> str:
+    """Insert a new sprint after the given sprint ID, renumbering subsequent sprints.
+
+    Only sprints in planning-docs phase can be renumbered. If any sprint
+    that would need renumbering is in a later phase, the operation is
+    refused.
+
+    Args:
+        after_sprint_id: The sprint ID to insert after (e.g., '012')
+        title: The new sprint's title
+    """
+    # Validate the anchor sprint exists
+    try:
+        _find_sprint_dir(after_sprint_id)
+    except ValueError:
+        raise ValueError(f"Sprint '{after_sprint_id}' not found")
+
+    anchor_num = int(after_sprint_id)
+    new_id = f"{anchor_num + 1:03d}"
+
+    # Find all active sprints that need renumbering (id >= new_id)
+    active_sprints = _list_active_sprints()
+    to_renumber = [s for s in active_sprints if s["id"] >= anchor_num + 1]
+
+    # Check that all sprints to renumber are in planning-docs phase
+    for sprint in to_renumber:
+        phase = _get_sprint_phase_safe(sprint["str_id"])
+        if phase is not None and phase != "planning-docs":
+            raise ValueError(
+                f"Cannot insert sprint: sprint '{sprint['str_id']}' "
+                f"({sprint['slug']}) is in '{phase}' phase and cannot "
+                f"be renumbered. Only sprints in 'planning-docs' phase "
+                f"can be renumbered."
+            )
+
+    # Renumber existing sprints in reverse order (highest first) to avoid
+    # directory name collisions
+    renumbered = []
+    db = _db_path()
+    for sprint in reversed(to_renumber):
+        old_str_id = sprint["str_id"]
+        new_num = sprint["id"] + 1
+        new_str_id = f"{new_num:03d}"
+
+        new_dir = _renumber_sprint_dir(sprint["dir"], old_str_id, new_str_id)
+
+        # Update state database if it exists
+        if db.exists():
+            try:
+                _rename_sprint(
+                    str(db), old_str_id, new_str_id,
+                    new_branch=f"sprint/{new_dir.name}",
+                )
+            except (ValueError, Exception):
+                pass  # Graceful degradation
+
+        renumbered.append({
+            "old_id": old_str_id,
+            "new_id": new_str_id,
+            "old_dir": str(sprint["dir"]),
+            "new_dir": str(new_dir),
+        })
+
+    # Reverse so the output is in ascending order
+    renumbered.reverse()
+
+    # Now create the new sprint at the insertion point
+    slug = slugify(title)
+    sprint_dir = _sprints_dir() / f"{new_id}-{slug}"
+
+    sprint_dir.mkdir(parents=True, exist_ok=True)
+    (sprint_dir / "tickets").mkdir()
+    (sprint_dir / "tickets" / "done").mkdir()
+
+    fmt = {"id": new_id, "title": title, "slug": slug}
+    files = {}
+    for name, template in [
+        ("sprint.md", SPRINT_TEMPLATE),
+        ("usecases.md", SPRINT_USECASES_TEMPLATE),
+        ("technical-plan.md", SPRINT_TECHNICAL_PLAN_TEMPLATE),
+    ]:
+        path = sprint_dir / name
+        path.write_text(template.format(**fmt), encoding="utf-8")
+        files[name] = str(path)
+
+    # Register in state database
+    try:
+        _register_sprint(
+            str(_db_path()), new_id, slug, f"sprint/{new_id}-{slug}"
+        )
+    except Exception:
+        pass  # Graceful degradation
+
+    return json.dumps({
+        "id": new_id,
+        "path": str(sprint_dir),
+        "branch": f"sprint/{new_id}-{slug}",
+        "files": files,
+        "phase": "planning-docs",
+        "renumbered": renumbered,
+    }, indent=2)
+
+
 def _check_sprint_phase_for_ticketing(sprint_id: str) -> None:
     """Check that a sprint is in ticketing phase or later.
 
@@ -194,10 +401,9 @@ def _check_sprint_phase_for_ticketing(sprint_id: str) -> None:
     if not db.exists():
         return
     try:
-        from claude_agent_skills.state_db import PHASES
         state = _get_sprint_state(str(db), sprint_id)
-        phase_idx = PHASES.index(state["phase"])
-        ticketing_idx = PHASES.index("ticketing")
+        phase_idx = _PHASES.index(state["phase"])
+        ticketing_idx = _PHASES.index("ticketing")
         if phase_idx < ticketing_idx:
             raise ValueError(
                 f"Cannot create tickets: sprint '{sprint_id}' is in "

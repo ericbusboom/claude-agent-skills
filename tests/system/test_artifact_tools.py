@@ -8,6 +8,7 @@ import pytest
 from claude_agent_skills.artifact_tools import (
     create_sprint,
     create_ticket,
+    insert_sprint,
     list_sprints,
     list_tickets,
     get_sprint_status,
@@ -233,6 +234,125 @@ class TestCloseSprint:
         sprint_file = Path(result["new_path"]) / "sprint.md"
         fm = read_frontmatter(sprint_file)
         assert fm["status"] == "done"
+
+
+class TestInsertSprint:
+    def test_inserts_and_renumbers(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        create_sprint("Gamma")
+
+        result = json.loads(insert_sprint("001", "Urgent Fix"))
+
+        # New sprint gets ID 002
+        assert result["id"] == "002"
+        assert "002-urgent-fix" in result["path"]
+        assert result["phase"] == "planning-docs"
+
+        # Old 002 (Beta) -> 003, old 003 (Gamma) -> 004
+        assert len(result["renumbered"]) == 2
+        assert result["renumbered"][0]["old_id"] == "002"
+        assert result["renumbered"][0]["new_id"] == "003"
+        assert result["renumbered"][1]["old_id"] == "003"
+        assert result["renumbered"][1]["new_id"] == "004"
+
+        # Verify directories exist with correct names
+        sprints = work_dir / "docs" / "plans" / "sprints"
+        assert (sprints / "001-alpha").is_dir()
+        assert (sprints / "002-urgent-fix").is_dir()
+        assert (sprints / "003-beta").is_dir()
+        assert (sprints / "004-gamma").is_dir()
+        # Old directories should be gone
+        assert not (sprints / "002-beta").exists()
+        assert not (sprints / "003-gamma").exists()
+
+    def test_renumbered_sprint_frontmatter_updated(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        insert_sprint("001", "Inserted")
+
+        # Beta was 002, now should be 003
+        sprints = work_dir / "docs" / "plans" / "sprints"
+        fm = read_frontmatter(sprints / "003-beta" / "sprint.md")
+        assert fm["id"] == "003"
+        assert fm["branch"] == "sprint/003-beta"
+
+    def test_renumbered_sprint_body_updated(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        insert_sprint("001", "Inserted")
+
+        sprints = work_dir / "docs" / "plans" / "sprints"
+        content = (sprints / "003-beta" / "sprint.md").read_text(encoding="utf-8")
+        assert "Sprint 003" in content
+        assert "Sprint 002" not in content
+
+    def test_insert_at_end_no_renumbering(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        result = json.loads(insert_sprint("002", "Final"))
+
+        assert result["id"] == "003"
+        assert result["renumbered"] == []
+
+        sprints = work_dir / "docs" / "plans" / "sprints"
+        assert (sprints / "003-final").is_dir()
+
+    def test_refuses_renumbering_active_sprint(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        # Advance Beta (002) past planning-docs
+        _advance_to_ticketing(work_dir, "002")
+
+        with pytest.raises(ValueError, match="cannot be renumbered"):
+            insert_sprint("001", "Urgent")
+
+    def test_insert_with_tickets_updates_references(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        _advance_to_ticketing(work_dir, "002")
+
+        # Create tickets in Beta (002)
+        create_ticket("002", "Task A")
+        create_ticket("002", "Task B")
+
+        # Now insert after Alpha — but Beta is in ticketing phase, should fail
+        with pytest.raises(ValueError, match="cannot be renumbered"):
+            insert_sprint("001", "Inserted")
+
+    def test_insert_after_nonexistent_sprint(self, work_dir):
+        create_sprint("Alpha")
+        with pytest.raises(ValueError, match="not found"):
+            insert_sprint("999", "Ghost")
+
+    def test_new_sprint_has_full_structure(self, work_dir):
+        create_sprint("Alpha")
+        result = json.loads(insert_sprint("001", "New Sprint"))
+
+        from pathlib import Path
+        sprint_dir = Path(result["path"])
+        assert (sprint_dir / "sprint.md").exists()
+        assert (sprint_dir / "usecases.md").exists()
+        assert (sprint_dir / "technical-plan.md").exists()
+        assert (sprint_dir / "tickets").is_dir()
+        assert (sprint_dir / "tickets" / "done").is_dir()
+
+    def test_insert_before_multiple_planning_sprints(self, work_dir):
+        create_sprint("Alpha")
+        create_sprint("Beta")
+        create_sprint("Gamma")
+        create_sprint("Delta")
+
+        result = json.loads(insert_sprint("001", "Urgent"))
+        assert result["id"] == "002"
+        assert len(result["renumbered"]) == 3
+
+        sprints = work_dir / "docs" / "plans" / "sprints"
+        assert (sprints / "001-alpha").is_dir()
+        assert (sprints / "002-urgent").is_dir()
+        assert (sprints / "003-beta").is_dir()
+        assert (sprints / "004-gamma").is_dir()
+        assert (sprints / "005-delta").is_dir()
 
 
 class TestCreateOverview:
