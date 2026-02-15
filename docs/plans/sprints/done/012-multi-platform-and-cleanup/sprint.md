@@ -1,7 +1,7 @@
 ---
-id: "012"
+id: '012'
 title: Multi-Platform and Cleanup
-status: planning
+status: done
 branch: sprint/012-multi-platform-and-cleanup
 use-cases: []
 ---
