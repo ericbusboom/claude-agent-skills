@@ -1,7 +1,7 @@
 ---
-id: "013"
+id: '013'
 title: Audit Test Suite and Add Coverage
-status: planning
+status: done
 branch: sprint/013-audit-test-suite-and-add-coverage
 use-cases: []
 ---
