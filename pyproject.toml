@@ -33,7 +33,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=claude_agent_skills --cov-report=term-missing"
+addopts = "--cov=claude_agent_skills --cov-report=term-missing --cov-report=lcov:lcov.info"
 
 [tool.coverage.run]
 branch = true
