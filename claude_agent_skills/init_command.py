@@ -1,16 +1,14 @@
 """Implementation of the `clasi init` command.
 
-Writes instruction files and configures the MCP server in a target
-repository.
+Installs the CLASI SE process into a target repository with minimal
+footprint: one skill stub, one AGENTS.md section, MCP config, and
+permissions. Does not take over existing files.
 """
 
 import json
 from pathlib import Path
 
 import click
-
-# Package root for reading bundled content files (rules, etc.).
-_PACKAGE_ROOT = Path(__file__).parent.resolve()
 
 MCP_CONFIG = {
     "clasi": {
@@ -19,200 +17,150 @@ MCP_CONFIG = {
     }
 }
 
-# Thin skill stubs that delegate to MCP for real instructions.
-# Each key is the subdirectory name under .claude/skills/<name>/SKILL.md.
-AGENTS_MD_CONTENT = """\
-# CLASI Software Engineering Process
+SE_SKILL_STUB = """\
+---
+description: CLASI Software Engineering process dispatcher
+---
+
+# /se
+
+Dispatch to the CLASI SE process. Call the appropriate CLASI MCP tool
+based on the argument provided.
+
+## Usage
+
+- `/se` or `/se status` — Run project status report
+- `/se next` — Determine and execute the next process step
+- `/se todo <description>` — Create a TODO file
+- `/se init` — Start a new project with guided interview
+- `/se report` — Report a bug with CLASI tools
+- `/se ghtodo <description>` — Create a GitHub issue
+
+## How to execute
+
+Parse the argument after `/se` and call the matching MCP tool:
+
+| Argument | MCP call |
+|----------|----------|
+| *(none)* or `status` | `get_skill_definition("project-status")` |
+| `next` | `get_skill_definition("next")` |
+| `todo` | `get_skill_definition("todo")` |
+| `init` | `get_skill_definition("project-initiation")` |
+| `report` | `get_skill_definition("report")` |
+| `ghtodo` | `get_skill_definition("ghtodo")` |
+
+Pass any remaining text after the subcommand as the argument to the
+skill (e.g., `/se todo fix the login bug` passes "fix the login bug"
+to the todo skill).
+
+For general SE process guidance, call `get_se_overview()`.
+"""
+
+# Marker used to find/replace the CLASI section in AGENTS.md.
+_AGENTS_SECTION_START = "<!-- CLASI:START -->"
+_AGENTS_SECTION_END = "<!-- CLASI:END -->"
+
+AGENTS_MD_SECTION = f"""\
+{_AGENTS_SECTION_START}
+## CLASI Software Engineering Process
 
 This project uses the **CLASI** (Claude Agent Skills Instructions)
 software engineering process, managed via an MCP server.
 
-## How It Works
-
-All work follows a structured lifecycle. The MCP server (`clasi`)
-provides tools, skills, and instructions that guide you through each
-step. When in doubt, call `get_se_overview()` for the full process map.
-
-## What To Do
-
-### Starting a new project
-
-Run the project initiation interview to produce a project overview:
-
-```
-get_skill_definition("project-initiation")
-```
-
-### Planning a sprint
-
-Create a sprint with planning documents, use cases, and a technical plan:
-
-```
-get_skill_definition("plan-sprint")
-```
-
-### Working on a ticket
-
-Execute a ticket through the full lifecycle (plan, implement, test, review):
-
-```
-get_skill_definition("execute-ticket")
-```
-
-### Closing a sprint
-
-Verify all tickets are done, merge, archive, and tag a release:
-
-```
-get_skill_definition("close-sprint")
-```
-
-### Checking project status
-
-See where the project stands — active sprints, tickets, and next actions:
-
-```
-get_skill_definition("project-status")
-```
-
-### Reporting a bug with the tools
-
-File an issue against the CLASI tools themselves:
-
-```
-get_skill_definition("report")
-```
-
-## MCP Tools Quick Reference
-
-| Tool | Purpose |
-|------|---------|
-| `get_se_overview()` | Full process overview |
-| `get_activity_guide(activity)` | Guidance for a specific activity |
-| `get_skill_definition(name)` | Load a skill's full instructions |
-| `get_agent_definition(name)` | Load an agent definition |
-| `get_instruction(name)` | Load a process instruction file |
-| `create_sprint(title)` | Create a new sprint |
-| `create_ticket(sprint_id, title)` | Create a ticket in a sprint |
-| `list_sprints()` / `list_tickets()` | List sprints and tickets |
-
-## Key Principle
-
 **The SE process is the default.** When asked to build a feature, fix a
 bug, or make any code change, follow this process unless the stakeholder
 explicitly says "out of process" or "direct change".
-"""
 
-SKILL_STUBS = {
-    "todo": """\
----
-description: Create a TODO file from user input
----
+### Process
 
-# /todo
+Work flows through four stages organized into sprints:
 
-To execute this skill, call the CLASI MCP tool `get_skill_definition("todo")`
-to retrieve the full instructions, then follow them.
-""",
-    "next": """\
----
-description: Determine and execute the next process step
----
+1. **Requirements** — Elicit requirements, produce overview and use cases
+2. **Architecture** — Produce technical plan
+3. **Ticketing** — Break plan into actionable tickets
+4. **Implementation** — Execute tickets
 
-# /next
+Use `/se` or call `get_se_overview()` for full process details and MCP
+tool reference.
 
-To execute this skill, call the CLASI MCP tool `get_skill_definition("next")`
-to retrieve the full instructions, then follow them.
-""",
-    "status": """\
----
-description: Run project status report
----
+### Stakeholder Corrections
 
-# /status
+When the stakeholder corrects your behavior or expresses frustration
+("that's wrong", "why did you do X?", "I told you to..."):
 
-To execute this skill, call the CLASI MCP tool
-`get_skill_definition("project-status")` to retrieve the full instructions,
-then follow them.
-""",
-    "project-initiation": """\
----
-description: Start a new project with a guided interview
----
+1. Acknowledge the correction immediately.
+2. Run `get_skill_definition("self-reflect")` to produce a structured
+   reflection in `docs/plans/reflections/`.
+3. Continue with the corrected approach.
 
-# /project-initiation
-
-To execute this skill, call the CLASI MCP tool
-`get_skill_definition("project-initiation")` to retrieve the full
-instructions, then follow them.
-""",
-    "report": """\
----
-description: Report a bug or issue with CLASI tools
----
-
-# /report
-
-To execute this skill, call the CLASI MCP tool
-`get_skill_definition("report")` to retrieve the full instructions,
-then follow them.
-""",
-    "ghtodo": """\
----
-description: Create a GitHub issue from user input
----
-
-# /ghtodo
-
-To execute this skill, call the CLASI MCP tool
-`get_skill_definition("ghtodo")` to retrieve the full instructions,
-then follow them.
-""",
-}
+Do NOT trigger on simple clarifications, new instructions, or questions
+about your reasoning.
+{_AGENTS_SECTION_END}"""
 
 
-def _write_rule_file(target: Path, rule_name: str, dest_dir: str) -> bool:
-    """Read a rule from the package and write it to the target project.
-
-    Args:
-        target: Target project root.
-        rule_name: Filename of the rule (e.g., "clasi-se-process.md").
-        dest_dir: Destination directory relative to target (e.g., ".claude/rules").
+def _write_se_skill(target: Path) -> bool:
+    """Write the /se skill stub to .claude/skills/se/SKILL.md.
 
     Returns True if the file was written/updated, False if unchanged.
     """
-    source = _PACKAGE_ROOT / "rules" / rule_name
-    content = source.read_text(encoding="utf-8")
-
-    rel_path = f"{dest_dir}/{rule_name}"
-    path = target / rel_path
+    path = target / ".claude" / "skills" / "se" / "SKILL.md"
     path.parent.mkdir(parents=True, exist_ok=True)
+    rel = ".claude/skills/se/SKILL.md"
 
-    if path.exists() and path.read_text(encoding="utf-8") == content:
-        click.echo(f"  Unchanged: {rel_path}")
-        return False
-
-    path.write_text(content, encoding="utf-8")
-    click.echo(f"  Wrote: {rel_path}")
-    return True
-
-
-def _write_skill_stub(target: Path, name: str, content: str) -> bool:
-    """Write a skill stub to .claude/skills/<name>/SKILL.md.
-
-    Returns True if the file was written/updated, False if unchanged.
-    """
-    path = target / ".claude" / "skills" / name / "SKILL.md"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    rel = f".claude/skills/{name}/SKILL.md"
-
-    if path.exists() and path.read_text(encoding="utf-8") == content:
+    if path.exists() and path.read_text(encoding="utf-8") == SE_SKILL_STUB:
         click.echo(f"  Unchanged: {rel}")
         return False
 
-    path.write_text(content, encoding="utf-8")
+    path.write_text(SE_SKILL_STUB, encoding="utf-8")
     click.echo(f"  Wrote: {rel}")
     return True
+
+
+def _update_agents_md(target: Path) -> bool:
+    """Append or update the CLASI section in AGENTS.md.
+
+    If AGENTS.md doesn't exist, creates it with just the CLASI section.
+    If it exists but has no CLASI section, appends the section.
+    If it exists with a CLASI section, replaces it in place.
+
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    agents_md = target / "AGENTS.md"
+
+    if agents_md.exists():
+        content = agents_md.read_text(encoding="utf-8")
+
+        if _AGENTS_SECTION_START in content and _AGENTS_SECTION_END in content:
+            # Replace existing CLASI section in place
+            start_idx = content.index(_AGENTS_SECTION_START)
+            end_idx = content.index(_AGENTS_SECTION_END) + len(_AGENTS_SECTION_END)
+            new_content = content[:start_idx] + AGENTS_MD_SECTION + content[end_idx:]
+        else:
+            # Append to existing content
+            if not content.endswith("\n"):
+                content += "\n"
+            new_content = content + "\n" + AGENTS_MD_SECTION + "\n"
+
+        if new_content == content:
+            click.echo("  Unchanged: AGENTS.md")
+            return False
+
+        agents_md.write_text(new_content, encoding="utf-8")
+        click.echo("  Updated: AGENTS.md")
+        return True
+    else:
+        agents_md.write_text(AGENTS_MD_SECTION + "\n", encoding="utf-8")
+        click.echo("  Created: AGENTS.md")
+        return True
+
+
+VSCODE_MCP_CONFIG = {
+    "clasi": {
+        "type": "stdio",
+        "command": "clasi",
+        "args": ["mcp"],
+    }
+}
 
 
 def _update_mcp_json(mcp_json_path: Path) -> bool:
@@ -220,6 +168,8 @@ def _update_mcp_json(mcp_json_path: Path) -> bool:
 
     Returns True if the file was written/updated, False if unchanged.
     """
+    rel = str(mcp_json_path.name)
+
     if mcp_json_path.exists():
         try:
             data = json.loads(mcp_json_path.read_text(encoding="utf-8"))
@@ -231,33 +181,58 @@ def _update_mcp_json(mcp_json_path: Path) -> bool:
     mcp_servers = data.setdefault("mcpServers", {})
 
     if mcp_servers.get("clasi") == MCP_CONFIG["clasi"]:
-        click.echo(f"  Unchanged: {mcp_json_path}")
+        click.echo(f"  Unchanged: {rel}")
         return False
 
     mcp_servers["clasi"] = MCP_CONFIG["clasi"]
     mcp_json_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
-    click.echo(f"  Updated: {mcp_json_path}")
+    click.echo(f"  Updated: {rel}")
     return True
 
 
-SETTINGS_PERMISSIONS = {
-    "permissions": {
-        "allow": [
-            "mcp__clasi__*",
-        ]
-    }
-}
+def _update_vscode_mcp_json(target: Path) -> bool:
+    """Merge MCP server config into .vscode/mcp.json.
+
+    Uses the VS Code format (servers key with type field).
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    vscode_dir = target / ".vscode"
+    mcp_json_path = vscode_dir / "mcp.json"
+    rel = ".vscode/mcp.json"
+
+    if mcp_json_path.exists():
+        try:
+            data = json.loads(mcp_json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            data = {}
+    else:
+        data = {}
+
+    servers = data.setdefault("servers", {})
+
+    if servers.get("clasi") == VSCODE_MCP_CONFIG["clasi"]:
+        click.echo(f"  Unchanged: {rel}")
+        return False
+
+    vscode_dir.mkdir(parents=True, exist_ok=True)
+    servers["clasi"] = VSCODE_MCP_CONFIG["clasi"]
+    mcp_json_path.write_text(
+        json.dumps(data, indent=2) + "\n", encoding="utf-8"
+    )
+    click.echo(f"  Updated: {rel}")
+    return True
 
 
 def _update_settings_json(settings_path: Path) -> bool:
-    """Merge MCP permission allowlist into .claude/settings.local.json.
+    """Add mcp__clasi__* to the permissions allowlist in settings.local.json.
 
+    Only adds the single permission entry; does not overwrite other settings.
+    Creates the file if it doesn't exist.
     Returns True if the file was written/updated, False if unchanged.
     """
     settings_path.parent.mkdir(parents=True, exist_ok=True)
-    rel = str(settings_path.relative_to(settings_path.parent.parent.parent))
 
     if settings_path.exists():
         try:
@@ -272,117 +247,47 @@ def _update_settings_json(settings_path: Path) -> bool:
 
     target_perm = "mcp__clasi__*"
     if target_perm in allow:
-        click.echo(f"  Unchanged: {rel}")
+        click.echo("  Unchanged: .claude/settings.local.json")
         return False
 
     allow.append(target_perm)
     settings_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
-    click.echo(f"  Updated: {rel}")
-    return True
-
-
-_GITIGNORE_MARKER = "# CLASI (auto-generated by clasi init)"
-_GITIGNORE_BLOCK = """\
-# CLASI (auto-generated by clasi init)
-.claude/
-.codex
-.mcp.json
-AGENTS.md
-# End CLASI
-"""
-
-
-def _update_gitignore(target: Path) -> bool:
-    """Append a CLASI marker block to .gitignore if not already present.
-
-    Returns True if the file was written/updated, False if unchanged.
-    """
-    gitignore = target / ".gitignore"
-
-    if gitignore.exists():
-        content = gitignore.read_text(encoding="utf-8")
-        if _GITIGNORE_MARKER in content:
-            click.echo("  Unchanged: .gitignore")
-            return False
-        # Ensure trailing newline before appending
-        if content and not content.endswith("\n"):
-            content += "\n"
-        content += _GITIGNORE_BLOCK
-    else:
-        content = _GITIGNORE_BLOCK
-
-    gitignore.write_text(content, encoding="utf-8")
-    click.echo("  Updated: .gitignore")
+    click.echo("  Updated: .claude/settings.local.json")
     return True
 
 
 def run_init(target: str) -> None:
     """Initialize a repository for the CLASI SE process.
 
-    Writes instruction files and configures the MCP server.
+    Writes the /se skill stub, appends CLASI section to AGENTS.md,
+    and configures the MCP server.
     """
     target_path = Path(target).resolve()
     click.echo(f"Initializing CLASI in {target_path}")
     click.echo()
 
-    # Write AGENTS.md at project root
+    # Install the /se skill dispatcher
+    click.echo("Skill stub:")
+    _write_se_skill(target_path)
+    click.echo()
+
+    # Append CLASI section to AGENTS.md
     click.echo("AGENTS.md:")
-    agents_md = target_path / "AGENTS.md"
-    if agents_md.exists() and agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT:
-        click.echo("  Unchanged: AGENTS.md")
-    else:
-        agents_md.write_text(AGENTS_MD_CONTENT, encoding="utf-8")
-        click.echo("  Wrote: AGENTS.md")
-    click.echo()
-
-    # Install rule files from the package into .claude/rules/
-    rules_dir = _PACKAGE_ROOT / "rules"
-    rule_files = sorted(rules_dir.glob("*.md"))
-
-    click.echo("Rule files:")
-    for rule_path in rule_files:
-        _write_rule_file(target_path, rule_path.name, ".claude/rules")
-    click.echo()
-
-    # Install skill stubs
-    click.echo("Skill stubs:")
-    for filename, content in SKILL_STUBS.items():
-        _write_skill_stub(target_path, filename, content)
+    _update_agents_md(target_path)
     click.echo()
 
     # Configure MCP server in .mcp.json at project root
     click.echo("MCP server configuration:")
-    mcp_json = target_path / ".mcp.json"
-    _update_mcp_json(mcp_json)
+    _update_mcp_json(target_path / ".mcp.json")
+    _update_vscode_mcp_json(target_path)
     click.echo()
 
-    # Create .codex symlink to .claude for ChatGPT Codex
-    click.echo("Codex symlink:")
-    codex_link = target_path / ".codex"
-    if codex_link.is_symlink():
-        if codex_link.resolve() == (target_path / ".claude").resolve():
-            click.echo("  Unchanged: .codex -> .claude")
-        else:
-            click.echo(f"  Warning: .codex points to {codex_link.readlink()}, skipping")
-    elif codex_link.exists():
-        click.echo("  Warning: .codex exists as file/directory, skipping")
-    else:
-        codex_link.symlink_to(".claude")
-        click.echo("  Created: .codex -> .claude")
-    click.echo()
-
-    # Configure MCP permissions in .claude/settings.local.json
+    # Add MCP permission to .claude/settings.local.json
     click.echo("MCP permissions:")
     settings_json = target_path / ".claude" / "settings.local.json"
     _update_settings_json(settings_json)
-
-    click.echo()
-
-    # Add .gitignore entries for CLASI-installed files
-    click.echo("Gitignore:")
-    _update_gitignore(target_path)
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")

@@ -27,8 +27,8 @@ class TestInitCommand:
         runner = CliRunner()
         result = runner.invoke(cli, ["init", str(tmp_path)])
         assert result.exit_code == 0
-        # Should create .claude/rules/ directory
-        assert (tmp_path / ".claude" / "rules").is_dir()
+        # Should create /se skill stub
+        assert (tmp_path / ".claude" / "skills" / "se" / "SKILL.md").is_file()
         # Should create AGENTS.md
         assert (tmp_path / "AGENTS.md").is_file()
 

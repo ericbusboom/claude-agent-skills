@@ -5,14 +5,14 @@ import json
 import pytest
 
 from claude_agent_skills.init_command import (
-    run_init, MCP_CONFIG, SKILL_STUBS, AGENTS_MD_CONTENT,
-    _GITIGNORE_MARKER, _PACKAGE_ROOT,
+    run_init,
+    MCP_CONFIG,
+    VSCODE_MCP_CONFIG,
+    SE_SKILL_STUB,
+    AGENTS_MD_SECTION,
+    _AGENTS_SECTION_START,
+    _AGENTS_SECTION_END,
 )
-
-
-def _read_rule(name: str) -> str:
-    """Read a rule file from the package for comparison."""
-    return (_PACKAGE_ROOT / "rules" / name).read_text(encoding="utf-8")
 
 
 @pytest.fixture
@@ -22,18 +22,41 @@ def target_dir(tmp_path):
 
 
 class TestRunInit:
-    def test_creates_rule_files(self, target_dir):
+    def test_creates_se_skill(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        skill = target_dir / ".claude" / "skills" / "se" / "SKILL.md"
+        assert skill.exists()
+        assert skill.read_text(encoding="utf-8") == SE_SKILL_STUB
+
+    def test_se_skill_references_mcp(self):
+        assert "get_skill_definition" in SE_SKILL_STUB
+        assert "get_se_overview" in SE_SKILL_STUB
+
+    def test_se_skill_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        skill = target_dir / ".claude" / "skills" / "se" / "SKILL.md"
+        assert skill.read_text(encoding="utf-8") == SE_SKILL_STUB
+
+    def test_does_not_create_old_skill_stubs(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        skills_dir = target_dir / ".claude" / "skills"
+        for old_name in ["todo", "next", "status", "project-initiation",
+                         "report", "ghtodo"]:
+            assert not (skills_dir / old_name).exists()
+
+    def test_does_not_create_rule_files(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
         rules_dir = target_dir / ".claude" / "rules"
-        # All package rule files should be installed
-        for rule_file in sorted((_PACKAGE_ROOT / "rules").glob("*.md")):
-            installed = rules_dir / rule_file.name
-            assert installed.exists(), f"Missing rule: {rule_file.name}"
-            assert installed.read_text(encoding="utf-8") == rule_file.read_text(
-                encoding="utf-8"
-            )
+        assert not rules_dir.exists()
 
     def test_does_not_create_copilot_mirror(self, target_dir):
         target_dir.mkdir()
@@ -41,6 +64,29 @@ class TestRunInit:
 
         copilot_dir = target_dir / ".github" / "copilot" / "instructions"
         assert not copilot_dir.exists()
+
+    def test_does_not_create_codex_symlink(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        codex = target_dir / ".codex"
+        assert not codex.exists()
+
+    def test_does_not_modify_gitignore(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        gitignore = target_dir / ".gitignore"
+        assert not gitignore.exists()
+
+    def test_preserves_existing_gitignore(self, target_dir):
+        target_dir.mkdir()
+        (target_dir / ".gitignore").write_text("node_modules/\n",
+                                               encoding="utf-8")
+        run_init(str(target_dir))
+
+        content = (target_dir / ".gitignore").read_text(encoding="utf-8")
+        assert content == "node_modules/\n"
 
     def test_creates_mcp_json(self, target_dir):
         target_dir.mkdir()
@@ -61,11 +107,6 @@ class TestRunInit:
         data = json.loads(mcp_json.read_text(encoding="utf-8"))
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
-        claude_rules = target_dir / ".claude" / "rules" / "clasi-se-process.md"
-        assert claude_rules.read_text(encoding="utf-8") == _read_rule(
-            "clasi-se-process.md"
-        )
-
     def test_merges_existing_mcp_json(self, target_dir):
         target_dir.mkdir()
         mcp_json = target_dir / ".mcp.json"
@@ -78,7 +119,7 @@ class TestRunInit:
         assert data["mcpServers"]["other"] == {"command": "other"}
         assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
 
-    def test_creates_settings_local_json(self, target_dir):
+    def test_adds_permission_to_settings(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
@@ -96,11 +137,11 @@ class TestRunInit:
         data = json.loads(settings_path.read_text(encoding="utf-8"))
         assert data["permissions"]["allow"].count("mcp__clasi__*") == 1
 
-    def test_settings_merges_existing(self, target_dir):
+    def test_settings_preserves_existing(self, target_dir):
         target_dir.mkdir()
         settings_path = target_dir / ".claude" / "settings.local.json"
         settings_path.parent.mkdir(parents=True, exist_ok=True)
-        existing = {"permissions": {"allow": ["Bash(*)"]}}
+        existing = {"permissions": {"allow": ["Bash(*)"]}, "other": "kept"}
         settings_path.write_text(json.dumps(existing), encoding="utf-8")
 
         run_init(str(target_dir))
@@ -108,137 +149,102 @@ class TestRunInit:
         data = json.loads(settings_path.read_text(encoding="utf-8"))
         assert "Bash(*)" in data["permissions"]["allow"]
         assert "mcp__clasi__*" in data["permissions"]["allow"]
+        assert data["other"] == "kept"
 
-    def test_installs_skill_stubs(self, target_dir):
+    def test_creates_vscode_mcp_json(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
-        skills_dir = target_dir / ".claude" / "skills"
-        for name, content in SKILL_STUBS.items():
-            stub = skills_dir / name / "SKILL.md"
-            assert stub.exists(), f"Missing stub: {name}/SKILL.md"
-            assert stub.read_text(encoding="utf-8") == content
+        vscode_mcp = target_dir / ".vscode" / "mcp.json"
+        assert vscode_mcp.exists()
+        data = json.loads(vscode_mcp.read_text(encoding="utf-8"))
+        assert data["servers"]["clasi"] == VSCODE_MCP_CONFIG["clasi"]
 
-    def test_skill_stubs_reference_mcp(self):
-        for name, content in SKILL_STUBS.items():
-            assert "get_skill_definition" in content, (
-                f"Stub {name} should reference get_skill_definition"
-            )
-
-    def test_skill_stubs_idempotent(self, target_dir):
+    def test_vscode_mcp_json_idempotent(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
         run_init(str(target_dir))
 
-        skills_dir = target_dir / ".claude" / "skills"
-        for name in SKILL_STUBS:
-            assert (skills_dir / name / "SKILL.md").exists()
+        vscode_mcp = target_dir / ".vscode" / "mcp.json"
+        data = json.loads(vscode_mcp.read_text(encoding="utf-8"))
+        assert data["servers"]["clasi"] == VSCODE_MCP_CONFIG["clasi"]
 
-    def test_se_process_rule_has_tool_reference(self):
-        content = _read_rule("clasi-se-process.md")
-        assert "get_se_overview" in content
-        assert "create_sprint" in content
-        assert "get_activity_guide" in content
-        assert "create_overview" in content
-
-    def test_se_process_rule_no_deprecated_tools(self):
-        content = _read_rule("clasi-se-process.md")
-        assert "create_brief" not in content
-        assert "create_technical_plan" not in content
-        assert "create_use_cases" not in content
-
-    def test_installs_scold_detection_rule(self, target_dir):
+    def test_vscode_mcp_json_merges_existing(self, target_dir):
         target_dir.mkdir()
+        vscode_dir = target_dir / ".vscode"
+        vscode_dir.mkdir()
+        existing = {"servers": {"other": {"type": "stdio", "command": "other"}}}
+        (vscode_dir / "mcp.json").write_text(json.dumps(existing),
+                                             encoding="utf-8")
+
         run_init(str(target_dir))
 
-        rule = target_dir / ".claude" / "rules" / "scold-detection.md"
-        assert rule.exists()
-        assert "self-reflect" in rule.read_text(encoding="utf-8")
+        data = json.loads((vscode_dir / "mcp.json").read_text(encoding="utf-8"))
+        assert data["servers"]["other"] == {"type": "stdio", "command": "other"}
+        assert data["servers"]["clasi"] == VSCODE_MCP_CONFIG["clasi"]
 
-    def test_installs_auto_approve_rule(self, target_dir):
-        target_dir.mkdir()
-        run_init(str(target_dir))
 
-        rule = target_dir / ".claude" / "rules" / "auto-approve.md"
-        assert rule.exists()
-        assert "auto-approve" in rule.read_text(encoding="utf-8").lower()
-
-    def test_creates_agents_md(self, target_dir):
+class TestAgentsMd:
+    def test_creates_agents_md_when_missing(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
 
         agents_md = target_dir / "AGENTS.md"
         assert agents_md.exists()
-        assert agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT
+        content = agents_md.read_text(encoding="utf-8")
+        assert _AGENTS_SECTION_START in content
+        assert _AGENTS_SECTION_END in content
+        assert "CLASI Software Engineering Process" in content
 
-    def test_agents_md_has_process_sections(self):
-        assert "Starting a new project" in AGENTS_MD_CONTENT
-        assert "Planning a sprint" in AGENTS_MD_CONTENT
-        assert "Working on a ticket" in AGENTS_MD_CONTENT
-        assert "Closing a sprint" in AGENTS_MD_CONTENT
-        assert "get_skill_definition" in AGENTS_MD_CONTENT
+    def test_appends_to_existing_agents_md(self, target_dir):
+        target_dir.mkdir()
+        existing = "# My Project\n\nThis is my project.\n"
+        (target_dir / "AGENTS.md").write_text(existing, encoding="utf-8")
+
+        run_init(str(target_dir))
+
+        content = (target_dir / "AGENTS.md").read_text(encoding="utf-8")
+        assert content.startswith("# My Project")
+        assert "This is my project." in content
+        assert _AGENTS_SECTION_START in content
+        assert "CLASI Software Engineering Process" in content
+
+    def test_updates_existing_clasi_section(self, target_dir):
+        target_dir.mkdir()
+        old_section = (
+            f"{_AGENTS_SECTION_START}\n"
+            "## Old CLASI Section\n\nOld content.\n"
+            f"{_AGENTS_SECTION_END}"
+        )
+        existing = f"# My Project\n\n{old_section}\n\n## Other Section\n"
+        (target_dir / "AGENTS.md").write_text(existing, encoding="utf-8")
+
+        run_init(str(target_dir))
+
+        content = (target_dir / "AGENTS.md").read_text(encoding="utf-8")
+        assert "Old content." not in content
+        assert "CLASI Software Engineering Process" in content
+        assert "## Other Section" in content
+        assert content.count(_AGENTS_SECTION_START) == 1
 
     def test_agents_md_idempotent(self, target_dir):
         target_dir.mkdir()
         run_init(str(target_dir))
+        content_after_first = (target_dir / "AGENTS.md").read_text(
+            encoding="utf-8")
+
         run_init(str(target_dir))
+        content_after_second = (target_dir / "AGENTS.md").read_text(
+            encoding="utf-8")
 
-        agents_md = target_dir / "AGENTS.md"
-        assert agents_md.read_text(encoding="utf-8") == AGENTS_MD_CONTENT
+        assert content_after_first == content_after_second
 
-    def test_creates_codex_symlink(self, target_dir):
-        target_dir.mkdir()
-        run_init(str(target_dir))
+    def test_agents_section_has_process_stages(self):
+        assert "Requirements" in AGENTS_MD_SECTION
+        assert "Architecture" in AGENTS_MD_SECTION
+        assert "Ticketing" in AGENTS_MD_SECTION
+        assert "Implementation" in AGENTS_MD_SECTION
 
-        codex = target_dir / ".codex"
-        assert codex.is_symlink()
-        assert codex.resolve() == (target_dir / ".claude").resolve()
-
-    def test_codex_symlink_idempotent(self, target_dir):
-        target_dir.mkdir()
-        run_init(str(target_dir))
-        run_init(str(target_dir))
-
-        codex = target_dir / ".codex"
-        assert codex.is_symlink()
-        assert codex.resolve() == (target_dir / ".claude").resolve()
-
-    def test_codex_skips_existing_file(self, target_dir):
-        target_dir.mkdir()
-        (target_dir / ".codex").write_text("existing", encoding="utf-8")
-        run_init(str(target_dir))
-
-        codex = target_dir / ".codex"
-        assert not codex.is_symlink()
-        assert codex.read_text(encoding="utf-8") == "existing"
-
-    def test_creates_gitignore(self, target_dir):
-        target_dir.mkdir()
-        run_init(str(target_dir))
-
-        gitignore = target_dir / ".gitignore"
-        assert gitignore.exists()
-        content = gitignore.read_text(encoding="utf-8")
-        assert _GITIGNORE_MARKER in content
-        assert ".claude/" in content
-        assert ".codex" in content
-        assert ".mcp.json" in content
-        assert "AGENTS.md" in content
-
-    def test_gitignore_idempotent(self, target_dir):
-        target_dir.mkdir()
-        run_init(str(target_dir))
-        run_init(str(target_dir))
-
-        gitignore = target_dir / ".gitignore"
-        content = gitignore.read_text(encoding="utf-8")
-        assert content.count(_GITIGNORE_MARKER) == 1
-
-    def test_gitignore_preserves_existing(self, target_dir):
-        target_dir.mkdir()
-        (target_dir / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
-        run_init(str(target_dir))
-
-        content = (target_dir / ".gitignore").read_text(encoding="utf-8")
-        assert "node_modules/" in content
-        assert _GITIGNORE_MARKER in content
+    def test_agents_section_has_scold_detection(self):
+        assert "Stakeholder Corrections" in AGENTS_MD_SECTION
+        assert "self-reflect" in AGENTS_MD_SECTION
