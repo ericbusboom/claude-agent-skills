@@ -126,9 +126,16 @@ Parent: UC-XXX
 SPRINT_TECHNICAL_PLAN_TEMPLATE = """\
 ---
 status: draft
+from-architecture-version: null
+to-architecture-version: null
 ---
 
 # Sprint {id} Technical Plan
+
+## Architecture Version
+
+- **From version**: (current architecture version, e.g., architecture-001)
+- **To version**: (target architecture version, or "no change" for bug-fix sprints)
 
 ## Architecture Overview
 

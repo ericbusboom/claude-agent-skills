@@ -1,7 +1,7 @@
 ---
 id: '004'
 title: Update software-engineering.md for versioned architecture
-status: in-progress
+status: done
 use-cases: []
 depends-on: []
 ---

@@ -1,7 +1,7 @@
 ---
-id: "005"
+id: '005'
 title: Update sprint technical plan template with version fields
-status: todo
+status: in-progress
 use-cases: []
 depends-on: []
 ---
