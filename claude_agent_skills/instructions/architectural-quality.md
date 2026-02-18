@@ -135,25 +135,60 @@ Organize components so that dependencies flow in one direction:
 
 Every architecture version should contain these sections:
 
-1. **Architecture Overview** — High-level structure, component relationships,
-   and the dependency map.
+1. **Architecture Overview** — High-level structure and the component/module
+   diagram (Mermaid). This is the first thing a reader sees.
 2. **Technology Stack** — Languages, frameworks, databases, infrastructure,
    with justifications against the brief's constraints.
-3. **Component Design** — Each component with:
+3. **Module Design** — Each module or subsystem with:
    - Purpose (one sentence, no "and")
    - Boundary (what is inside, what is outside)
-   - Interface specification (operations, data shapes, error cases, invariants)
+   - Key interactions with other modules
    - Use cases served
-4. **Dependency Map** — Directed graph of component dependencies (see below).
-5. **Data Model** — Key entities, relationships, storage approach, entity
-   ownership by component.
-6. **API Design** — Endpoints, request/response formats, authentication.
-7. **Security Considerations** — Authentication, authorization, data
+4. **Data Model** — Entity-relationship diagram (Mermaid `erDiagram`) showing
+   entities, relationships, and cardinality. Brief prose descriptions of
+   key entities. Do NOT list column schemas — the ERD communicates structure;
+   column-level detail belongs in code or sprint-level plans.
+5. **Dependency Graph** — Mermaid diagram of module dependencies with labeled
+   edges. Accompanied by analysis of cycles, fan-out, and stability.
+6. **Security Considerations** — Authentication, authorization, data
    protection.
-8. **Design Rationale** — Significant decisions with alternatives and
+7. **Design Rationale** — Significant decisions with alternatives and
    reasoning (see below).
-9. **Open Questions** — Anything ambiguous, assumed, or requiring
+8. **Open Questions** — Anything ambiguous, assumed, or requiring
    stakeholder input.
+
+### Level of Detail
+
+The architecture document operates at the **module and subsystem level**.
+It describes what exists, why it exists, and how parts relate.
+
+**Include**: Module purposes, boundaries, responsibilities, entity
+relationships, dependency direction, design trade-offs.
+
+**Exclude**: Function signatures, method lists, parameter types, database
+column schemas, internal algorithms. These belong in code, docstrings, or
+sprint-level technical plans.
+
+### Required Mermaid Diagrams
+
+Every architecture version must include at minimum:
+
+1. **Component / Module Diagram** — Subsystems and modules as nodes,
+   dependencies as labeled edges. Use `flowchart` or `graph`.
+2. **Entity-Relationship Diagram** — Entities, key attributes, and
+   relationships. Use `erDiagram`.
+3. **Dependency Graph** — Module-to-module dependencies with edge labels
+   describing the nature of each dependency.
+
+Optional diagrams when they add clarity:
+- State machine diagrams for lifecycle flows.
+- Sequence diagrams for multi-system interactions only.
+
+Diagram guidelines:
+- 5–12 nodes maximum per diagram.
+- Label every edge.
+- One concern per diagram — don't overload.
+- Diagrams should be understandable without reading the surrounding prose.
 
 ## Dependency Analysis
 
