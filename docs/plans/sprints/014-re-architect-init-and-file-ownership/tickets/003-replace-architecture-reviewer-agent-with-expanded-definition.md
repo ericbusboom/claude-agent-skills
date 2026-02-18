@@ -1,7 +1,7 @@
 ---
-id: "003"
+id: '003'
 title: Replace architecture-reviewer agent with expanded definition
-status: todo
+status: in-progress
 use-cases: []
 depends-on: []
 ---
