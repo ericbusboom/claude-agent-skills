@@ -1,9 +1,12 @@
 ---
-id: "014"
+id: '014'
 title: Re-architect Init and File Ownership
-status: planning
+status: done
 branch: sprint/014-re-architect-init-and-file-ownership
-use-cases: [UC-001, UC-002, UC-003]
+use-cases:
+- UC-001
+- UC-002
+- UC-003
 ---
 
 # Sprint 014: Re-architect Init and File Ownership
