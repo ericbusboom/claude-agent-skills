@@ -1,5 +1,6 @@
 ---
-status: pending
+status: done
+sprint: '014'
 ---
 
 # Simplify init: single /se skill dispatcher, minimal file writes
