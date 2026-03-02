@@ -1,8 +1,9 @@
 """Implementation of the `clasi init` command.
 
 Installs the CLASI SE process into a target repository with minimal
-footprint: one skill stub, one AGENTS.md section, MCP config, and
-permissions. Does not take over existing files.
+footprint: CLAUDE.md (with @AGENTS.md reference), one skill stub, one
+AGENTS.md section, MCP config, and permissions. Does not take over
+existing files.
 """
 
 import json
@@ -20,6 +21,7 @@ MCP_CONFIG = {
 _PACKAGE_DIR = Path(__file__).parent
 _SE_SKILL_PATH = _PACKAGE_DIR / "skills" / "se.md"
 _AGENTS_SECTION_PATH = _PACKAGE_DIR / "init" / "agents-section.md"
+_CLAUDE_MD_PATH = _PACKAGE_DIR / "init" / "claude-md.md"
 
 # Marker used to find/replace the CLASI section in AGENTS.md.
 _AGENTS_SECTION_START = "<!-- CLASI:START -->"
@@ -91,6 +93,24 @@ def _update_agents_md(target: Path) -> bool:
         agents_md.write_text(section + "\n", encoding="utf-8")
         click.echo("  Created: AGENTS.md")
         return True
+
+
+def _create_claude_md(target: Path) -> bool:
+    """Create CLAUDE.md with an @AGENTS.md reference if it doesn't exist.
+
+    Only creates the file — never overwrites an existing CLAUDE.md.
+    Returns True if the file was created, False if it already exists.
+    """
+    claude_md = target / "CLAUDE.md"
+
+    if claude_md.exists():
+        click.echo("  Unchanged: CLAUDE.md (already exists)")
+        return False
+
+    source = _CLAUDE_MD_PATH.read_text(encoding="utf-8")
+    claude_md.write_text(source, encoding="utf-8")
+    click.echo("  Created: CLAUDE.md")
+    return True
 
 
 VSCODE_MCP_CONFIG = {
@@ -200,8 +220,9 @@ def _update_settings_json(settings_path: Path) -> bool:
 def run_init(target: str) -> None:
     """Initialize a repository for the CLASI SE process.
 
-    Writes the /se skill stub, appends CLASI section to AGENTS.md,
-    and configures the MCP server.
+    Creates CLAUDE.md (with @AGENTS.md reference), writes the /se skill
+    stub, appends CLASI section to AGENTS.md, and configures the MCP
+    server.
     """
     target_path = Path(target).resolve()
     click.echo(f"Initializing CLASI in {target_path}")
@@ -210,6 +231,11 @@ def run_init(target: str) -> None:
     # Install the /se skill dispatcher
     click.echo("Skill stub:")
     _write_se_skill(target_path)
+    click.echo()
+
+    # Create CLAUDE.md with @AGENTS.md reference (if missing)
+    click.echo("CLAUDE.md:")
+    _create_claude_md(target_path)
     click.echo()
 
     # Append CLASI section to AGENTS.md

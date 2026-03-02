@@ -12,6 +12,7 @@ from claude_agent_skills.init_command import (
     _AGENTS_SECTION_PATH,
     _AGENTS_SECTION_START,
     _AGENTS_SECTION_END,
+    _CLAUDE_MD_PATH,
 )
 
 
@@ -253,3 +254,51 @@ class TestAgentsMd:
         section = _AGENTS_SECTION_PATH.read_text(encoding="utf-8")
         assert "Stakeholder Corrections" in section
         assert "self-reflect" in section
+
+    def test_agents_section_has_ticket_completion_rules(self):
+        section = _AGENTS_SECTION_PATH.read_text(encoding="utf-8")
+        assert "move_ticket_to_done" in section
+        assert "close_sprint" in section
+        assert "Finishing the code is NOT finishing the ticket" in section
+
+    def test_agents_section_has_sprint_closure_rules(self):
+        section = _AGENTS_SECTION_PATH.read_text(encoding="utf-8")
+        assert "Never merge a sprint branch without archiving" in section
+        assert "Never leave a sprint branch dangling" in section
+
+
+class TestClaudeMd:
+    def test_creates_claude_md_when_missing(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        claude_md = target_dir / "CLAUDE.md"
+        assert claude_md.exists()
+        content = claude_md.read_text(encoding="utf-8")
+        assert "@AGENTS.md" in content
+
+    def test_does_not_overwrite_existing_claude_md(self, target_dir):
+        target_dir.mkdir()
+        existing = "# My Project\n\nCustom CLAUDE.md content.\n"
+        (target_dir / "CLAUDE.md").write_text(existing, encoding="utf-8")
+
+        run_init(str(target_dir))
+
+        content = (target_dir / "CLAUDE.md").read_text(encoding="utf-8")
+        assert content == existing
+
+    def test_claude_md_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        content_after_first = (target_dir / "CLAUDE.md").read_text(
+            encoding="utf-8")
+
+        run_init(str(target_dir))
+        content_after_second = (target_dir / "CLAUDE.md").read_text(
+            encoding="utf-8")
+
+        assert content_after_first == content_after_second
+
+    def test_claude_md_template_references_agents(self):
+        source = _CLAUDE_MD_PATH.read_text(encoding="utf-8")
+        assert "@AGENTS.md" in source
