@@ -1,7 +1,7 @@
 ---
 id: "015"
 title: "Agent Process Compliance"
-status: planning
+status: active
 branch: sprint/015-agent-process-compliance
 use-cases: [UC-007, UC-009, UC-010, UC-013]
 ---
