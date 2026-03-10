@@ -1,11 +1,11 @@
 ---
-id: "002"
-title: "Update create_sprint to copy architecture doc"
-status: todo
+id: '002'
+title: Update create_sprint to copy architecture doc
+status: done
 use-cases:
-  - SUC-016-001
+- SUC-016-001
 depends-on:
-  - "001"
+- '001'
 ---
 
 # Update create_sprint to copy architecture doc
