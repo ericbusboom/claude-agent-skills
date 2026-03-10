@@ -1,5 +1,5 @@
 """
-Artifact templates for sprints, tickets, briefs, technical plans, and use cases.
+Artifact templates for sprints, tickets, briefs, architecture, and use cases.
 
 Templates are stored as .md files in the templates/ directory and loaded
 at import time. Use str.format() with named placeholders for dynamic values.
@@ -37,6 +37,6 @@ def slugify(title: str) -> str:
 SPRINT_TEMPLATE = _load("sprint")
 SPRINT_BRIEF_TEMPLATE = _load("sprint-brief")
 SPRINT_USECASES_TEMPLATE = _load("sprint-usecases")
-SPRINT_TECHNICAL_PLAN_TEMPLATE = _load("sprint-technical-plan")
+SPRINT_ARCHITECTURE_TEMPLATE = _load("sprint-architecture")
 TICKET_TEMPLATE = _load("ticket")
 OVERVIEW_TEMPLATE = _load("overview")
