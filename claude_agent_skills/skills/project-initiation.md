@@ -18,12 +18,27 @@ with the stakeholder, using the product-manager agent.
 
 ## Process
 
-1. **Capture narration**: Take the stakeholder's initial description of the
-   project. This may come as a spoken narration, a written description, or a
-   conversation.
+1. **Choose interview mode**: Present the stakeholder with options using
+   `AskUserQuestion`:
+   - "Answer structured questions" — the agent asks targeted questions
+     one at a time to build the overview
+   - "Start an open narrative" — the stakeholder speaks freely about
+     their project, then the agent synthesizes and follows up
 
-2. **Ask clarifying questions**: Present 2-4 targeted questions using
-   `AskUserQuestion` to fill gaps in the narration. Focus on:
+2. **Capture input**:
+
+   **If structured mode**: Ask 4-6 targeted questions using
+   `AskUserQuestion`, covering: what the project does, who it's for,
+   key constraints, main scenarios, and out of scope.
+
+   **If narrative mode**: Let the stakeholder speak freely. Listen to
+   the full narration without interrupting. Then:
+   a. Synthesize the narration into the overview document structure.
+   b. Identify gaps — topics the narration didn't cover.
+   c. Ask 2-3 follow-up questions via `AskUserQuestion` to fill gaps.
+
+3. **Ask clarifying questions** (structured mode only): Present 2-4
+   targeted questions using `AskUserQuestion` to fill gaps. Focus on:
    - Problem statement and target users (if unclear)
    - Key constraints (timeline, technology, budget)
    - High-level requirements (key scenarios)
