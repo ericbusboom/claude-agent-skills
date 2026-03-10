@@ -1,8 +1,9 @@
 ---
-id: "003"
-title: "Create /oop out-of-process skill"
-status: todo
-use-cases: [SUC-015-006]
+id: '003'
+title: Create /oop out-of-process skill
+status: done
+use-cases:
+- SUC-015-006
 depends-on: []
 ---
 
@@ -25,11 +26,11 @@ The skill should instruct the agent to:
 
 ## Acceptance Criteria
 
-- [ ] `claude_agent_skills/skills/oop.md` exists with proper frontmatter
-- [ ] Skill appears in `list_skills()` output
-- [ ] Skill instructs agent to skip SE ceremony
-- [ ] Skill instructs agent to run tests before committing
-- [ ] Skill specifies scope: small, targeted changes only
+- [x] `claude_agent_skills/skills/oop.md` exists with proper frontmatter
+- [x] Skill appears in `list_skills()` output
+- [x] Skill instructs agent to skip SE ceremony
+- [x] Skill instructs agent to run tests before committing
+- [x] Skill specifies scope: small, targeted changes only
 
 ## Testing
 
