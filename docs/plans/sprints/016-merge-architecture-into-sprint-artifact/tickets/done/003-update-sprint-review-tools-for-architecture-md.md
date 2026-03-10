@@ -1,11 +1,11 @@
 ---
-id: "003"
-title: "Update sprint review tools for architecture.md"
-status: todo
+id: '003'
+title: Update sprint review tools for architecture.md
+status: done
 use-cases:
-  - SUC-016-002
+- SUC-016-002
 depends-on:
-  - "001"
+- '001'
 ---
 
 # Update sprint review tools for architecture.md
