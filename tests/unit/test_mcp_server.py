@@ -81,6 +81,9 @@ class TestToolRegistration:
         "read_artifact_frontmatter",
         "write_artifact_frontmatter",
         "tag_version",
+        "review_sprint_pre_execution",
+        "review_sprint_pre_close",
+        "review_sprint_post_close",
     }
 
     EXPECTED_ALL = EXPECTED_PROCESS_TOOLS | EXPECTED_ARTIFACT_TOOLS
@@ -103,7 +106,7 @@ class TestToolRegistration:
 
     def test_tool_count(self):
         registered = self._registered_tool_names()
-        assert len(registered) == 34
+        assert len(registered) == 37
 
     def test_process_tools_registered(self):
         registered = self._registered_tool_names()

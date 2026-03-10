@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
+from claude_agent_skills.frontmatter import read_document, read_frontmatter, write_frontmatter
 from claude_agent_skills.mcp_server import server
 from claude_agent_skills.state_db import (
     PHASES as _PHASES,
@@ -1200,3 +1200,444 @@ def tag_version(major: int = 0) -> str:
         result["file_type"] = detected[1]
         result["file_path"] = str(detected[0])
     return json.dumps(result, indent=2)
+
+
+# --- Sprint review tools ---
+
+
+def _get_template_body(template_str: str) -> str:
+    """Extract the body (after frontmatter) from a template string.
+
+    Strips the {id}, {title}, {slug} placeholders so we can compare
+    the structural content, not the filled-in values.
+    """
+    if not template_str.startswith("---"):
+        return template_str.strip()
+    end = template_str.find("---", 3)
+    if end == -1:
+        return template_str.strip()
+    end_of_line = template_str.find("\n", end)
+    if end_of_line == -1:
+        return ""
+    body = template_str[end_of_line + 1:].strip()
+    # Remove format placeholders so we match on structure
+    body = re.sub(r"\{(id|title|slug)\}", "", body)
+    return body
+
+
+_PLACEHOLDER_MARKERS = [
+    "(Describe what this sprint aims to accomplish.)",
+    "(What problem does this sprint address?)",
+    "(High-level description of the approach.)",
+    "(How will we know the sprint succeeded?)",
+    "(What needs to be done and why.)",
+    "(How the components fit together.)",
+    "(Unresolved design decisions.)",
+    "SUC-001: (Title)",
+    "Parent: UC-XXX",
+    "### Component: (Name)",
+    "(current architecture version, e.g., architecture-",
+]
+
+
+def _is_template_placeholder(file_path: Path, template_str: str) -> bool:
+    """Check if a file still contains template placeholder content."""
+    _, body = read_document(file_path)
+    body = body.strip()
+    if not body:
+        return True
+    # If 3+ placeholder markers remain, it's still a template
+    marker_count = sum(1 for m in _PLACEHOLDER_MARKERS if m in body)
+    return marker_count >= 3
+
+
+def _check_git_branch() -> str:
+    """Return the current git branch name."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, check=True,
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return ""
+
+
+def _collect_tickets(sprint_dir: Path) -> list:
+    """Collect all tickets from a sprint directory with their metadata."""
+    tickets = []
+    for ticket_location in [sprint_dir / "tickets", sprint_dir / "tickets" / "done"]:
+        if not ticket_location.exists():
+            continue
+        for f in sorted(ticket_location.glob("*.md")):
+            fm = read_frontmatter(f)
+            if not fm.get("id"):
+                continue
+            tickets.append({
+                "id": fm.get("id", ""),
+                "title": fm.get("title", ""),
+                "status": fm.get("status", "unknown"),
+                "path": str(f),
+                "in_done_dir": "done" in f.parent.name,
+            })
+    return tickets
+
+
+@server.tool()
+def review_sprint_pre_execution(sprint_id: str) -> str:
+    """Validate sprint state before execution begins.
+
+    Checks that planning docs are complete, not template placeholders,
+    and tickets exist in todo status.
+
+    Args:
+        sprint_id: The sprint ID (e.g., '015')
+
+    Returns JSON with {passed, issues[]}.
+    """
+    issues = []
+
+    # Find sprint directory
+    try:
+        sprint_dir = _find_sprint_dir(sprint_id)
+    except ValueError:
+        return json.dumps({
+            "passed": False,
+            "issues": [{
+                "severity": "error",
+                "check": "sprint_dir_exists",
+                "message": f"Sprint '{sprint_id}' directory not found",
+                "fix": "Create the sprint with create_sprint(title)",
+                "path": None,
+            }],
+        }, indent=2)
+
+    sprint_fm = read_frontmatter(sprint_dir / "sprint.md")
+    expected_branch = sprint_fm.get("branch", f"sprint/{sprint_id}")
+
+    # Check branch
+    current_branch = _check_git_branch()
+    if current_branch and current_branch != expected_branch:
+        issues.append({
+            "severity": "error",
+            "check": "correct_branch",
+            "message": f"On branch '{current_branch}', expected '{expected_branch}'",
+            "fix": f"Run: git checkout {expected_branch}",
+            "path": None,
+        })
+
+    # Check planning docs exist and have correct status
+    planning_docs = {
+        "sprint.md": SPRINT_TEMPLATE,
+        "usecases.md": SPRINT_USECASES_TEMPLATE,
+        "technical-plan.md": SPRINT_TECHNICAL_PLAN_TEMPLATE,
+    }
+
+    for filename, template in planning_docs.items():
+        filepath = sprint_dir / filename
+        if not filepath.exists():
+            issues.append({
+                "severity": "error",
+                "check": f"{filename.replace('.', '_').replace('-', '_')}_exists",
+                "message": f"{filename} does not exist",
+                "fix": f"Create {filename} in the sprint directory",
+                "path": str(filepath),
+            })
+            continue
+
+        fm = read_frontmatter(filepath)
+        status = fm.get("status", "draft")
+
+        if status == "draft":
+            issues.append({
+                "severity": "error",
+                "check": f"{filename.replace('.', '_').replace('-', '_')}_status",
+                "message": f"{filename} has status 'draft'",
+                "fix": f"Update {filename} frontmatter status from 'draft' to an appropriate value",
+                "path": str(filepath),
+            })
+
+        # Check for template placeholder content
+        if _is_template_placeholder(filepath, template):
+            issues.append({
+                "severity": "error",
+                "check": f"{filename.replace('.', '_').replace('-', '_')}_content",
+                "message": f"{filename} still contains template placeholder content",
+                "fix": f"Replace template placeholders in {filename} with real content",
+                "path": str(filepath),
+            })
+
+    # Check tickets exist
+    tickets_dir = sprint_dir / "tickets"
+    if not tickets_dir.exists():
+        issues.append({
+            "severity": "error",
+            "check": "tickets_dir_exists",
+            "message": "tickets/ directory does not exist",
+            "fix": "Create tickets using create_ticket(sprint_id, title)",
+            "path": str(tickets_dir),
+        })
+    else:
+        tickets = _collect_tickets(sprint_dir)
+        if not tickets:
+            issues.append({
+                "severity": "error",
+                "check": "tickets_exist",
+                "message": "No tickets found in the sprint",
+                "fix": "Create tickets using create_ticket(sprint_id, title)",
+                "path": str(tickets_dir),
+            })
+        else:
+            for t in tickets:
+                if t["status"] not in ("todo", "in-progress"):
+                    issues.append({
+                        "severity": "warning",
+                        "check": "ticket_status_pre_execution",
+                        "message": f"Ticket #{t['id']} has unexpected status"
+                                   f" '{t['status']}' before execution",
+                        "fix": f"Verify ticket #{t['id']} status is correct",
+                        "path": t["path"],
+                    })
+
+    return json.dumps({
+        "passed": not any(i["severity"] == "error" for i in issues),
+        "issues": issues,
+    }, indent=2)
+
+
+@server.tool()
+def review_sprint_pre_close(sprint_id: str) -> str:
+    """Validate sprint state before closing.
+
+    Checks that all tickets are done and in tickets/done/, planning docs
+    have correct status, and no template placeholders remain.
+
+    Args:
+        sprint_id: The sprint ID (e.g., '015')
+
+    Returns JSON with {passed, issues[]}.
+    """
+    issues = []
+
+    try:
+        sprint_dir = _find_sprint_dir(sprint_id)
+    except ValueError:
+        return json.dumps({
+            "passed": False,
+            "issues": [{
+                "severity": "error",
+                "check": "sprint_dir_exists",
+                "message": f"Sprint '{sprint_id}' directory not found",
+                "fix": "Check the sprint ID is correct",
+                "path": None,
+            }],
+        }, indent=2)
+
+    sprint_fm = read_frontmatter(sprint_dir / "sprint.md")
+    expected_branch = sprint_fm.get("branch", f"sprint/{sprint_id}")
+
+    # Check branch
+    current_branch = _check_git_branch()
+    if current_branch and current_branch != expected_branch:
+        issues.append({
+            "severity": "error",
+            "check": "correct_branch",
+            "message": f"On branch '{current_branch}', expected '{expected_branch}'",
+            "fix": f"Run: git checkout {expected_branch}",
+            "path": None,
+        })
+
+    # Check all tickets are done and in done/ directory
+    tickets = _collect_tickets(sprint_dir)
+    if not tickets:
+        issues.append({
+            "severity": "error",
+            "check": "tickets_exist",
+            "message": "No tickets found in the sprint",
+            "fix": "Sprint should have tickets before closing",
+            "path": str(sprint_dir / "tickets"),
+        })
+
+    for t in tickets:
+        if t["status"] != "done":
+            issues.append({
+                "severity": "error",
+                "check": "ticket_done",
+                "message": f"Ticket #{t['id']} ({t['title']}) has status"
+                           f" '{t['status']}', expected 'done'",
+                "fix": f"Complete ticket #{t['id']} and set status to 'done'",
+                "path": t["path"],
+            })
+        if not t["in_done_dir"]:
+            issues.append({
+                "severity": "error",
+                "check": "ticket_in_done_dir",
+                "message": f"Ticket #{t['id']} is not in tickets/done/ directory",
+                "fix": f"Move ticket #{t['id']} to tickets/done/ using"
+                       " move_ticket_to_done",
+                "path": t["path"],
+            })
+
+    # Check planning docs status and content
+    planning_docs = {
+        "sprint.md": SPRINT_TEMPLATE,
+        "usecases.md": SPRINT_USECASES_TEMPLATE,
+        "technical-plan.md": SPRINT_TECHNICAL_PLAN_TEMPLATE,
+    }
+
+    for filename, template in planning_docs.items():
+        filepath = sprint_dir / filename
+        if not filepath.exists():
+            issues.append({
+                "severity": "error",
+                "check": f"{filename.replace('.', '_').replace('-', '_')}_exists",
+                "message": f"{filename} does not exist",
+                "fix": f"Create {filename} — this should have been done"
+                       " during planning",
+                "path": str(filepath),
+            })
+            continue
+
+        fm = read_frontmatter(filepath)
+        status = fm.get("status", "draft")
+
+        if status == "draft":
+            issues.append({
+                "severity": "error",
+                "check": f"{filename.replace('.', '_').replace('-', '_')}_status",
+                "message": f"{filename} still has status 'draft'",
+                "fix": f"Update {filename} frontmatter status from 'draft'",
+                "path": str(filepath),
+            })
+
+        if _is_template_placeholder(filepath, template):
+            issues.append({
+                "severity": "error",
+                "check": f"{filename.replace('.', '_').replace('-', '_')}_content",
+                "message": f"{filename} still contains template placeholder"
+                           " content",
+                "fix": f"Replace template placeholders in {filename}"
+                       " with real content",
+                "path": str(filepath),
+            })
+
+    return json.dumps({
+        "passed": not any(i["severity"] == "error" for i in issues),
+        "issues": issues,
+    }, indent=2)
+
+
+@server.tool()
+def review_sprint_post_close(sprint_id: str) -> str:
+    """Validate sprint state after closing.
+
+    Checks that sprint directory is archived, all tickets are done,
+    planning docs have final status, and we're back on master.
+
+    Args:
+        sprint_id: The sprint ID (e.g., '015')
+
+    Returns JSON with {passed, issues[]}.
+    """
+    issues = []
+
+    # Check we're on master/main
+    current_branch = _check_git_branch()
+    if current_branch and current_branch not in ("master", "main"):
+        issues.append({
+            "severity": "error",
+            "check": "on_main_branch",
+            "message": f"On branch '{current_branch}',"
+                       " expected 'master' or 'main'",
+            "fix": "Run: git checkout master",
+            "path": None,
+        })
+
+    # Check sprint is in done/ directory
+    done_dir = _sprints_dir() / "done"
+    sprint_in_done = False
+    sprint_dir = None
+
+    if done_dir.exists():
+        for d in done_dir.iterdir():
+            if d.is_dir() and (d / "sprint.md").exists():
+                fm = read_frontmatter(d / "sprint.md")
+                if fm.get("id") == sprint_id:
+                    sprint_in_done = True
+                    sprint_dir = d
+                    break
+
+    if not sprint_in_done:
+        # Check if it's still in the active directory
+        active_dir = None
+        if _sprints_dir().exists():
+            for d in _sprints_dir().iterdir():
+                if d.is_dir() and d.name != "done" and (d / "sprint.md").exists():
+                    fm = read_frontmatter(d / "sprint.md")
+                    if fm.get("id") == sprint_id:
+                        active_dir = d
+                        break
+
+        if active_dir:
+            issues.append({
+                "severity": "error",
+                "check": "sprint_archived",
+                "message": f"Sprint directory still in active location:"
+                           f" {active_dir.name}",
+                "fix": "Close the sprint using close_sprint MCP tool"
+                       " to archive it",
+                "path": str(active_dir),
+            })
+            sprint_dir = active_dir
+        else:
+            issues.append({
+                "severity": "error",
+                "check": "sprint_dir_exists",
+                "message": f"Sprint '{sprint_id}' directory not found anywhere",
+                "fix": "Check the sprint ID is correct",
+                "path": None,
+            })
+
+    if sprint_dir:
+        # Check all tickets are done
+        tickets = _collect_tickets(sprint_dir)
+        for t in tickets:
+            if t["status"] != "done":
+                issues.append({
+                    "severity": "error",
+                    "check": "ticket_done",
+                    "message": f"Ticket #{t['id']} has status"
+                               f" '{t['status']}', expected 'done'",
+                    "fix": f"Set ticket #{t['id']} status to 'done'",
+                    "path": t["path"],
+                })
+            if not t["in_done_dir"]:
+                issues.append({
+                    "severity": "error",
+                    "check": "ticket_in_done_dir",
+                    "message": f"Ticket #{t['id']} is not in tickets/done/",
+                    "fix": f"Move ticket #{t['id']} to tickets/done/",
+                    "path": t["path"],
+                })
+
+        # Check planning docs
+        for filename in ["sprint.md", "usecases.md", "technical-plan.md"]:
+            filepath = sprint_dir / filename
+            if filepath.exists():
+                fm = read_frontmatter(filepath)
+                status = fm.get("status", "draft")
+                if status == "draft":
+                    issues.append({
+                        "severity": "error",
+                        "check": f"{filename.replace('.', '_').replace('-', '_')}"
+                                 "_status",
+                        "message": f"{filename} still has status 'draft'",
+                        "fix": f"Update {filename} frontmatter status"
+                               " from 'draft'",
+                        "path": str(filepath),
+                    })
+
+    return json.dumps({
+        "passed": not any(i["severity"] == "error" for i in issues),
+        "issues": issues,
+    }, indent=2)
