@@ -1,11 +1,11 @@
 ---
-id: "017"
-title: "Process Compliance Reinforcement"
-status: active
+id: '017'
+title: Process Compliance Reinforcement
+status: done
 branch: sprint/017-process-compliance-reinforcement
 use-cases:
-  - SUC-017-001
-  - SUC-017-002
+- SUC-017-001
+- SUC-017-002
 ---
 
 # Sprint 017: Process Compliance Reinforcement
