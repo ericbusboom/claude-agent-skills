@@ -1,8 +1,9 @@
 ---
-id: "004"
-title: "Add narrative mode to project-initiation skill"
-status: todo
-use-cases: [SUC-015-007]
+id: '004'
+title: Add narrative mode to project-initiation skill
+status: done
+use-cases:
+- SUC-015-007
 depends-on: []
 ---
 
@@ -26,9 +27,9 @@ If narrative mode is chosen:
 
 ## Acceptance Criteria
 
-- [ ] project-initiation skill offers narrative mode option via AskUserQuestion
-- [ ] Narrative mode instructions tell agent to listen, synthesize, then clarify
-- [ ] Structured question path still works as before
+- [x] project-initiation skill offers narrative mode option via AskUserQuestion
+- [x] Narrative mode instructions tell agent to listen, synthesize, then clarify
+- [x] Structured question path still works as before
 
 ## Testing
 
