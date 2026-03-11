@@ -2,53 +2,90 @@
 version: "017"
 status: current
 sprint: "017"
-description: Architecture update for sprint 017 — inline CLASI into CLAUDE.md, add template reminders
+description: Architecture at the end of sprint 017 — comprehensive rewrite with diagrams
 ---
+<!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
-# Architecture 017: Process Compliance Reinforcement
+# Architecture 017: CLASI System
 
 This document describes the CLASI (Claude Agent Skills Instructions) system
-as it exists today, updated with sprint 017 changes.
+architecture as it exists at the end of sprint 017.
 
 ## Architecture Overview
 
-CLASI is a Python package that provides a structured software engineering
-process for AI-assisted development. The system has three top-level
-responsibilities:
+CLASI is a pip-installable Python package (3,200 LOC, 11 modules) that
+provides a structured software engineering process for AI coding agents.
+The fundamental design insight is that **LLM agents do not reliably follow
+behavioral instructions alone** — every documented process failure has been
+categorized as `ignored-instruction`. CLASI responds by encoding process
+steps into mechanical enforcement: a SQLite state machine with phase
+transitions, review gates, and execution locks that physically prevent
+agents from skipping steps.
 
-1. **Process Content Delivery** — Serving the SE process definitions
-   (agents, skills, instructions) to AI agents at runtime.
+The system has three top-level responsibilities:
+
+1. **Process Content Delivery** — Serving SE process definitions (9 agents,
+   17 skills, 5 instructions) to AI agents at runtime via MCP tools.
 2. **Project Artifact Management** — Creating and maintaining planning
-   artifacts (sprints, tickets, TODOs) in a project's repository.
+   artifacts (sprints, tickets, TODOs, architecture docs) in a project's
+   repository, enforced by a lifecycle state machine.
 3. **Project Initialization** — Installing the CLASI SE process into a new
-   repository with minimal footprint.
+   repository with minimal footprint (4 files).
 
-These map to four runtime subsystems:
+```mermaid
+flowchart TB
+    subgraph CLI["CLI Layer (cli.py)"]
+        init["init"]
+        mcp["mcp"]
+        ts["todo-split"]
+    end
 
+    subgraph Runtime["MCP Runtime"]
+        server["MCP Server\n(mcp_server.py)"]
+        process["Process Tools\n(process_tools.py)\n— read-only —"]
+        artifact["Artifact Tools\n(artifact_tools.py)\n— read-write —"]
+    end
+
+    subgraph Shared["Shared Modules"]
+        fm["Frontmatter\n(frontmatter.py)"]
+        tmpl["Templates\n(templates.py)"]
+        db["State DB\n(state_db.py)"]
+        ver["Versioning\n(versioning.py)"]
+    end
+
+    subgraph Content["Bundled Content"]
+        agents["agents/ (9)"]
+        skills["skills/ (17)"]
+        instr["instructions/ (5)"]
+        templates["templates/ (6)"]
+    end
+
+    init_cmd["Init Command\n(init_command.py)"]
+    todo_split["TODO Split\n(todo_split.py)"]
+
+    init --> init_cmd
+    mcp --> server
+    ts --> todo_split
+
+    server --> process
+    server --> artifact
+
+    process -->|reads| Content
+    artifact -->|uses| fm
+    artifact -->|uses| tmpl
+    artifact -->|uses| db
+    artifact -->|uses| ver
+    init_cmd -->|reads| Content
+
+    style CLI fill:#f0f0f0,stroke:#333
+    style Runtime fill:#e8f4fd,stroke:#333
+    style Shared fill:#f0f8e8,stroke:#333
+    style Content fill:#fef3e0,stroke:#333
 ```
-                        ┌─────────────────┐
-                        │   CLI Layer     │
-                        │ init │ mcp │ ts │
-                        └──┬──────┬───────┘
-                           │      │
-                    Init Cmd    MCP Server
-                                  │
-                        ┌─────────┴──────────┐
-                        │  Process Tools     │  read-only: content
-                        ├────────────────────┤
-                        │  Artifact Tools    │  read-write: artifacts
-                        └─────────┬──────────┘
-                                  │
-                         Shared Modules
-                  (frontmatter, templates, state_db, versioning)
-```
 
-Dependencies flow downward: CLI → implementation modules → shared modules.
-The MCP Server is the central runtime component for AI agent access.
-
-The system is designed to be **upgradeable without re-running init** — the
-SE process content is served from the installed package, so upgrading the
-package updates the process for all projects using it.
+The system is designed to be **upgradeable without re-running init** — SE
+process content is served from the installed package, so `pip install
+--upgrade` updates the process for all projects using it.
 
 ## Technology Stack
 
@@ -61,88 +98,92 @@ package updates the process for all projects using it.
 | State storage | SQLite (stdlib) | Zero-dependency, file-based, embedded in project |
 | Build system | setuptools >=61.0 | Standard Python packaging |
 | Version format | `<major>.<YYYYMMDD>.<build>` | Date-based, auto-incrementing |
-| Test framework | pytest + pytest-cov | Standard, with 85% branch coverage threshold |
+| Test framework | pytest + pytest-cov | Standard, with 296 tests |
 
-## Component Design
+## Module Design
 
-### CLI
+### CLI (`cli.py`, 61 LOC)
 
 **Purpose**: Routes user commands to the appropriate subsystem.
 
 **Boundary**: Accepts command-line arguments and delegates to implementation
-modules. Contains no business logic.
+modules. Contains no business logic. Three subcommands: `init`, `mcp`,
+`todo-split`.
 
-**Interactions**: Thin entry point that lazily loads `init_command`,
-`mcp_server`, or `todo_split` depending on the invoked subcommand.
+**Key invariant**: Lazy-loads implementation modules — importing `cli` does
+not import MCP or database code.
 
-**Use cases served**: Project initialization, MCP server startup, TODO file
-management.
-
-### Init Command
+### Init Command (`init_command.py`, 232 LOC)
 
 **Purpose**: Installs the CLASI SE process into a target repository.
 
 **Boundary**: Reads and writes files in the target directory only. Does not
-interact with the MCP server or state database.
+interact with the MCP server or state database. Completely standalone — no
+runtime dependencies on other CLASI modules.
 
-**Interactions**: Standalone — no runtime dependencies on other CLASI
-modules. Writes artifacts into the target project: a skill dispatcher,
-CLAUDE.md with the CLASI section inline, and MCP configuration files.
+**Outputs** (4 files written to target project):
+- `CLAUDE.md` — CLASI process block inline (with `<!-- CLASI:START/END -->`
+  markers for idempotent updates)
+- `.claude/skills/se/SKILL.md` — `/se` dispatcher skill
+- `.mcp.json` + `.vscode/mcp.json` — MCP server configuration
+- `.claude/settings.local.json` — MCP permission allowlist
 
 **Key invariant**: All operations are idempotent. Existing content outside
 CLASI-delimited sections is preserved.
 
-**Use cases served**: Project initialization.
-
-### MCP Server
+### MCP Server (`mcp_server.py`, 41 LOC)
 
 **Purpose**: Hosts the FastMCP server instance and resolves paths to
 bundled content.
 
 **Boundary**: Owns the server singleton and content path resolution. Does
 not define any tools itself — tool registration happens via import side
-effects at server startup.
+effects when `process_tools` and `artifact_tools` are imported at startup.
 
 **Interactions**: Imported by Process Tools and Artifact Tools to register
-tools against the server singleton.
+tools against the server singleton via `@mcp_server.tool` decorators.
 
-**Use cases served**: All AI agent interactions.
+### Process Tools (`process_tools.py`, 357 LOC)
 
-### Process Tools
-
-**Purpose**: Serves the bundled SE process content (agents, skills,
-instructions) to AI agents.
+**Purpose**: Serves bundled SE process content to AI agents.
 
 **Boundary**: Read-only access to the installed package's content
 directories. Does not write to the filesystem or modify project state.
 
-**Interface**: Exposes 10 MCP tools — content listing by category and
-content retrieval by name. One composite tool (`get_activity_guide`)
-assembles a curated response from multiple content sources for a given SE
-activity.
+**Interface** (13 MCP tools):
+- Content listing: `list_agents`, `list_skills`, `list_instructions`,
+  `list_language_instructions`
+- Content retrieval: `get_agent_definition`, `get_skill_definition`,
+  `get_instruction`, `get_language_instruction`
+- Composite: `get_se_overview`, `get_activity_guide`,
+  `get_use_case_coverage`, `get_version`
 
-**Use cases served**: Agent retrieves process guidance, activity workflows,
-and SE instructions.
-
-### Artifact Tools
+### Artifact Tools (`artifact_tools.py`, 1681 LOC)
 
 **Purpose**: Manages project planning artifacts — sprints, tickets, TODOs,
-and the project overview.
+architecture documents, and the project overview.
 
 **Boundary**: Reads and writes files under `docs/plans/` in the project
 repository. Interacts with the State Database for lifecycle enforcement.
+This is the largest module and the one most likely to need decomposition
+in the future.
 
-**Interface**: Exposes 19 MCP tools covering sprint and ticket CRUD, sprint
-lifecycle state transitions, review gate recording, execution lock
-management, and version tagging.
+**Interface** (21 MCP tools):
+- Sprint CRUD: `create_sprint`, `insert_sprint`, `list_sprints`,
+  `get_sprint_status`, `close_sprint`
+- Ticket CRUD: `create_ticket`, `list_tickets`, `update_ticket_status`,
+  `move_ticket_to_done`, `reopen_ticket`
+- Lifecycle: `get_sprint_phase`, `advance_sprint_phase`,
+  `record_gate_result`, `acquire_execution_lock`, `release_execution_lock`
+- Artifacts: `create_overview`, `read_artifact_frontmatter`,
+  `write_artifact_frontmatter`
+- TODO: `list_todos`, `move_todo_to_done`
+- Review: `review_sprint_pre_execution`, `review_sprint_pre_close`,
+  `review_sprint_post_close`
+- Release: `tag_version`
+- External: `create_github_issue`
 
-**Interactions**: Depends on Frontmatter, Templates, State Database, and
-Versioning.
-
-**Use cases served**: All planning artifact management, sprint lifecycle
-management, GitHub issue creation.
-
-### State Database
+### State Database (`state_db.py`, 454 LOC)
 
 **Purpose**: Enforces the sprint lifecycle state machine.
 
@@ -150,73 +191,191 @@ management, GitHub issue creation.
 (`.clasi.db`). No MCP decorators, no filesystem operations beyond the
 database file.
 
-**Sprint phases** (in order):
-`planning-docs` → `architecture-review` → `stakeholder-review` →
-`ticketing` → `executing` → `closing` → `done`
-
-**Interactions**: Used exclusively by Artifact Tools. Never accessed
-directly by AI agents.
-
 **Key invariants**:
 - Phase transitions are linear — phases cannot be skipped or reversed.
 - Review gates must be recorded as `passed` before advancing past review
   phases.
 - Only one sprint may hold the execution lock at a time.
 
-**Use cases served**: Sprint lifecycle enforcement, concurrent sprint
-prevention.
+### Frontmatter (`frontmatter.py`, 76 LOC)
 
-### Shared Utilities
+**Purpose**: Reads and writes YAML frontmatter in markdown files.
 
-Three leaf modules with no internal dependencies:
+**Boundary**: Operates on individual file paths. No knowledge of document
+types, sprints, or project structure. Pure utility.
 
-- **Frontmatter** — Reads and writes YAML frontmatter in markdown files.
-- **Templates** — Provides content templates for sprint, ticket, and
-  overview markdown files. Includes filename slugification.
-- **Versioning** — Computes date-based versions from git tags and updates
-  `pyproject.toml`.
+### Templates (`templates.py`, 42 LOC)
 
-**Bundled Content** (`agents/`, `skills/`, `instructions/`) — Static
-markdown files shipped with the package that define the SE process. Served
-by Process Tools via the MCP Server's content path resolver.
+**Purpose**: Provides content templates for sprint, ticket, architecture,
+and overview markdown files.
+
+**Boundary**: Loads template files from `templates/` directory at import
+time. Includes `slugify()` for filename generation. Templates use Python
+`str.format()` placeholders.
+
+**Templates** (6): sprint, sprint-brief, sprint-usecases,
+sprint-architecture, ticket, overview.
+
+### TODO Split (`todo_split.py`, 103 LOC)
+
+**Purpose**: Splits multi-heading TODO files into individual files.
+
+**Boundary**: Operates on a directory of markdown files. Standalone utility
+with no dependencies on other CLASI modules.
+
+### Versioning (`versioning.py`, 118 LOC)
+
+**Purpose**: Computes date-based versions from git tags and updates version
+files.
+
+**Boundary**: Reads git tags via subprocess, writes to `pyproject.toml` or
+`package.json`. Creates git tags.
+
+### Bundled Content (`agents/`, `skills/`, `instructions/`)
+
+Static markdown files shipped with the package that define the SE process:
+
+- **9 agents**: architect, architecture-reviewer, code-reviewer,
+  documentation-expert, product-manager, project-manager, python-expert,
+  requirements-analyst, technical-lead
+- **17 skills**: plan-sprint, execute-ticket, close-sprint,
+  create-tickets, elicit-requirements, project-initiation, and 11 others
+- **5 instructions**: software-engineering, architectural-quality,
+  coding-standards, git-workflow, testing
+- **Language instructions**: per-language coding standards in
+  `instructions/languages/`
+
+Served by Process Tools via the MCP Server's content path resolver.
 
 ## Data Model
 
 ### Sprint Lifecycle (SQLite)
 
-Three entities are tracked in the state database:
+```mermaid
+erDiagram
+    Sprint ||--o{ SprintGate : "has review gates"
+    Sprint ||--o| ExecutionLock : "may hold"
 
-- **Sprint** — Identified by sprint ID. Records the current lifecycle phase,
-  the git branch, and timestamps. Advances through seven phases in sequence.
-- **Sprint Gate** — A pass/fail result for a named review gate
-  (`architecture_review` or `stakeholder_approval`). Gates must be `passed`
-  before the sprint can advance past the corresponding review phase.
-- **Execution Lock** — A singleton enforcing that at most one sprint is in
-  the `executing` phase at any time. Acquired before entering `executing`;
-  released automatically at sprint close.
+    Sprint {
+        string id PK "e.g., 017"
+        string phase "current lifecycle phase"
+        string branch "git branch name"
+        datetime created_at
+        datetime updated_at
+    }
+
+    SprintGate {
+        string sprint_id FK
+        string gate_name "architecture_review | stakeholder_approval"
+        string result "passed | failed"
+        string notes
+        datetime recorded_at
+    }
+
+    ExecutionLock {
+        string sprint_id FK "singleton — at most one"
+        datetime acquired_at
+    }
+```
+
+### Sprint Phase State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> planning_docs: create_sprint()
+    planning_docs --> architecture_review: advance_sprint_phase()
+    architecture_review --> stakeholder_review: advance_sprint_phase()
+    stakeholder_review --> ticketing: advance_sprint_phase()
+    ticketing --> executing: advance_sprint_phase()
+    executing --> closing: advance_sprint_phase()
+    closing --> done: close_sprint()
+    done --> [*]
+```
+
+Gates required before transitions:
+- `architecture_review` → `stakeholder_review`: `architecture_review` gate
+  must be `passed`
+- `stakeholder_review` → `ticketing`: `stakeholder_approval` gate must be
+  `passed`
+- `ticketing` → `executing`: execution lock must be acquired
 
 ### Markdown Artifacts
 
 All planning artifacts use YAML frontmatter for machine-readable metadata,
 with a markdown body for human and AI consumption:
 
-| Artifact | Key Metadata |
-|----------|-------------|
-| Sprint | id, title, status, git branch, use case references |
-| Ticket | id, title, status, use case references, dependencies |
-| Architecture | version, status, sprint, description |
-| TODO | status |
+| Artifact | Location | Key Metadata |
+|----------|----------|-------------|
+| Sprint | `docs/plans/sprints/NNN-slug/sprint.md` | id, title, status, branch, use-cases |
+| Architecture | `docs/plans/sprints/NNN-slug/architecture.md` | version, status, sprint |
+| Use Cases | `docs/plans/sprints/NNN-slug/usecases.md` | status |
+| Ticket | `docs/plans/sprints/NNN-slug/tickets/NNN-slug.md` | id, title, status, use-cases, depends-on |
+| TODO | `docs/plans/todo/name.md` | status |
+| Overview | `docs/plans/overview.md` | status |
+
+## Dependency Graph
+
+```mermaid
+graph TD
+    cli["CLI"] -->|lazy import| init_cmd["Init Command"]
+    cli -->|lazy import| mcp_srv["MCP Server"]
+    cli -->|lazy import| todo_split["TODO Split"]
+
+    mcp_srv -->|registers tools| process["Process Tools"]
+    mcp_srv -->|registers tools| artifact["Artifact Tools"]
+
+    process -->|reads files| content["Bundled Content"]
+    artifact -->|imports| fm["Frontmatter"]
+    artifact -->|imports| tmpl["Templates"]
+    artifact -->|imports| db["State DB"]
+    artifact -->|imports| ver["Versioning"]
+
+    init_cmd -->|reads files| content
+
+    style cli fill:#f0f0f0
+    style mcp_srv fill:#e8f4fd
+    style process fill:#e8f4fd
+    style artifact fill:#e8f4fd
+    style fm fill:#f0f8e8
+    style tmpl fill:#f0f8e8
+    style db fill:#f0f8e8
+    style ver fill:#f0f8e8
+    style content fill:#fef3e0
+    style init_cmd fill:#f0f0f0
+    style todo_split fill:#f0f0f0
+```
+
+**Dependency analysis**:
+- **No cycles.** All dependencies flow downward from CLI → implementation →
+  shared utilities.
+- **Fan-out**: Artifact Tools has 4 dependencies (Frontmatter, Templates,
+  State DB, Versioning) — at the upper end but justified by its role as the
+  primary read-write module.
+- **Stable core**: The shared modules (Frontmatter, Templates, State DB,
+  Versioning) are the most depended-upon and the most stable — they change
+  infrequently.
+- **Isolation**: Init Command, TODO Split, and the MCP runtime are
+  completely independent of each other. Init Command doesn't even share
+  modules with the MCP path — it reads bundled content directly.
+
+**Known concern**: Artifact Tools at 1,681 LOC is the largest module by a
+wide margin and has the highest fan-out. It bundles sprint management,
+ticket management, TODO management, review tools, GitHub integration, and
+version tagging. While cohesive in the sense that all operations target
+`docs/plans/`, it handles too many concerns and would benefit from
+decomposition in a future sprint.
 
 ## Security Considerations
 
 - The MCP server runs as a local subprocess over stdio — no network
   exposure.
-- The state database is a local SQLite file with no authentication.
-  It is gitignored.
+- The state database is a local SQLite file with no authentication. It is
+  gitignored (`.clasi.db`).
 - `init_command` preserves existing file content outside CLASI-delimited
   sections.
-- GitHub issue creation uses `GITHUB_TOKEN` when available, falling back
-  to the `gh` CLI.
+- GitHub issue creation uses `GITHUB_TOKEN` when available, falling back to
+  the `gh` CLI. The token is read from environment variables, never stored
+  in project files.
 
 ## Design Rationale
 
@@ -226,16 +385,16 @@ with a markdown body for human and AI consumption:
 server rather than file-based skill stubs.
 
 **Context**: The original approach wrote individual skill files into the
-target project's `.claude/skills/` directory. This required `init` to
-manage many files and created a maintenance burden whenever skills changed.
+target project's `.claude/skills/` directory. This required `init` to manage
+many files and created a maintenance burden whenever skills changed.
 
 **Alternatives**: (1) File-based skill stubs (original), (2) Monolithic
 `AGENTS.md`, (3) MCP server.
 
 **Why MCP**: Skills and agents can be updated by upgrading the package
 without re-running `init`. The MCP protocol is the standard interface for
-AI agent tool access. A single `/se` dispatcher stub is the only file
-`init` needs to write.
+AI agent tool access. A single `/se` dispatcher stub is the only file `init`
+needs to write.
 
 **Consequences**: Requires the MCP server to be running for AI agents to
 access process content. Adds `mcp` as a dependency.
@@ -252,9 +411,9 @@ reliably guarantee.
 **Alternatives**: (1) Frontmatter-only status tracking, (2) JSON state
 file, (3) SQLite.
 
-**Why SQLite**: Atomic transactions, constraint enforcement (singleton
-lock, unique gates), zero additional dependencies (stdlib). Local-only
-state is appropriate since sprint state is per-clone.
+**Why SQLite**: Atomic transactions, constraint enforcement (singleton lock,
+unique gates), zero additional dependencies (stdlib). Local-only state is
+appropriate since sprint state is per-clone.
 
 **Consequences**: State is local to each clone. Sprint phase must be
 re-registered if the database is lost.
@@ -264,42 +423,54 @@ re-registered if the database is lost.
 **Decision**: Use `<major>.<YYYYMMDD>.<build>` version format.
 
 **Context**: Traditional semver doesn't suit a process tool where the
-distinction between patch/minor/major is ambiguous and changes are
-frequent.
+distinction between patch/minor/major is ambiguous and changes are frequent.
 
 **Alternatives**: (1) Semver, (2) CalVer (YYYY.MM.DD), (3) Custom
 date-based.
 
 **Why this format**: Clear date signal in the version string,
-auto-incrementing build number prevents same-day conflicts, major
-version reserved for breaking changes.
+auto-incrementing build number prevents same-day conflicts, major version
+reserved for breaking changes.
 
 ### DR-004: Inline CLASI into CLAUDE.md
 
-**Decision**: Write the CLASI process block directly into CLAUDE.md
-instead of using `@AGENTS.md` indirection.
+**Decision**: Write the CLASI process block directly into CLAUDE.md instead
+of using `@AGENTS.md` indirection. (Sprint 017)
 
-**Context**: Agents repeatedly ignored process instructions. Two
-reflections documented the same root cause: instructions in AGENTS.md
-were deprioritized because CLAUDE.md is the primary file agents read
-first. The `@AGENTS.md` reference added indirection that reduced the
-instructions' priority in the agent's context.
+**Context**: Agents repeatedly ignored process instructions. Two reflections
+documented the same root cause: instructions in AGENTS.md were deprioritized
+because CLAUDE.md is the primary file agents read first.
 
 **Alternatives**: (1) Keep `@AGENTS.md` (status quo), (2) Inline into
 CLAUDE.md, (3) Use hooks to force tool calls.
 
 **Why inline**: CLAUDE.md is loaded first and directly into agent context.
-No indirection means the process instructions have maximum priority.
-The `<!-- CLASI:START/END -->` markers already exist for section
-replacement, so the same update mechanism works in either file.
+No indirection means the process instructions have maximum priority. The
+`<!-- CLASI:START/END -->` markers already exist for section replacement, so
+the same update mechanism works in either file.
 
-**Consequences**: CLAUDE.md becomes larger. Projects that have custom
-AGENTS.md content unrelated to CLASI are unaffected (init stops touching
-AGENTS.md). The `agents-section.md` init template is kept as the single
-source of truth for the CLASI block content — it is used by
-`_update_claude_md` to write into CLAUDE.md, just as it was previously
-used by `_update_agents_md` to write into AGENTS.md. The `claude-md.md`
-template (which contained only `@AGENTS.md`) is deleted.
+**Consequences**: CLAUDE.md becomes larger. The `agents-section.md` init
+template is kept as the single source of truth for the CLASI block content.
+
+### DR-005: Process Reminders in Document Templates
+
+**Decision**: Embed a one-line HTML comment in every document template
+reminding agents to consult the SE process. (Sprint 017)
+
+**Context**: Agents lose track of process instructions as their context
+fills with sprint documents, tickets, and code. By the time they're reading
+a ticket, the CLAUDE.md instructions may have faded from active context.
+
+**Alternatives**: (1) Rely solely on CLAUDE.md/AGENTS.md, (2) Add reminders
+to templates, (3) Use hooks to enforce.
+
+**Why templates**: Zero-cost redundancy — the reminder is an HTML comment
+invisible to human readers but visible to agents. Placed at the point where
+agents are actively reading planning artifacts, maximizing the chance they
+see it when it matters.
+
+**Consequences**: Minimal — one line per template. Does not clutter human
+reading experience since it's an HTML comment.
 
 ## Open Questions
 
@@ -307,31 +478,21 @@ None.
 
 ## Sprint Changes
 
-Changes planned for sprint 017:
+Changes made in sprint 017:
 
 ### Changed Components
 
 **Init Command** — Modified to write the CLASI section into CLAUDE.md
-instead of AGENTS.md. The `_update_agents_md` function is replaced with
-`_update_claude_md` which uses the same marker-based replacement logic
-but targets CLAUDE.md. The `_create_claude_md` function is removed (its
-role is absorbed by `_update_claude_md`). The `claude-md.md` template
-is no longer needed.
+instead of AGENTS.md. The `_update_agents_md` function was replaced with
+`_update_claude_md`. The `_create_claude_md` function was removed. The
+`claude-md.md` template was deleted.
 
 **Templates** — All four document templates (`sprint.md`,
-`sprint-architecture.md`, `ticket.md`, `sprint-usecases.md`) gain a
-single HTML comment line reminding agents to consult the SE process.
+`sprint-architecture.md`, `ticket.md`, `sprint-usecases.md`) gained a
+single HTML comment reminding agents to consult the SE process.
 
 ### Migration Concerns
 
-Non-breaking. For existing projects that were initialized with the old
-version:
-
-- **CLAUDE.md has `@AGENTS.md` but no CLASI markers**: `_update_claude_md`
-  appends the CLASI block with markers. The `@AGENTS.md` line remains
-  (harmless — it still works). Users can manually remove it.
-- **CLAUDE.md has CLASI markers**: Section is replaced in place (same
-  behavior as AGENTS.md updates today).
-- **No CLAUDE.md**: Created fresh with the CLASI block.
-- **Existing AGENTS.md**: Not modified. The old CLASI section in AGENTS.md
-  remains but is redundant. No cleanup is performed by init.
+Non-breaking. Re-running `clasi init` on an existing project appends the
+CLASI block to CLAUDE.md (or replaces it if markers exist). The old
+AGENTS.md is not modified.
