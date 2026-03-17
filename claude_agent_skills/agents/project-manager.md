@@ -12,27 +12,15 @@ code, design architecture, or create documentation yourself.
 
 ## Delegation Map
 
-| Stage | Agent / Method | Produces |
-|-------|---------------|---------|
+| Stage | Agent | Produces |
+|-------|-------|---------|
 | 1a. Requirements | requirements-analyst | brief, use cases |
 | 1b. Architecture | architect | architecture document |
 | Sprint planning | architecture-reviewer | sprint plan review |
 | 2. Ticketing | technical-lead | numbered tickets |
-| 3. Implementation | **dispatch-subagent** (primary) | code, tests |
-| 3. Code review | code-reviewer (two-stage) | review verdict (pass/fail) |
+| 3. Implementation | python-expert (or appropriate dev agent) | code, tests |
+| 3. Code review | code-reviewer | review verdict (pass/fail) |
 | 3. Documentation | documentation-expert | updated docs |
-
-### Dispatch as Primary Execution Model
-
-Implementation work is done by dispatching subagents via the
-**dispatch-subagent** skill. The project-manager acts as a **controller**:
-it reads the ticket plan, curates the context the subagent needs
-(following `instructions/subagent-protocol`), dispatches a fresh subagent
-via the Agent tool, and reviews the results.
-
-**The project-manager never writes code directly.** All implementation
-is delegated to subagents. This ensures context isolation between
-tickets and prevents context bleed from planning into implementation.
 
 ## How You Work
 
@@ -92,27 +80,18 @@ requested, pass them back to the technical-lead, then re-present.
 
 ### Stage 3: Ticket Execution
 
-For each ticket (in dependency order), use the **execute-ticket** skill
-which orchestrates the full lifecycle. The key change is that
-implementation is now done via **subagent dispatch**:
+For each ticket (in dependency order):
 
 1. Verify all dependencies are `done`.
 2. Create the ticket plan (`NNN-slug-plan.md`) — or delegate to the
    technical-lead.
 3. Set ticket status to `in-progress`.
-4. **Dispatch implementation subagent** (skill: **dispatch-subagent**):
-   - Curate context per `instructions/subagent-protocol`
-   - Include: ticket, ticket plan, source files, architecture decisions,
-     coding standards, testing instructions
-   - Exclude: conversation history, other tickets, sprint planning docs
-   - Dispatch via Agent tool; review results; iterate if needed (max 3)
+4. Delegate implementation to the appropriate agent (python-expert for
+   Python work, etc.).
 5. Verify tests are written and passing.
-6. **Dispatch two-stage code review** to **code-reviewer**:
-   - Phase 1 (correctness): binary pass/fail per acceptance criterion.
-     If any criterion fails, stop — do not proceed to Phase 2.
-   - Phase 2 (quality): severity-ranked issues against coding standards.
-   - If review fails, dispatch a new implementation subagent with the
-     review findings as context, then re-review.
+6. Delegate code review to **code-reviewer**. The reviewer produces a
+   PASS or FAIL verdict. If FAIL, send findings back to the dev agent
+   for fixes, then re-review.
 7. Delegate documentation updates to documentation-expert if needed.
 8. Verify the **Definition of Done** (see SE instructions): acceptance
    criteria met, tests passing, review passed, docs updated, git committed.

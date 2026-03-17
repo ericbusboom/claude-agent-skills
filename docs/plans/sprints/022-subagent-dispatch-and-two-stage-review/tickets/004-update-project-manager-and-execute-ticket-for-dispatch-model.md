@@ -1,7 +1,7 @@
 ---
 id: "004"
 title: "Update project-manager and execute-ticket for dispatch model"
-status: done
+status: todo
 use-cases: [SUC-001]
 depends-on: ["001", "002"]
 ---
@@ -35,11 +35,11 @@ Both files should reference `dispatch-subagent` skill and
 
 ## Acceptance Criteria
 
-- [x] `agents/project-manager.md` uses dispatch as the primary execution model
-- [x] `skills/execute-ticket.md` dispatches a subagent instead of persona switching
-- [x] Both files reference the dispatch-subagent skill
-- [x] Both files reference the subagent-protocol instruction
-- [x] Two-stage review is invoked on subagent output in execute-ticket flow
+- [ ] `agents/project-manager.md` uses dispatch as the primary execution model
+- [ ] `skills/execute-ticket.md` dispatches a subagent instead of persona switching
+- [ ] Both files reference the dispatch-subagent skill
+- [ ] Both files reference the subagent-protocol instruction
+- [ ] Two-stage review is invoked on subagent output in execute-ticket flow
 
 ## Testing
 
