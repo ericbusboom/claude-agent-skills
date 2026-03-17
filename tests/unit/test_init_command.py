@@ -7,6 +7,7 @@ import pytest
 from claude_agent_skills.init_command import (
     run_init,
     MCP_CONFIG,
+    HOOKS_CONFIG,
     VSCODE_MCP_CONFIG,
     _SE_SKILL_PATH,
     _AGENTS_SECTION_PATH,
@@ -293,3 +294,96 @@ class TestClaudeMd:
         section = _AGENTS_SECTION_PATH.read_text(encoding="utf-8")
         assert "Never merge a sprint branch without archiving" in section
         assert "Never leave a sprint branch dangling" in section
+
+
+class TestHooksConfig:
+    def test_init_creates_hooks_in_settings(self, target_dir):
+        """Init creates UserPromptSubmit hook in settings.local.json."""
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        assert settings_path.exists()
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        assert "hooks" in data
+        assert "UserPromptSubmit" in data["hooks"]
+        hooks = data["hooks"]["UserPromptSubmit"]
+        assert len(hooks) == 1
+        assert hooks[0]["type"] == "command"
+        assert "get_se_overview()" in hooks[0]["command"]
+
+    def test_hooks_idempotent(self, target_dir):
+        """Running init twice does not duplicate the hook entry."""
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        hooks = data["hooks"]["UserPromptSubmit"]
+        assert len(hooks) == 1
+
+    def test_hooks_preserve_existing_settings(self, target_dir):
+        """Hook installation preserves existing permissions and other keys."""
+        target_dir.mkdir()
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        existing = {
+            "permissions": {"allow": ["Bash(*)"]},
+            "other": "kept",
+        }
+        settings_path.write_text(json.dumps(existing), encoding="utf-8")
+
+        run_init(str(target_dir))
+
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        # Permissions are preserved and extended
+        assert "Bash(*)" in data["permissions"]["allow"]
+        assert "mcp__clasi__*" in data["permissions"]["allow"]
+        # Other top-level keys are preserved
+        assert data["other"] == "kept"
+        # Hooks are added
+        assert "hooks" in data
+        hooks = data["hooks"]["UserPromptSubmit"]
+        assert len(hooks) == 1
+        assert hooks[0] == HOOKS_CONFIG["UserPromptSubmit"][0]
+
+    def test_hooks_correct_format(self, target_dir):
+        """Hook entry matches the HOOKS_CONFIG constant exactly."""
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        hooks = data["hooks"]["UserPromptSubmit"]
+        assert hooks == HOOKS_CONFIG["UserPromptSubmit"]
+
+    def test_hooks_preserve_existing_hooks(self, target_dir):
+        """Hook installation preserves other existing hook entries."""
+        target_dir.mkdir()
+        settings_path = target_dir / ".claude" / "settings.local.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        existing_hook = {
+            "type": "command",
+            "command": "echo 'other hook'",
+        }
+        existing = {
+            "hooks": {
+                "UserPromptSubmit": [existing_hook],
+                "PreToolUse": [{"type": "command", "command": "echo pre"}],
+            }
+        }
+        settings_path.write_text(json.dumps(existing), encoding="utf-8")
+
+        run_init(str(target_dir))
+
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        # Other hook event types are preserved
+        assert data["hooks"]["PreToolUse"] == [
+            {"type": "command", "command": "echo pre"}
+        ]
+        # Existing UserPromptSubmit hook is preserved alongside CLASI hook
+        ups_hooks = data["hooks"]["UserPromptSubmit"]
+        assert len(ups_hooks) == 2
+        assert existing_hook in ups_hooks
+        assert HOOKS_CONFIG["UserPromptSubmit"][0] in ups_hooks
