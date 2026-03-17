@@ -6,13 +6,14 @@ description: Executes a single implementation ticket through the full lifecycle 
 # Execute Ticket Skill
 
 This skill takes a ticket through its full lifecycle from planning to
-completion, coordinating multiple agents.
+completion, coordinating subagent dispatch and two-stage review.
 
-## Agents Used
+## Agents and Skills Used
 
 - **technical-lead** — creates the ticket plan
-- **python-expert** (or appropriate dev agent) — implements the code
-- **code-reviewer** — reviews the implementation
+- **dispatch-subagent** skill — dispatches isolated implementation subagent
+- **subagent-protocol** instruction — context curation rules for dispatch
+- **code-reviewer** — two-stage review (correctness then quality)
 - **documentation-expert** — updates documentation
 
 ## Inputs
@@ -32,29 +33,51 @@ completion, coordinating multiple agents.
    - Testing plan (test type, verification strategy)
    - Documentation updates needed
 3. **Set in-progress**: Update the ticket's `status` to `in-progress`.
-4. **Implement**: Write the code following the plan. Use the appropriate
-   development agent (python-expert for Python work, etc.).
-   If TDD is appropriate for this ticket (well-defined interfaces, complex
-   logic, bug fixes), consider using the `tdd-cycle` skill for the
-   implementation phase. TDD is optional — the agent or stakeholder may
-   choose it when it fits, but it is not the default.
+4. **Dispatch implementation subagent** (skill: **dispatch-subagent**):
+   Curate context following `instructions/subagent-protocol`, then dispatch
+   a fresh subagent via the Agent tool. The controller (this skill) does
+   NOT write code directly — all implementation is delegated.
+
+   **Context to include** (per subagent-protocol):
+   - Ticket description and acceptance criteria
+   - Ticket plan (approach, files to modify, testing plan)
+   - Content of source files the subagent will read or modify
+   - Relevant architecture decisions from the sprint's `architecture.md`
+   - Coding standards from `instructions/coding-standards`
+   - Testing instructions from `instructions/testing`
+   - Git workflow from `instructions/git-workflow`
+
+   **Context to exclude** (per subagent-protocol):
+   - Controller's conversation history
+   - Other tickets in the sprint
+   - Debug logs from prior attempts
+   - Full directory listings
+   - Sprint-level planning documents (sprint.md, usecases.md)
+
+   After the subagent returns, review the results: read modified files,
+   check against acceptance criteria, verify tests pass. If issues are
+   found, dispatch a new subagent with feedback (max 3 iterations).
+
 5. **Write tests**: Read the ticket's `## Testing` section for guidance
    on which new tests to write and where to place them. Create tests as
    specified, following the testing instructions (unit tests in
    `tests/unit/`, system tests in `tests/system/`, dev tests in
-   `tests/dev/`).
+   `tests/dev/`). Tests may be written by the implementation subagent
+   as part of step 4, or dispatched separately.
 6. **Run tests**: Execute the verification command from the ticket's
    `## Testing` section (default: `uv run pytest`). Also run any existing
    tests listed in the Testing section to verify no regressions. All tests
    must pass.
-7. **Code review** (agent: **code-reviewer**): Delegate review to the
-   code-reviewer agent, which checks:
-   - Coding standards (`instructions/coding-standards.md`)
-   - Security (no injection, no secrets, safe input handling)
-   - Test coverage (every acceptance criterion has a corresponding test)
-   - Acceptance criteria (does the code actually satisfy them?)
-   The reviewer produces a PASS or FAIL verdict. If FAIL, fix the critical
-   findings and request re-review. Do not proceed until the review passes.
+7. **Two-stage code review** (agent: **code-reviewer**): Dispatch or
+   delegate review to the code-reviewer agent, which performs:
+   - **Phase 1 — Correctness**: Binary pass/fail per acceptance criterion.
+     If any criterion fails, Phase 1 fails and review stops immediately.
+   - **Phase 2 — Quality** (only if Phase 1 passes): Issues ranked by
+     severity (critical, major, minor, suggestion) against coding standards.
+   The reviewer uses the `templates/review-checklist` template for
+   structured output. If the review fails, dispatch a new implementation
+   subagent with the review findings as context, then request re-review.
+   Do not proceed until the review passes.
 8. **Update documentation** (skill: **generate-documentation**): Update any
    docs specified in the plan. Delegate to documentation-expert.
 9. **Verify acceptance criteria**: Check every criterion in the ticket.
