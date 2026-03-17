@@ -1,7 +1,7 @@
 ---
 id: "002"
 title: "Create systematic-debugging skill definition"
-status: todo
+status: in-progress
 use-cases: [SUC-002]
 depends-on: []
 ---
