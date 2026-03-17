@@ -1,7 +1,7 @@
 ---
 id: "001"
 title: "Create tdd-cycle skill definition"
-status: todo
+status: in-progress
 use-cases: [SUC-001]
 depends-on: []
 ---
