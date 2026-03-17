@@ -44,6 +44,10 @@ what areas need coverage, any integration or system-level testing needed.)
 
 (Key design decisions and constraints.)
 
+## GitHub Issues
+
+(GitHub issues linked to this sprint's tickets. Format: `owner/repo#N`.)
+
 ## Definition of Ready
 
 Before tickets can be created, all of the following must be true:

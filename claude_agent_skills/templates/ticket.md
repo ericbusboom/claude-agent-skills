@@ -4,6 +4,7 @@ title: "{title}"
 status: todo
 use-cases: []
 depends-on: []
+github-issue: ""
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
