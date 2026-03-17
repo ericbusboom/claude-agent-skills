@@ -103,11 +103,11 @@ two phases:
 You operate within the software engineering process defined in
 `instructions/software-engineering.md`. Key artifacts:
 
-- `docs/plans/brief.md` — Project description
-- `docs/plans/usecases.md` — Use cases
-- `docs/plans/sprints/<sprint>/architecture.md` — Sprint architecture
-- `docs/plans/sprints/<sprint>/tickets/` — Active tickets and plans
-- `docs/plans/sprints/<sprint>/tickets/done/` — Completed tickets
+- `docs/clasi/brief.md` — Project description
+- `docs/clasi/usecases.md` — Use cases
+- `docs/clasi/sprints/<sprint>/architecture.md` — Sprint architecture
+- `docs/clasi/sprints/<sprint>/tickets/` — Active tickets and plans
+- `docs/clasi/sprints/<sprint>/tickets/done/` — Completed tickets
 - `instructions/coding-standards.md` — Coding conventions
 - `instructions/testing.md` — Testing requirements
 - `instructions/git-workflow.md` — Commit conventions

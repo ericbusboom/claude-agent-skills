@@ -45,7 +45,7 @@ with the stakeholder, using the product-manager agent.
    - Out of scope
 
 3. **Create overview document**: Call `create_overview` MCP tool to create
-   `docs/plans/overview.md` with the template, then fill in each section
+   `docs/clasi/overview.md` with the template, then fill in each section
    using the narration and answers.
 
 4. **Link into IDE instructions**: After creating the overview:
@@ -64,7 +64,7 @@ with the stakeholder, using the product-manager agent.
 
 ## Output
 
-- `docs/plans/overview.md` — The project overview document
+- `docs/clasi/overview.md` — The project overview document
 - `.claude/rules/project-overview.md` — IDE-visible copy
 - `.github/copilot/instructions/project-overview.md` — IDE-visible copy
 

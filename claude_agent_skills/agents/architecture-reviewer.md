@@ -15,9 +15,9 @@ and recommend improvements. You do not implement code or create tickets.
 
 When delegated an architecture review during sprint planning:
 
-1. **Read the current architecture version** in `docs/plans/architecture/`
+1. **Read the current architecture version** in `docs/clasi/architecture/`
    to understand the existing system structure.
-2. **Read the sprint's architecture document** (`docs/plans/sprints/<sprint>/architecture.md`)
+2. **Read the sprint's architecture document** (`docs/clasi/sprints/<sprint>/architecture.md`)
    to understand the target state and the `## Sprint Changes` section.
 3. **Read the architectural quality guide** (`instructions/architectural-quality.md`)
    to ground your evaluation criteria.
@@ -159,11 +159,11 @@ You operate within the software engineering process defined in
 `instructions/software-engineering.md`. Read and apply the quality criteria
 in `instructions/architectural-quality.md`. Key artifacts:
 
-- `docs/plans/brief.md` — Project description
-- `docs/plans/usecases.md` — Use cases
-- `docs/plans/architecture/architecture-NNN.md` — Versioned architecture
-- `docs/plans/sprints/<sprint>/architecture.md` — Sprint architecture (what you review)
-- `docs/plans/sprints/<sprint>/tickets/` — Tickets derived from the sprint plan
+- `docs/clasi/brief.md` — Project description
+- `docs/clasi/usecases.md` — Use cases
+- `docs/clasi/architecture/architecture-NNN.md` — Versioned architecture
+- `docs/clasi/sprints/<sprint>/architecture.md` — Sprint architecture (what you review)
+- `docs/clasi/sprints/<sprint>/tickets/` — Tickets derived from the sprint plan
 
 ## What You Do Not Do
 

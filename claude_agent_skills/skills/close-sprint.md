@@ -14,13 +14,13 @@ the sprint branch, and archive the sprint document.
 
 ## Inputs
 
-- Active sprint directory in `docs/plans/sprints/NNN-slug/`
+- Active sprint directory in `docs/clasi/sprints/NNN-slug/`
 - All tickets for this sprint should be `done`
 
 ## Process
 
 1. **Identify the sprint**: Read active sprint directories from
-   `docs/plans/sprints/`. If multiple sprints are active, select from those that
+   `docs/clasi/sprints/`. If multiple sprints are active, select from those that
    have all of their tickets done, then select the one with the lowest number. 
 
 2. **Verify all tickets are done**: Read each ticket in the sprint's
@@ -72,22 +72,22 @@ the sprint branch, and archive the sprint document.
 9. **Version the architecture document**: Copy the sprint's
     `architecture.md` to the project architecture directory:
     ```
-    cp docs/plans/sprints/NNN-slug/architecture.md \
-       docs/plans/architecture/architecture-NNN.md
+    cp docs/clasi/sprints/NNN-slug/architecture.md \
+       docs/clasi/architecture/architecture-NNN.md
     ```
-    Move any previous architecture versions to `docs/plans/architecture/done/`:
+    Move any previous architecture versions to `docs/clasi/architecture/done/`:
     ```
-    mkdir -p docs/plans/architecture/done
-    mv docs/plans/architecture/architecture-*.md docs/plans/architecture/done/
-    cp docs/plans/sprints/NNN-slug/architecture.md \
-       docs/plans/architecture/architecture-NNN.md
+    mkdir -p docs/clasi/architecture/done
+    mv docs/clasi/architecture/architecture-*.md docs/clasi/architecture/done/
+    cp docs/clasi/sprints/NNN-slug/architecture.md \
+       docs/clasi/architecture/architecture-NNN.md
     ```
     (Move first, then copy the new one, so only the latest is at the top level.)
 
 10. **Close the sprint**: Call the `close_sprint` MCP tool. This
     atomically:
     - Updates the sprint document status to `done`
-    - Moves the sprint directory to `docs/plans/sprints/done/NNN-slug/`
+    - Moves the sprint directory to `docs/clasi/sprints/done/NNN-slug/`
     - Advances the state database phase to `done`
     - Releases the execution lock
 
@@ -111,6 +111,6 @@ the sprint branch, and archive the sprint document.
 ## Output
 
 - Sprint branch merged to main and deleted
-- Sprint document moved to `docs/plans/sprints/done/`
+- Sprint document moved to `docs/clasi/sprints/done/`
 - State database phase set to `done`, execution lock released
 - Sprint completion summary reported to stakeholder

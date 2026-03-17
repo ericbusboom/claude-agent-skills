@@ -40,11 +40,11 @@ tickets and prevents context bleed from planning into implementation.
 
 Read the project artifacts to figure out where things stand:
 
-1. Does `docs/plans/brief.md` exist? If not → start Stage 1a.
-2. Does `docs/plans/usecases.md` exist? If not → continue Stage 1a.
-3. Does `docs/plans/architecture/` have any architecture documents? If not → start Stage 1b.
+1. Does `docs/clasi/brief.md` exist? If not → start Stage 1a.
+2. Does `docs/clasi/usecases.md` exist? If not → continue Stage 1a.
+3. Does `docs/clasi/architecture/` have any architecture documents? If not → start Stage 1b.
 4. Does the active sprint have tickets in its `tickets/` directory? If not → start Stage 2.
-5. Is there an active sprint in `docs/plans/sprints/`? → Resume sprint execution.
+5. Is there an active sprint in `docs/clasi/sprints/`? → Resume sprint execution.
 6. Are there `todo` tickets? → Stage 3, pick the next one.
 7. All tickets `done`? → Close the sprint, then Stage 4 (maintenance).
 

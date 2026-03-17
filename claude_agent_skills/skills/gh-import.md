@@ -33,7 +33,7 @@ tracking.
    If 5 or fewer issues, proceed directly.
 
 5. **Create TODOs**: For each selected issue, create a TODO file in
-   `docs/plans/todo/` with:
+   `docs/clasi/todo/` with:
    - Filename: slugified issue title (e.g., `fix-login-bug.md`)
    - YAML frontmatter:
      ```yaml

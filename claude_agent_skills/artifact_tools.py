@@ -37,12 +37,24 @@ from claude_agent_skills.templates import (
 
 
 def _plans_dir() -> Path:
-    """Return the docs/plans/ directory relative to cwd."""
-    return Path.cwd() / "docs" / "plans"
+    """Return the docs/clasi/ directory relative to cwd.
+
+    Prefers docs/clasi/ (current name). Falls back to docs/plans/
+    (legacy name) if it exists and docs/clasi/ does not — and renames
+    it to docs/clasi/ so the migration happens automatically.
+    """
+    clasi = Path.cwd() / "docs" / "clasi"
+    if clasi.is_dir():
+        return clasi
+    legacy = Path.cwd() / "docs" / "plans"
+    if legacy.is_dir():
+        legacy.rename(clasi)
+        return clasi
+    return clasi
 
 
 def _sprints_dir() -> Path:
-    """Return the docs/plans/sprints/ directory."""
+    """Return the docs/clasi/sprints/ directory."""
     return _plans_dir() / "sprints"
 
 
@@ -138,7 +150,7 @@ def _next_ticket_id(sprint_dir: Path) -> str:
 def _find_latest_architecture() -> Path | None:
     """Find the most recent architecture document.
 
-    Looks for the top-level file in docs/plans/architecture/ (most recent
+    Looks for the top-level file in docs/clasi/architecture/ (most recent
     version). Returns None if no architecture documents exist.
     """
     arch_dir = _plans_dir() / "architecture"
@@ -159,7 +171,7 @@ def create_sprint(title: str) -> str:
     and tickets/ + tickets/done/ directories.
 
     The architecture document is copied from the most recent version in
-    docs/plans/architecture/. If none exists, a template is used.
+    docs/clasi/architecture/. If none exists, a template is used.
 
     Args:
         title: The sprint title (e.g., 'MCP Server Implementation')
@@ -488,7 +500,7 @@ def create_ticket(sprint_id: str, title: str) -> str:
 
 @server.tool()
 def create_overview() -> str:
-    """Create the top-level project overview (docs/plans/overview.md).
+    """Create the top-level project overview (docs/clasi/overview.md).
 
     This is the recommended way to start a new project. The overview
     replaces the separate brief, use cases, and architecture files
@@ -940,7 +952,7 @@ def release_execution_lock(sprint_id: str) -> str:
 
 
 def _todo_dir() -> Path:
-    """Return the docs/plans/todo/ directory."""
+    """Return the docs/clasi/todo/ directory."""
     return _plans_dir() / "todo"
 
 
@@ -948,7 +960,7 @@ def _todo_dir() -> Path:
 def list_todos() -> str:
     """List all active TODO files.
 
-    Scans docs/plans/todo/*.md (excludes done/ subdirectory).
+    Scans docs/clasi/todo/*.md (excludes done/ subdirectory).
 
     Returns JSON array of {filename, title}.
     """

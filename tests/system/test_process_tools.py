@@ -143,7 +143,7 @@ class TestParseParentRefs:
 class TestGetUseCaseCoverage:
     def _setup_project(self, tmp_path, *, top_level_ucs, sprints=None):
         """Create a project structure for use case coverage testing."""
-        plans = tmp_path / "docs" / "plans"
+        plans = tmp_path / "docs" / "clasi"
         plans.mkdir(parents=True)
 
         # Write top-level use cases
@@ -220,7 +220,7 @@ class TestGetUseCaseCoverage:
 
     def test_no_usecases_file(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        (tmp_path / "docs" / "plans").mkdir(parents=True)
+        (tmp_path / "docs" / "clasi").mkdir(parents=True)
         result = json.loads(get_use_case_coverage())
         assert result["total_use_cases"] == 0
         assert result["covered"] == []
@@ -228,7 +228,7 @@ class TestGetUseCaseCoverage:
 
     def test_empty_usecases_file(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
-        plans = tmp_path / "docs" / "plans"
+        plans = tmp_path / "docs" / "clasi"
         plans.mkdir(parents=True)
         (plans / "usecases.md").write_text("---\nstatus: draft\n---\n\n# Use Cases\n")
         result = json.loads(get_use_case_coverage())

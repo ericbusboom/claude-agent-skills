@@ -287,7 +287,11 @@ def get_use_case_coverage() -> str:
 
     Returns JSON with coverage data.
     """
-    plans_dir = Path.cwd() / "docs" / "plans"
+    plans_dir = Path.cwd() / "docs" / "clasi"
+    if not plans_dir.is_dir():
+        legacy = Path.cwd() / "docs" / "plans"
+        if legacy.is_dir():
+            legacy.rename(plans_dir)
     sprints_dir = plans_dir / "sprints"
 
     # Read top-level use cases

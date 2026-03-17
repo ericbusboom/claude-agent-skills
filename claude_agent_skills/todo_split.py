@@ -1,6 +1,6 @@
 """TODO file splitting logic for the clasi CLI.
 
-Splits markdown files in docs/plans/todo/ that contain multiple level-1
+Splits markdown files in docs/clasi/todo/ that contain multiple level-1
 headings into individual files, one per heading.
 """
 

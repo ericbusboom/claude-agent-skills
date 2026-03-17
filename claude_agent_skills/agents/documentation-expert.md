@@ -26,11 +26,11 @@ When assigned documentation work during ticket execution:
 You operate within the software engineering process defined in
 `instructions/software-engineering.md`. Key artifacts:
 
-- `docs/plans/brief.md` — Project description
-- `docs/plans/usecases.md` — Use cases
-- `docs/plans/architecture/` — Versioned architecture documents
-- `docs/plans/sprints/<sprint>/tickets/` — Active tickets and plans
-- `docs/plans/sprints/<sprint>/tickets/done/` — Completed tickets
+- `docs/clasi/brief.md` — Project description
+- `docs/clasi/usecases.md` — Use cases
+- `docs/clasi/architecture/` — Versioned architecture documents
+- `docs/clasi/sprints/<sprint>/tickets/` — Active tickets and plans
+- `docs/clasi/sprints/<sprint>/tickets/done/` — Completed tickets
 
 When updating documentation, ensure consistency with these artifacts.
 If a ticket changes architecture or behavior, the architecture document

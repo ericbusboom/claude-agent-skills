@@ -29,13 +29,13 @@ project-level directory.
    section says "No architectural changes in this sprint."
 
 3. **On sprint close** — The sprint's `architecture.md` is copied to
-   `docs/plans/architecture/architecture-NNN.md` where NNN is the sprint
-   number. Previous versions are moved to `docs/plans/architecture/done/`.
+   `docs/clasi/architecture/architecture-NNN.md` where NNN is the sprint
+   number. Previous versions are moved to `docs/clasi/architecture/done/`.
 
 ### Architecture Directory Layout
 
 ```
-docs/plans/architecture/
+docs/clasi/architecture/
   architecture-027.md          # Most recent (from sprint 027)
   done/
     architecture-001.md        # Historical versions
@@ -58,7 +58,7 @@ being made** in the current sprint. Tickets are derived from this section.
 ### Source of Truth
 
 - **During a sprint**: The sprint-local `architecture.md` is authoritative.
-- **Between sprints**: The top-level file in `docs/plans/architecture/` is
+- **Between sprints**: The top-level file in `docs/clasi/architecture/` is
   authoritative (always the most recent version).
 
 ## Core Principles

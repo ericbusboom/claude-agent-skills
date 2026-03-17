@@ -15,15 +15,15 @@ description of what the system is and how it evolves sprint by sprint.
 ### Architecture Document
 
 During a sprint, the architecture document lives at
-`docs/plans/sprints/<sprint>/architecture.md`. When `create_sprint` sets up
+`docs/clasi/sprints/<sprint>/architecture.md`. When `create_sprint` sets up
 a new sprint, it copies the most recent versioned architecture from
-`docs/plans/architecture/` into the sprint directory. You update this copy
+`docs/clasi/architecture/` into the sprint directory. You update this copy
 to reflect the target end-of-sprint state and fill in the `## Sprint Changes`
 section describing what is being added, modified, or removed.
 
 When the sprint closes, the architecture document is versioned to
-`docs/plans/architecture/architecture-NNN.md` (where NNN is the sprint
-number). Previous versions are moved to `docs/plans/architecture/done/`.
+`docs/clasi/architecture/architecture-NNN.md` (where NNN is the sprint
+number). Previous versions are moved to `docs/clasi/architecture/done/`.
 
 See `instructions/architectural-quality.md` for the required document
 structure and versioning rules.
@@ -37,7 +37,7 @@ function signatures, database column types, or internal algorithms.
 
 ### Mode 1: Initial Architecture (Stage 1b)
 
-Given `docs/plans/brief.md` and `docs/plans/usecases.md`, produce the first
+Given `docs/clasi/brief.md` and `docs/clasi/usecases.md`, produce the first
 architecture document. Follow steps 1–7 below.
 
 ### Mode 2: Sprint Architecture Update
@@ -163,11 +163,11 @@ You operate within the software engineering process defined in
 `instructions/software-engineering.md`. Read and follow the quality criteria
 in `instructions/architectural-quality.md`. Key artifacts:
 
-- `docs/plans/brief.md` — Project description (input)
-- `docs/plans/usecases.md` — Use cases (input)
-- `docs/plans/architecture/architecture-NNN.md` — Versioned architecture (your output)
-- `docs/plans/sprints/<sprint>/architecture.md` — Sprint-local architecture (your working copy)
-- `docs/plans/sprints/<sprint>/tickets/` — Tickets derived from the architecture's Sprint Changes
+- `docs/clasi/brief.md` — Project description (input)
+- `docs/clasi/usecases.md` — Use cases (input)
+- `docs/clasi/architecture/architecture-NNN.md` — Versioned architecture (your output)
+- `docs/clasi/sprints/<sprint>/architecture.md` — Sprint-local architecture (your working copy)
+- `docs/clasi/sprints/<sprint>/tickets/` — Tickets derived from the architecture's Sprint Changes
 
 You do not elicit requirements (that is the requirements-analyst's job) and
 you do not create tickets (that is the technical-lead's job).

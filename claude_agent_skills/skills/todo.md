@@ -1,6 +1,6 @@
 ---
 name: todo
-description: Create a TODO file from user input and place it in docs/plans/todo/
+description: Create a TODO file from user input and place it in docs/clasi/todo/
 ---
 
 # TODO Skill
@@ -11,12 +11,12 @@ TODO directory.
 ## Process
 
 1. Take the user's input (everything after `/todo`).
-2. Create a markdown file in `docs/plans/todo/` with:
+2. Create a markdown file in `docs/clasi/todo/` with:
    - YAML frontmatter: `status: pending`
    - A `# ` heading summarizing the idea
    - A description section expanding on the idea
 3. Filename: slugified version of the heading (e.g., `my-idea.md`).
-4. If `docs/plans/todo/` doesn't exist, create it.
+4. If `docs/clasi/todo/` doesn't exist, create it.
 
 ## Output
 

@@ -6,7 +6,7 @@ description: Instructions for the software engineering process using brief, use 
 # Software Engineering Process
 
 This project follows a structured software engineering workflow. All planning
-artifacts live in `docs/plans/`.
+artifacts live in `docs/clasi/`.
 
 ## Agents
 
@@ -56,7 +56,7 @@ Supporting skills used during ticket execution:
 
 ## Artifacts
 
-### 1. Project Overview (`docs/plans/overview.md`) — Recommended
+### 1. Project Overview (`docs/clasi/overview.md`) — Recommended
 
 A single lightweight document created at project start. Replaces the separate
 brief, use cases, and technical plan files for new projects. Detailed planning
@@ -72,13 +72,13 @@ Contents:
 - Sprint roadmap (rough plan of sprints)
 - Out of scope
 
-### 2. Architecture (`docs/plans/architecture/`)
+### 2. Architecture (`docs/clasi/architecture/`)
 
 Versioned architecture documents describing the system's structure. Each
 version represents the target state after a sprint completes:
 
 ```
-docs/plans/architecture/
+docs/clasi/architecture/
   architecture-014.md   # Architecture at end of sprint 014
   architecture-015.md   # Architecture at end of sprint 015
   ...
@@ -97,10 +97,10 @@ includes a `## Sprint Changes` section describing the delta.
 For existing projects that predate the overview document, these separate
 top-level files remain valid:
 
-- **Brief** (`docs/plans/brief.md`) — One-page project description.
-- **Use Cases** (`docs/plans/usecases.md`) — Enumerated use cases (UC-001, etc.)
+- **Brief** (`docs/clasi/brief.md`) — One-page project description.
+- **Use Cases** (`docs/clasi/usecases.md`) — Enumerated use cases (UC-001, etc.)
   with actor, preconditions, main flow, postconditions, acceptance criteria.
-- **Technical Plan** (`docs/plans/technical-plan.md`) — Architecture, tech stack,
+- **Technical Plan** (`docs/clasi/technical-plan.md`) — Architecture, tech stack,
   component design, data model, APIs, deployment, security.
 
 New projects should use `create_overview` instead of the three separate tools.
@@ -127,14 +127,14 @@ at the end of the sprint.
 - Label edges with the relationship (calls, depends-on, produces)
 - One diagram per concern; do not overload a single diagram
 
-### 4. Sprints (`docs/plans/sprints/NNN-slug/`)
+### 4. Sprints (`docs/clasi/sprints/NNN-slug/`)
 
 Each sprint is a **directory** containing its planning documents and tickets.
 Ticket numbering is per-sprint (starts at 001 within each sprint).
 
 Directory structure:
 ```
-docs/plans/sprints/NNN-slug/
+docs/clasi/sprints/NNN-slug/
 ├── sprint.md              # Sprint goals, scope, problem, solution, test strategy
 ├── usecases.md            # Sprint-level use cases (SUC-NNN)
 ├── architecture.md        # Sprint architecture (copied from previous, updated)
@@ -156,8 +156,8 @@ use-cases: [UC-XXX, ...]
 ---
 ```
 
-Active sprints live in `docs/plans/sprints/`. Completed sprints live in
-`docs/plans/sprints/done/`.
+Active sprints live in `docs/clasi/sprints/`. Completed sprints live in
+`docs/clasi/sprints/done/`.
 
 ### 5. Tickets (within sprint: `tickets/NNN-slug.md`)
 
@@ -198,7 +198,7 @@ Every ticket plan must include:
 A ticket plan without a testing section and a documentation section is
 incomplete.
 
-### 7. TODO Directory (`docs/plans/todo/`)
+### 7. TODO Directory (`docs/clasi/todo/`)
 
 A lightweight capture area for ideas, improvements, and future work items.
 Stakeholders and developers add ideas here at any time — especially when the
@@ -210,11 +210,11 @@ AI agent is busy with other work.
 - Files with multiple level-1 headings should be split using `clasi todo-split`.
 
 **Lifecycle:**
-1. **Capture**: Create a `.md` file in `docs/plans/todo/` with the idea.
+1. **Capture**: Create a `.md` file in `docs/clasi/todo/` with the idea.
 2. **Mine**: During sprint planning, the project-manager scans the TODO
    directory and discusses relevant items with the stakeholder.
 3. **Consume**: When a TODO is incorporated into a sprint, move the file
-   to `docs/plans/todo/done/`.
+   to `docs/clasi/todo/done/`.
 
 Files in `todo/` are unordered and unprioritized — sprint planning is when
 prioritization happens. The `done/` subdirectory preserves consumed TODOs
@@ -229,7 +229,7 @@ Skill: **elicit-requirements**
 1. Take the stakeholder's narrative about the project.
 2. Ask clarifying questions about stakeholders, components, requirements,
    constraints, and success criteria.
-3. Write the project overview (`docs/plans/overview.md`) using the
+3. Write the project overview (`docs/clasi/overview.md`) using the
    `create_overview` MCP tool. The overview covers problem, users,
    constraints, high-level requirements, tech stack, and sprint roadmap.
 4. **Review gate**: Present the overview to the stakeholder. Wait for
@@ -242,7 +242,7 @@ After Stages 1a and 1b are complete, all work is organized into sprints.
 A sprint is a focused batch of work with its own lifecycle, branch, and
 ticket set.
 
-**Sprint directories** live in `docs/plans/sprints/NNN-slug/`. Each sprint
+**Sprint directories** live in `docs/clasi/sprints/NNN-slug/`. Each sprint
 directory contains `sprint.md`, `usecases.md`, `architecture.md`,
 and a `tickets/` subdirectory (see Artifacts §4 above).
 
@@ -261,17 +261,17 @@ and a `tickets/` subdirectory (see Artifacts §4 above).
    This is an atomic operation — all steps must be completed together:
    a. Merge the sprint branch to main.
    b. Update sprint status to `done` in `sprint.md` frontmatter.
-   c. Move the sprint directory to `docs/plans/sprints/done/`.
+   c. Move the sprint directory to `docs/clasi/sprints/done/`.
    d. Delete the sprint branch.
    e. Commit the closure.
    **Never merge the branch without also archiving the sprint directory.**
 
-Active sprints live in `docs/plans/sprints/`. Completed sprints live in
-`docs/plans/sprints/done/`.
+Active sprints live in `docs/clasi/sprints/`. Completed sprints live in
+`docs/clasi/sprints/done/`.
 
 ### Sprint State Database
 
-A SQLite database at `docs/plans/.clasi.db` tracks sprint lifecycle state.
+A SQLite database at `docs/clasi/.clasi.db` tracks sprint lifecycle state.
 AIs interact with it exclusively through MCP tools — never write to the
 database directly.
 
@@ -422,7 +422,7 @@ Things go wrong during implementation. Here is what to do.
 ## Directory Layout
 
 ```
-docs/plans/
+docs/clasi/
 ├── overview.md                  # Project overview (recommended)
 ├── brief.md                     # Top-level brief (legacy)
 ├── usecases.md                  # Top-level use cases (legacy)

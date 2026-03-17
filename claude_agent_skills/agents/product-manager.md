@@ -13,7 +13,7 @@ structure the answers into a clear project overview.
 ## Your Job
 
 Take a stakeholder's initial narration about what they want to build and
-produce a **Project Overview** (`docs/plans/overview.md`) through a guided
+produce a **Project Overview** (`docs/clasi/overview.md`) through a guided
 interview.
 
 ## How You Work
@@ -50,7 +50,7 @@ interview.
 You operate within the software engineering process defined in
 `instructions/software-engineering.md`. Your output:
 
-- `docs/plans/overview.md` — Combined project overview (your output)
+- `docs/clasi/overview.md` — Combined project overview (your output)
 
 The project-manager agent delegates to you for project initiation. After
 you produce the overview, the project-manager takes over to plan sprints.

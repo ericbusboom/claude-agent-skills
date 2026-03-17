@@ -9,9 +9,9 @@ from claude_agent_skills.artifact_tools import list_todos, move_todo_to_done
 
 @pytest.fixture
 def todo_dir(tmp_path, monkeypatch):
-    """Set up a temporary working directory with docs/plans/todo/."""
+    """Set up a temporary working directory with docs/clasi/todo/."""
     monkeypatch.chdir(tmp_path)
-    todo = tmp_path / "docs" / "plans" / "todo"
+    todo = tmp_path / "docs" / "clasi" / "todo"
     todo.mkdir(parents=True)
     return todo
 

@@ -15,11 +15,11 @@ stands and what should happen next.
 ## Process
 
 1. **Check artifacts**: Verify which SE documents exist:
-   - `docs/plans/brief.md`
-   - `docs/plans/usecases.md`
-   - `docs/plans/architecture/` (versioned architecture documents)
-2. **Check sprints**: Scan `docs/plans/sprints/` for active sprints and
-   `docs/plans/sprints/done/` for completed sprints.
+   - `docs/clasi/brief.md`
+   - `docs/clasi/usecases.md`
+   - `docs/clasi/architecture/` (versioned architecture documents)
+2. **Check sprints**: Scan `docs/clasi/sprints/` for active sprints and
+   `docs/clasi/sprints/done/` for completed sprints.
 3. **Scan tickets**: For each active sprint, read ticket files in the
    sprint's `tickets/` and `tickets/done/` directories. Extract frontmatter
    status for each.

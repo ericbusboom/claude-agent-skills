@@ -16,8 +16,8 @@ Take an initial narrative or conversation about what a project should do and
 produce the system engineering artifacts described in the SE process
 instructions:
 
-1. **Brief** (`docs/plans/brief.md`)
-2. **Use Cases** (`docs/plans/usecases.md`)
+1. **Brief** (`docs/clasi/brief.md`)
+2. **Use Cases** (`docs/clasi/usecases.md`)
 
 The architect agent handles the architecture document after you finish.
 
@@ -51,10 +51,10 @@ writing.
 You operate within the software engineering process defined in
 `instructions/software-engineering.md`. Key artifacts:
 
-- `docs/plans/brief.md` — Project description (your output)
-- `docs/plans/usecases.md` — Use cases (your output)
-- `docs/plans/architecture/` — Architecture (produced by architect after you)
-- `docs/plans/sprints/<sprint>/tickets/` — Tickets (produced by technical-lead)
+- `docs/clasi/brief.md` — Project description (your output)
+- `docs/clasi/usecases.md` — Use cases (your output)
+- `docs/clasi/architecture/` — Architecture (produced by architect after you)
+- `docs/clasi/sprints/<sprint>/tickets/` — Tickets (produced by technical-lead)
 
 ### Quality Checks
 

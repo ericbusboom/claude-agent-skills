@@ -43,7 +43,7 @@ wrong and proposes process improvements.
    - New TODO for a future sprint (if it requires code/process changes)
 
 5. **Write reflection**: Create a file at
-   `docs/plans/reflections/YYYY-MM-DD-slug.md` with:
+   `docs/clasi/reflections/YYYY-MM-DD-slug.md` with:
 
    ```yaml
    ---
@@ -65,6 +65,6 @@ wrong and proposes process improvements.
 
 ## Output
 
-- Reflection document in `docs/plans/reflections/`
+- Reflection document in `docs/clasi/reflections/`
 - Optional TODO file if process changes are needed
 - Acknowledgment to the stakeholder of the correction and proposed fix

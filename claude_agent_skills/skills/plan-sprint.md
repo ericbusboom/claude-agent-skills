@@ -17,8 +17,8 @@ create tickets.
 ## Inputs
 
 - Stakeholder conversation describing the work to be done
-- `docs/plans/brief.md` or `docs/plans/overview.md` (must exist)
-- `docs/plans/usecases.md` (must exist, or overview covers use cases)
+- `docs/clasi/brief.md` or `docs/clasi/overview.md` (must exist)
+- `docs/clasi/usecases.md` (must exist, or overview covers use cases)
 
 ## Critical Rule
 
@@ -29,11 +29,11 @@ before that phase. Follow the phases in order.
 
 ## Process
 
-1. **Determine sprint number**: Check `docs/plans/sprints/` and
-   `docs/plans/sprints/done/` for existing sprints. The new sprint gets the
+1. **Determine sprint number**: Check `docs/clasi/sprints/` and
+   `docs/clasi/sprints/done/` for existing sprints. The new sprint gets the
    next sequential number (NNN format: 001, 002, ...).
 
-2. **Mine the TODO directory**: Scan `docs/plans/todo/` for ideas relevant
+2. **Mine the TODO directory**: Scan `docs/clasi/todo/` for ideas relevant
    to the upcoming sprint. Discuss relevant TODOs with the stakeholder and
    incorporate selected items into the sprint scope.
 
@@ -42,7 +42,7 @@ before that phase. Follow the phases in order.
    creates the forward link from TODO to sprint.
 
    After the sprint branch is created (step 4), move consumed TODO files
-   to `docs/plans/todo/done/` using `move_todo_to_done(filename,
+   to `docs/clasi/todo/done/` using `move_todo_to_done(filename,
    sprint_id)` and commit the moves on the sprint branch.
 
 3. **Create sprint directory**: Use the `create_sprint` MCP tool. This
@@ -136,7 +136,7 @@ before that phase. Follow the phases in order.
 
 ## Output
 
-- Sprint directory `docs/plans/sprints/NNN-slug/` with planning documents (sprint.md, usecases.md, architecture.md)
+- Sprint directory `docs/clasi/sprints/NNN-slug/` with planning documents (sprint.md, usecases.md, architecture.md)
 - Sprint `sprint.md` status set to `active`
 - Sprint branch `sprint/NNN-slug` created
 - Sprint phase advanced to `executing` in the state database

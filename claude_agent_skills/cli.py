@@ -33,7 +33,7 @@ def init(target):
 
 
 @cli.command("todo-split")
-@click.argument("todo_dir", default="docs/plans/todo", type=click.Path(exists=True))
+@click.argument("todo_dir", default="docs/clasi/todo", type=click.Path(exists=True))
 def todo_split(todo_dir):
     """Split multi-heading TODO files into individual files.
 

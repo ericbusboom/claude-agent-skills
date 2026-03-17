@@ -61,7 +61,7 @@ Start a new project by telling the agent what you want to build.
 Use `/project-initiation` or just `/next` on an empty repo.
 
 The agent interviews you, asks clarifying questions, and produces
-`docs/plans/overview.md` — a one-page summary of the problem, scope,
+`docs/clasi/overview.md` — a one-page summary of the problem, scope,
 constraints, and high-level use cases.
 
 ### 2. Sprint Planning
@@ -87,7 +87,7 @@ where things stand.
 ### 4. Sprint Close
 
 When all tickets are done, the agent merges the sprint branch to main,
-tags a version, and archives the sprint to `docs/plans/sprints/done/`.
+tags a version, and archives the sprint to `docs/clasi/sprints/done/`.
 Then `/next` picks up the next sprint or reports that the project is
 complete.
 
@@ -97,7 +97,7 @@ complete.
 |---------|-------------|
 | `/next` | Determine the next process step and execute it |
 | `/status` | Report current project state, progress, and next actions |
-| `/todo <description>` | Capture an idea as a TODO file in `docs/plans/todo/` |
+| `/todo <description>` | Capture an idea as a TODO file in `docs/clasi/todo/` |
 | `/project-initiation` | Start a new project with a guided interview |
 
 ## How It Works
@@ -113,7 +113,7 @@ process definitions and manage artifacts:
 - **Instructions** — coding standards, git workflow rules, and testing
   guidelines loaded on demand
 - **Artifact tools** — create sprints, create tickets, track status, manage
-  the `docs/plans/` directory structure
+  the `docs/clasi/` directory structure
 
 The AI reads these definitions at runtime via MCP tool calls. The slash
 command stubs installed by `clasi init` are thin wrappers that tell the

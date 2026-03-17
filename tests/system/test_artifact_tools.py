@@ -30,14 +30,14 @@ from claude_agent_skills.state_db import (
 
 @pytest.fixture
 def work_dir(tmp_path, monkeypatch):
-    """Set up a temporary working directory with docs/plans/sprints/ structure."""
+    """Set up a temporary working directory with docs/clasi/sprints/ structure."""
     monkeypatch.chdir(tmp_path)
     return tmp_path
 
 
 def _advance_to_ticketing(work_dir, sprint_id: str) -> None:
     """Advance a sprint through review gates to ticketing phase for testing."""
-    db_path = work_dir / "docs" / "plans" / ".clasi.db"
+    db_path = work_dir / "docs" / "clasi" / ".clasi.db"
     advance_phase(db_path, sprint_id)  # planning-docs → architecture-review
     record_gate(db_path, sprint_id, "architecture_review", "passed")
     advance_phase(db_path, sprint_id)  # architecture-review → stakeholder-review
@@ -48,7 +48,7 @@ def _advance_to_ticketing(work_dir, sprint_id: str) -> None:
 class TestCreateSprint:
     def test_creates_directory_structure(self, work_dir):
         result = json.loads(create_sprint("Test Sprint"))
-        sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-test-sprint"
+        sprint_dir = work_dir / "docs" / "clasi" / "sprints" / "001-test-sprint"
         assert sprint_dir.is_dir()
         assert (sprint_dir / "sprint.md").exists()
         assert not (sprint_dir / "brief.md").exists()
@@ -72,7 +72,7 @@ class TestCreateSprint:
 
     def test_sprint_template_has_merged_sections(self, work_dir):
         create_sprint("My Sprint")
-        sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-my-sprint"
+        sprint_dir = work_dir / "docs" / "clasi" / "sprints" / "001-my-sprint"
         content = (sprint_dir / "sprint.md").read_text()
         assert "## Problem" in content
         assert "## Solution" in content
@@ -82,8 +82,8 @@ class TestCreateSprint:
 
 class TestCreateSprintArchitectureCopy:
     def test_copies_previous_architecture(self, work_dir):
-        """create_sprint copies architecture from docs/plans/architecture/."""
-        arch_dir = work_dir / "docs" / "plans" / "architecture"
+        """create_sprint copies architecture from docs/clasi/architecture/."""
+        arch_dir = work_dir / "docs" / "clasi" / "architecture"
         arch_dir.mkdir(parents=True)
         (arch_dir / "architecture-015.md").write_text(
             "---\nstatus: approved\n---\n\n# Architecture\n\nExisting arch.\n",
@@ -91,7 +91,7 @@ class TestCreateSprintArchitectureCopy:
         )
 
         create_sprint("Test Sprint")
-        sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-test-sprint"
+        sprint_dir = work_dir / "docs" / "clasi" / "sprints" / "001-test-sprint"
         arch = sprint_dir / "architecture.md"
         assert arch.exists()
         content = arch.read_text(encoding="utf-8")
@@ -100,7 +100,7 @@ class TestCreateSprintArchitectureCopy:
     def test_uses_template_when_no_previous(self, work_dir):
         """create_sprint uses template when no architecture exists."""
         create_sprint("Test Sprint")
-        sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-test-sprint"
+        sprint_dir = work_dir / "docs" / "clasi" / "sprints" / "001-test-sprint"
         arch = sprint_dir / "architecture.md"
         assert arch.exists()
         content = arch.read_text(encoding="utf-8")
@@ -109,7 +109,7 @@ class TestCreateSprintArchitectureCopy:
 
     def test_picks_highest_numbered_architecture(self, work_dir):
         """create_sprint picks the highest-numbered architecture version."""
-        arch_dir = work_dir / "docs" / "plans" / "architecture"
+        arch_dir = work_dir / "docs" / "clasi" / "architecture"
         arch_dir.mkdir(parents=True)
         (arch_dir / "architecture-010.md").write_text(
             "---\nstatus: approved\n---\n\n# Old\n", encoding="utf-8",
@@ -119,7 +119,7 @@ class TestCreateSprintArchitectureCopy:
         )
 
         create_sprint("Test Sprint")
-        sprint_dir = work_dir / "docs" / "plans" / "sprints" / "001-test-sprint"
+        sprint_dir = work_dir / "docs" / "clasi" / "sprints" / "001-test-sprint"
         content = (sprint_dir / "architecture.md").read_text(encoding="utf-8")
         assert "# Latest" in content
         assert "# Old" not in content
@@ -307,7 +307,7 @@ class TestInsertSprint:
         assert result["renumbered"][1]["new_id"] == "004"
 
         # Verify directories exist with correct names
-        sprints = work_dir / "docs" / "plans" / "sprints"
+        sprints = work_dir / "docs" / "clasi" / "sprints"
         assert (sprints / "001-alpha").is_dir()
         assert (sprints / "002-urgent-fix").is_dir()
         assert (sprints / "003-beta").is_dir()
@@ -322,7 +322,7 @@ class TestInsertSprint:
         insert_sprint("001", "Inserted")
 
         # Beta was 002, now should be 003
-        sprints = work_dir / "docs" / "plans" / "sprints"
+        sprints = work_dir / "docs" / "clasi" / "sprints"
         fm = read_frontmatter(sprints / "003-beta" / "sprint.md")
         assert fm["id"] == "003"
         assert fm["branch"] == "sprint/003-beta"
@@ -332,7 +332,7 @@ class TestInsertSprint:
         create_sprint("Beta")
         insert_sprint("001", "Inserted")
 
-        sprints = work_dir / "docs" / "plans" / "sprints"
+        sprints = work_dir / "docs" / "clasi" / "sprints"
         content = (sprints / "003-beta" / "sprint.md").read_text(encoding="utf-8")
         assert "Sprint 003" in content
         assert "Sprint 002" not in content
@@ -345,7 +345,7 @@ class TestInsertSprint:
         assert result["id"] == "003"
         assert result["renumbered"] == []
 
-        sprints = work_dir / "docs" / "plans" / "sprints"
+        sprints = work_dir / "docs" / "clasi" / "sprints"
         assert (sprints / "003-final").is_dir()
 
     def test_refuses_renumbering_active_sprint(self, work_dir):
@@ -397,7 +397,7 @@ class TestInsertSprint:
         assert result["id"] == "002"
         assert len(result["renumbered"]) == 3
 
-        sprints = work_dir / "docs" / "plans" / "sprints"
+        sprints = work_dir / "docs" / "clasi" / "sprints"
         assert (sprints / "001-alpha").is_dir()
         assert (sprints / "002-urgent").is_dir()
         assert (sprints / "003-beta").is_dir()
@@ -409,7 +409,7 @@ class TestCreateOverview:
     def test_creates_overview(self, work_dir):
         from claude_agent_skills.artifact_tools import create_overview
         result = json.loads(create_overview())
-        path = work_dir / "docs" / "plans" / "overview.md"
+        path = work_dir / "docs" / "clasi" / "overview.md"
         assert path.exists()
         content = path.read_text()
         assert "# Project Overview" in content
@@ -425,7 +425,7 @@ class TestCreateOverview:
 
 def _advance_to_executing(work_dir, sprint_id: str) -> None:
     """Advance a sprint all the way to executing phase."""
-    db_path = work_dir / "docs" / "plans" / ".clasi.db"
+    db_path = work_dir / "docs" / "clasi" / ".clasi.db"
     _advance_to_ticketing(work_dir, sprint_id)
     acquire_lock(str(db_path), sprint_id)
     advance_phase(str(db_path), sprint_id)  # ticketing → executing
@@ -445,7 +445,7 @@ class TestCloseSprintEdgeCases:
         create_sprint("Sprint")
         _advance_to_executing(work_dir, "001")
         close_sprint("001")
-        db_path = work_dir / "docs" / "plans" / ".clasi.db"
+        db_path = work_dir / "docs" / "clasi" / ".clasi.db"
         state = get_sprint_state(str(db_path), "001")
         assert state["phase"] == "done"
 
@@ -453,7 +453,7 @@ class TestCloseSprintEdgeCases:
         create_sprint("Sprint")
         _advance_to_executing(work_dir, "001")
         close_sprint("001")
-        db_path = work_dir / "docs" / "plans" / ".clasi.db"
+        db_path = work_dir / "docs" / "clasi" / ".clasi.db"
         state = get_sprint_state(str(db_path), "001")
         assert state["lock"] is None
 
@@ -483,7 +483,7 @@ class TestCloseSprintEdgeCases:
 
     def test_close_destination_already_exists(self, work_dir):
         create_sprint("Sprint")
-        done_dir = work_dir / "docs" / "plans" / "sprints" / "done"
+        done_dir = work_dir / "docs" / "clasi" / "sprints" / "done"
         done_dir.mkdir(parents=True)
         (done_dir / "001-sprint").mkdir()
         with pytest.raises(ValueError, match="already exists"):

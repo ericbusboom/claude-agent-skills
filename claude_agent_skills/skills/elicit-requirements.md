@@ -23,7 +23,7 @@ overview from a stakeholder narrative.
    conversation about what the project should do.
 2. **Ask clarifying questions**: Ask about stakeholders, problem,
    components, requirements, constraints, success criteria, and out of scope.
-3. **Write overview**: Produce `docs/plans/overview.md` using the
+3. **Write overview**: Produce `docs/clasi/overview.md` using the
    `create_overview` MCP tool. The overview is a single lightweight document
    covering project name, problem statement, target users, key constraints,
    high-level requirements, technology stack, sprint roadmap, and out of
@@ -35,7 +35,7 @@ overview from a stakeholder narrative.
 
 ## Output
 
-- `docs/plans/overview.md` (created or updated)
+- `docs/clasi/overview.md` (created or updated)
 
 ## Notes
 
