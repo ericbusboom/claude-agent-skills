@@ -1,7 +1,7 @@
 ---
 id: '001'
 title: gh CLI helpers and list_github_issues MCP tool
-status: in-progress
+status: done
 use-cases:
 - SUC-001
 depends-on: []
@@ -40,13 +40,13 @@ All `subprocess.run` calls must use list-form arguments (no `shell=True`).
 
 ## Acceptance Criteria
 
-- [ ] `_check_gh_access` returns success/failure with helpful messages
-- [ ] `_check_gh_access` handles missing `gh` binary (FileNotFoundError)
-- [ ] `list_github_issues` returns JSON array of `{number, title, body, labels, url}`
-- [ ] `list_github_issues` supports optional `repo`, `labels`, `state`, `limit` params
-- [ ] `list_github_issues` defaults to current repo when `repo` is omitted
-- [ ] `list_github_issues` returns error JSON when access check fails
-- [ ] All subprocess calls use list-form arguments
+- [x] `_check_gh_access` returns success/failure with helpful messages
+- [x] `_check_gh_access` handles missing `gh` binary (FileNotFoundError)
+- [x] `list_github_issues` returns JSON array of `{number, title, body, labels, url}`
+- [x] `list_github_issues` supports optional `repo`, `labels`, `state`, `limit` params
+- [x] `list_github_issues` defaults to current repo when `repo` is omitted
+- [x] `list_github_issues` returns error JSON when access check fails
+- [x] All subprocess calls use list-form arguments
 
 ## Testing
 
