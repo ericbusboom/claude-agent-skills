@@ -1,12 +1,12 @@
 ---
-id: "022"
-title: "Subagent Dispatch and Two-Stage Review"
-status: active
+id: '022'
+title: Subagent Dispatch and Two-Stage Review
+status: done
 branch: sprint/022-subagent-dispatch-and-two-stage-review
 use-cases:
-  - SUC-001
-  - SUC-002
-  - SUC-003
+- SUC-001
+- SUC-002
+- SUC-003
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
