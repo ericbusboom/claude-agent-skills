@@ -1,7 +1,7 @@
 ---
 id: "019"
 title: "TDD and Systematic Debugging"
-status: planning
+status: active
 branch: sprint/019-tdd-and-systematic-debugging
 use-cases:
   - SUC-001
