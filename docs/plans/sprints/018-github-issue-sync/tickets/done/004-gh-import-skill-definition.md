@@ -1,11 +1,11 @@
 ---
-id: "004"
-title: "gh-import skill definition"
-status: todo
+id: '004'
+title: gh-import skill definition
+status: done
 use-cases:
-  - SUC-001
+- SUC-001
 depends-on:
-  - "001"
+- '001'
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 

@@ -45,7 +45,14 @@ the sprint branch, and archive the sprint document.
 5. **Run final validation**: Ensure tests pass, no uncommitted changes
    exist on the sprint branch.
 
-6. **Merge sprint branch**: Merge `sprint/NNN-slug` into main:
+6. **Close linked GitHub issues**: Read the sprint doc's `## GitHub
+   Issues` section. For each `owner/repo#N` reference listed:
+   - Call the `close_github_issue` MCP tool with the repo and issue number.
+   - If closing fails for any issue, log the failure but continue with
+     the remaining issues and the sprint closure.
+   - If no `## GitHub Issues` section exists or it is empty, skip this step.
+
+7. **Merge sprint branch**: Merge `sprint/NNN-slug` into main:
    ```
    git checkout main
    git merge sprint/NNN-slug
@@ -53,7 +60,7 @@ the sprint branch, and archive the sprint document.
    If there are merge conflicts, resolve them or escalate to the
    stakeholder.
 
-7. **Version the architecture document**: Copy the sprint's
+8. **Version the architecture document**: Copy the sprint's
    `architecture.md` to the project architecture directory:
    ```
    cp docs/plans/sprints/NNN-slug/architecture.md \
@@ -68,27 +75,28 @@ the sprint branch, and archive the sprint document.
    ```
    (Move first, then copy the new one, so only the latest is at the top level.)
 
-8. **Close the sprint**: Call the `close_sprint` MCP tool. This
+9. **Close the sprint**: Call the `close_sprint` MCP tool. This
    atomically:
    - Updates the sprint document status to `done`
    - Moves the sprint directory to `docs/plans/sprints/done/NNN-slug/`
    - Advances the state database phase to `done`
    - Releases the execution lock
 
-9. **Commit the archive**: The `close_sprint` tool moves files and bumps
-   the version in the project's version file (e.g., `pyproject.toml` or
-   `package.json`) but does not commit. Run `git add` for the moved sprint
-   directory and the version file, then commit with a message like
-   `chore: close sprint NNN — archive to done, tag vX.Y.Z`.
+10. **Commit the archive**: The `close_sprint` tool moves files and bumps
+    the version in the project's version file (e.g., `pyproject.toml` or
+    `package.json`) but does not commit. Run `git add` for the moved sprint
+    directory and the version file, then commit with a message like
+    `chore: close sprint NNN — archive to done, tag vX.Y.Z`.
 
-10. **Push tags**: `git push` does not push tags by default. Run
+11. **Push tags**: `git push` does not push tags by default. Run
     `git push --tags` to ensure the version tag created by `tag_version`
     is pushed to the remote.
 
-11. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
+12. **Delete sprint branch**: Run `git branch -d sprint/NNN-slug`.
 
-12. **Report completion**: Summarize what was accomplished in the sprint —
+13. **Report completion**: Summarize what was accomplished in the sprint —
     list of completed tickets, key changes, any notes for follow-up.
+    Include a summary of which GitHub issues were closed (if any).
 
 ## Output
 

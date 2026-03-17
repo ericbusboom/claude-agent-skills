@@ -29,11 +29,18 @@ technical-lead agent.
    `depends-on` field.
 4. **Create ticket files**: Write each ticket to the sprint's
    `tickets/NNN-slug.md` with YAML frontmatter (id, title, status,
-   use-cases, depends-on) and body (description, acceptance criteria,
-   implementation notes). Ticket numbering is per-sprint (starts at 001).
-5. **Verify coverage**: Every use case must be covered by at least one
+   use-cases, depends-on, github-issue) and body (description, acceptance
+   criteria, implementation notes). Ticket numbering is per-sprint
+   (starts at 001).
+5. **Propagate GitHub issue references**: When creating tickets from
+   TODOs that have a `github-issue` field in their frontmatter, copy the
+   `github-issue` value to the new ticket's frontmatter. After all
+   tickets are created, collect all `github-issue` references from the
+   sprint's tickets and list them in the sprint doc's `## GitHub Issues`
+   section using the format `owner/repo#N`.
+6. **Verify coverage**: Every use case must be covered by at least one
    ticket. Every ticket must trace to at least one use case.
-6. **Verify sequencing**: No circular dependencies. Foundation before
+7. **Verify sequencing**: No circular dependencies. Foundation before
    features.
 
 ## Output

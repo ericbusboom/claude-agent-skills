@@ -1,13 +1,13 @@
 ---
-id: "005"
-title: "Update close-sprint and create-tickets skills"
-status: todo
+id: '005'
+title: Update close-sprint and create-tickets skills
+status: done
 use-cases:
-  - SUC-002
-  - SUC-003
+- SUC-002
+- SUC-003
 depends-on:
-  - "002"
-  - "003"
+- '002'
+- '003'
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
