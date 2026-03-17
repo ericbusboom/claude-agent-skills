@@ -1230,6 +1230,77 @@ def list_github_issues(
         return json.dumps({"error": f"Failed to parse gh output: {exc}"})
 
 
+@server.tool()
+def close_github_issue(issue_number: int, repo: str | None = None) -> str:
+    """Close a GitHub issue using the gh CLI.
+
+    Args:
+        issue_number: The issue number to close. Must be a positive integer.
+        repo: GitHub repository in owner/repo format. Defaults to the
+              current repository detected from git remotes.
+
+    Returns JSON with {issue_number, repo, closed} on success,
+    or {issue_number, repo, closed: false, error} on failure.
+    """
+    # Validate issue_number is a positive integer
+    if not isinstance(issue_number, int) or issue_number <= 0:
+        return json.dumps({
+            "issue_number": issue_number,
+            "repo": repo,
+            "closed": False,
+            "error": "issue_number must be a positive integer",
+        })
+
+    # Resolve repo if not provided
+    if repo is None:
+        repo = _get_github_repo()
+
+    # During tests, return mock success to avoid real gh calls
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return json.dumps({
+            "issue_number": issue_number,
+            "repo": repo,
+            "closed": True,
+        })
+
+    ok, result = _check_gh_access(repo)
+    if not ok:
+        return json.dumps({
+            "issue_number": issue_number,
+            "repo": repo,
+            "closed": False,
+            "error": result,
+        })
+    repo = result
+
+    try:
+        subprocess.run(
+            ["gh", "issue", "close", str(issue_number), "--repo", repo],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return json.dumps({
+            "issue_number": issue_number,
+            "repo": repo,
+            "closed": True,
+        })
+    except subprocess.CalledProcessError as exc:
+        return json.dumps({
+            "issue_number": issue_number,
+            "repo": repo,
+            "closed": False,
+            "error": exc.stderr or str(exc),
+        })
+    except Exception as exc:
+        return json.dumps({
+            "issue_number": issue_number,
+            "repo": repo,
+            "closed": False,
+            "error": str(exc),
+        })
+
+
 # --- Frontmatter tools ---
 
 

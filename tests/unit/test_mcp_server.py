@@ -78,6 +78,7 @@ class TestToolRegistration:
         "list_todos",
         "move_todo_to_done",
         "create_github_issue",
+        "close_github_issue",
         "list_github_issues",
         "read_artifact_frontmatter",
         "write_artifact_frontmatter",
@@ -107,7 +108,7 @@ class TestToolRegistration:
 
     def test_tool_count(self):
         registered = self._registered_tool_names()
-        assert len(registered) == 38
+        assert len(registered) == 39
 
     def test_process_tools_registered(self):
         registered = self._registered_tool_names()

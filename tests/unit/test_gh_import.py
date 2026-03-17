@@ -8,6 +8,7 @@ import pytest
 
 from claude_agent_skills.artifact_tools import (
     _check_gh_access,
+    close_github_issue,
     list_github_issues,
 )
 
@@ -159,3 +160,65 @@ class TestListGithubIssues:
         result = json.loads(list_github_issues(repo="owner/repo"))
         assert "error" in result
         assert "gh issue list failed" in result["error"]
+
+
+class TestCloseGithubIssue:
+    """Tests for close_github_issue MCP tool."""
+
+    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.artifact_tools._check_gh_access")
+    def test_close_success(self, mock_check, mock_run, monkeypatch):
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+        mock_check.return_value = (True, "owner/repo")
+        mock_run.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="", stderr="",
+        )
+        result = json.loads(close_github_issue(issue_number=42, repo="owner/repo"))
+        assert result["issue_number"] == 42
+        assert result["repo"] == "owner/repo"
+        assert result["closed"] is True
+        assert "error" not in result
+        mock_run.assert_called_once_with(
+            ["gh", "issue", "close", "42", "--repo", "owner/repo"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_close_invalid_issue_number_zero(self):
+        result = json.loads(close_github_issue(issue_number=0, repo="owner/repo"))
+        assert result["closed"] is False
+        assert "positive integer" in result["error"]
+
+    def test_close_invalid_issue_number_negative(self):
+        result = json.loads(close_github_issue(issue_number=-5, repo="owner/repo"))
+        assert result["closed"] is False
+        assert "positive integer" in result["error"]
+
+    @patch("claude_agent_skills.artifact_tools._check_gh_access")
+    def test_close_access_failure(self, mock_check, monkeypatch):
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+        mock_check.return_value = (False, "Cannot access issues for owner/repo. Run `gh auth login` or check `gh auth status`.")
+        result = json.loads(close_github_issue(issue_number=1, repo="owner/repo"))
+        assert result["closed"] is False
+        assert "Cannot access issues" in result["error"]
+
+    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.artifact_tools._check_gh_access")
+    def test_close_subprocess_failure(self, mock_check, mock_run, monkeypatch):
+        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+        mock_check.return_value = (True, "owner/repo")
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, "gh", stderr="issue not found",
+        )
+        result = json.loads(close_github_issue(issue_number=999, repo="owner/repo"))
+        assert result["issue_number"] == 999
+        assert result["closed"] is False
+        assert "issue not found" in result["error"]
+
+    def test_pytest_env_returns_mock_success(self, monkeypatch):
+        monkeypatch.setenv("PYTEST_CURRENT_TEST", "tests/unit/test_gh_import.py::test")
+        result = json.loads(close_github_issue(issue_number=10, repo="owner/repo"))
+        assert result["issue_number"] == 10
+        assert result["repo"] == "owner/repo"
+        assert result["closed"] is True
