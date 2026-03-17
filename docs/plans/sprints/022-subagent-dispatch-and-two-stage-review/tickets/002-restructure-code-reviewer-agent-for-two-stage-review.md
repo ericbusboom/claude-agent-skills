@@ -1,7 +1,7 @@
 ---
 id: "002"
 title: "Restructure code-reviewer agent for two-stage review"
-status: todo
+status: done
 use-cases: [SUC-002]
 depends-on: ["001"]
 ---
@@ -32,11 +32,11 @@ review feedback for actionability.
 
 ## Acceptance Criteria
 
-- [ ] `agents/code-reviewer.md` defines Phase 1 (correctness) with binary pass/fail per criterion
-- [ ] `agents/code-reviewer.md` defines Phase 2 (quality) with severity-ranked issues
-- [ ] Phase 1 failure explicitly short-circuits Phase 2 (documented in agent definition)
-- [ ] Severity ranking levels are defined (critical, major, minor, suggestion)
-- [ ] Agent references the review-checklist template for structured output
+- [x] `agents/code-reviewer.md` defines Phase 1 (correctness) with binary pass/fail per criterion
+- [x] `agents/code-reviewer.md` defines Phase 2 (quality) with severity-ranked issues
+- [x] Phase 1 failure explicitly short-circuits Phase 2 (documented in agent definition)
+- [x] Severity ranking levels are defined (critical, major, minor, suggestion)
+- [x] Agent references the review-checklist template for structured output
 
 ## Testing
 
