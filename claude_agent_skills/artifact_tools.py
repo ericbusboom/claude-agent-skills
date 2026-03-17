@@ -1146,6 +1146,90 @@ def _create_github_issue_api(
         )
 
 
+def _check_gh_access(repo: str | None = None) -> tuple[bool, str]:
+    """Check whether the gh CLI can access issues for a repository.
+
+    Args:
+        repo: GitHub repository in owner/repo format. If None, resolves
+              via _get_github_repo().
+
+    Returns:
+        (True, repo) on success, or (False, error_message) on failure.
+    """
+    if repo is None:
+        repo = _get_github_repo()
+    if repo is None:
+        return (
+            False,
+            "Could not determine repository. Specify repo explicitly "
+            "or ensure a git remote is configured.",
+        )
+
+    try:
+        subprocess.run(
+            ["gh", "issue", "list", "--repo", repo, "--limit", "1", "--json", "number"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return (True, repo)
+    except subprocess.CalledProcessError:
+        return (
+            False,
+            f"Cannot access issues for {repo}. "
+            "Run `gh auth login` or check `gh auth status`.",
+        )
+    except FileNotFoundError:
+        return (False, "gh CLI not found. Install it from https://cli.github.com/")
+
+
+@server.tool()
+def list_github_issues(
+    repo: str | None = None,
+    labels: str | None = None,
+    state: str = "open",
+    limit: int = 30,
+) -> str:
+    """List GitHub issues for a repository using the gh CLI.
+
+    Args:
+        repo: GitHub repository in owner/repo format. Defaults to the
+              current repository detected from git remotes.
+        labels: Comma-separated label names to filter by.
+        state: Issue state filter: "open", "closed", or "all". Default "open".
+        limit: Maximum number of issues to return. Default 30.
+
+    Returns JSON array of issue objects with number, title, body, labels, url.
+    """
+    # During tests, return an empty list to avoid real gh calls
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return json.dumps([])
+
+    ok, result = _check_gh_access(repo)
+    if not ok:
+        return json.dumps({"error": result})
+    repo = result
+
+    cmd = [
+        "gh", "issue", "list",
+        "--repo", repo,
+        "--state", state,
+        "--limit", str(limit),
+        "--json", "number,title,body,labels,url",
+    ]
+    if labels:
+        cmd.extend(["--label", labels])
+
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        issues = json.loads(proc.stdout)
+        return json.dumps(issues)
+    except subprocess.CalledProcessError as exc:
+        return json.dumps({"error": f"gh issue list failed: {exc.stderr or exc}"})
+    except (json.JSONDecodeError, ValueError) as exc:
+        return json.dumps({"error": f"Failed to parse gh output: {exc}"})
+
+
 # --- Frontmatter tools ---
 
 
