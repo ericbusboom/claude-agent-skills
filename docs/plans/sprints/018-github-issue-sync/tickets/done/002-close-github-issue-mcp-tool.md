@@ -1,7 +1,7 @@
 ---
 id: "002"
 title: "close_github_issue MCP tool"
-status: todo
+status: done
 use-cases:
   - SUC-003
 depends-on:
@@ -36,12 +36,12 @@ Uses `_check_gh_access` from ticket #001 before attempting the close.
 
 ## Acceptance Criteria
 
-- [ ] `close_github_issue` validates `issue_number` is a positive integer
-- [ ] `close_github_issue` closes the issue via `gh issue close`
-- [ ] Returns success JSON on successful close
-- [ ] Returns error JSON (without raising) on failure
-- [ ] Checks `gh` access before attempting close
-- [ ] Subprocess calls use list-form arguments
+- [x] `close_github_issue` validates `issue_number` is a positive integer
+- [x] `close_github_issue` closes the issue via `gh issue close`
+- [x] Returns success JSON on successful close
+- [x] Returns error JSON (without raising) on failure
+- [x] Checks `gh` access before attempting close
+- [x] Subprocess calls use list-form arguments
 
 ## Testing
 
