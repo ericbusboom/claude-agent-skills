@@ -107,4 +107,13 @@ Before tickets can be created, all of the following must be true:
 
 ## Tickets
 
-(To be created after sprint approval.)
+1. **#001 — gh CLI helpers and list_github_issues MCP tool** (SUC-001)
+   `_check_gh_access` helper + `list_github_issues` MCP tool in artifact_tools.py
+2. **#002 — close_github_issue MCP tool** (SUC-003, depends: #001)
+   `close_github_issue` MCP tool wrapping `gh issue close`
+3. **#003 — Template updates for github-issue field** (SUC-002)
+   Add `github-issue` field to ticket template, `## GitHub Issues` section to sprint template
+4. **#004 — gh-import skill definition** (SUC-001, depends: #001)
+   New skill file + update `/se` dispatcher
+5. **#005 — Update close-sprint and create-tickets skills** (SUC-002/003, depends: #002, #003)
+   Add issue-closing step to close-sprint, propagation instructions to create-tickets
