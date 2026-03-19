@@ -1,7 +1,7 @@
 ---
 id: "004"
 title: "Create path-scoped rules and init integration"
-status: todo
+status: done
 use-cases: [SUC-001, SUC-003]
 depends-on: []
 ---
@@ -33,12 +33,12 @@ Add `_create_rules()` to `init_command.py`:
 
 ## Acceptance Criteria
 
-- [ ] Four rule files created with correct paths frontmatter
-- [ ] Rules are short (3-5 sentences each)
-- [ ] `clasi init` creates rules (new function in init_command.py)
-- [ ] Re-running init is idempotent
-- [ ] Custom rules in `.claude/rules/` are preserved
-- [ ] Unit tests for rules creation and idempotency
+- [x] Four rule files created with correct paths frontmatter
+- [x] Rules are short (3-5 sentences each)
+- [x] `clasi init` creates rules (new function in init_command.py)
+- [x] Re-running init is idempotent
+- [x] Custom rules in `.claude/rules/` are preserved
+- [x] Unit tests for rules creation and idempotency
 
 ## Testing
 
