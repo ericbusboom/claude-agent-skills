@@ -180,52 +180,41 @@ any file it can access.
 
 The controller specifies a **scope directory** for each subagent. This
 is the directory the subagent is allowed to modify. The constraint
-operates at three levels:
+operates at two levels, with a third reserved for future implementation:
 
 ```mermaid
 flowchart LR
     subgraph Dispatch["Controller dispatches"]
-        prompt["Subagent prompt includes:<br/>'Only modify files under<br/>docs/clasi/todo/'"]
-        scope["scope_directory:<br/>docs/clasi/todo/"]
+        prompt["Subagent prompt includes:<br/>scope_directory constraint"]
     end
 
     subgraph Execute["Subagent executes"]
         work["Reads context files<br/>(any location)"]
-        write["Writes only to<br/>scoped directory"]
-        rules2["Rules for that directory<br/>reinforce the constraint"]
+        write["Writes to<br/>scoped directory"]
+        rules2["Path-scoped rules<br/>reinforce the constraint"]
     end
 
-    subgraph Validate["Controller validates"]
-        check["Check: did subagent<br/>only modify files in<br/>scope_directory?"]
-        accept["Accept output"]
-        reject["Reject + re-dispatch<br/>with feedback"]
-    end
-
-    Dispatch --> Execute --> Validate
-    check -->|yes| accept
-    check -->|no| reject
-    reject -->|"feedback: you modified<br/>files outside scope"| Execute
+    Dispatch --> Execute
 
     style Dispatch fill:#e8f4fd
     style Execute fill:#f0f8e8
-    style Validate fill:#fff3e0
 ```
 
-### Three levels of scope enforcement
+### Scope enforcement levels
 
-1. **Prompt-level** (instructional) — The subagent prompt says "You may
-   only create or modify files under `<scope_directory>`." This is the
-   weakest but most flexible level. The subagent can still read files
-   anywhere (it needs to for context).
+1. **Prompt-level** (active) — The subagent prompt says "You may only
+   create or modify files under `<scope_directory>`." The subagent can
+   still read files anywhere (it needs to for context).
 
-2. **Rule-level** (contextual) — If the subagent accesses files outside
-   its scope, the rules for those directories fire and remind it of the
-   process requirements. This creates friction for out-of-scope writes.
+2. **Rule-level** (active) — If the subagent accesses files outside its
+   scope, the path-scoped rules for those directories fire and remind
+   it of the process requirements. This creates friction for out-of-scope
+   writes.
 
-3. **Validation-level** (post-hoc) — The controller reviews the
-   subagent's output and checks which files were modified. If any file
-   is outside the scope directory, the controller rejects the output
-   and re-dispatches with feedback explaining the violation.
+3. **Validation-level** (future) — Post-hoc validation where the
+   controller checks which files were modified. Deferred — the four-tier
+   hierarchy with prompt + rules provides sufficient guidance, and
+   OS-level file watching may handle this more reliably in the future.
 
 ### Subagent scope examples
 
@@ -241,10 +230,7 @@ flowchart LR
 
 The skill gains:
 - `scope_directory` parameter in the dispatch prompt template
-- A post-dispatch validation step that lists modified files and checks
-  each against the scope
-- Rejection flow: if validation fails, compose a new prompt with the
-  violation details and re-dispatch (max 2 retries, then escalate)
+- Context logging (see below) — every dispatch is recorded
 
 ### Subagent-protocol instruction changes
 
@@ -393,13 +379,44 @@ decision.
 - Prompt summary (first 200 chars)
 - Result summary (success/failure, files modified)
 
-**Where logs are stored:**
-- **Ticket-level dispatches** (ticket-implementer, python-expert,
-  code-reviewer): Logged to `tickets/NNN-slug-context.md` alongside
-  the ticket plan.
-- **Sprint-level dispatches** (architect, technical-lead, sprint-planner):
-  Logged to `sprint-context-log.md` in the sprint directory.
-- **Ad-hoc dispatches**: Logged to `docs/clasi/ad-hoc-context-log.md`.
+**Log directory structure:**
+
+```
+docs/clasi/log/
+├── sprints/
+│   ├── 001-my-sprint/
+│   │   ├── sprint-planner.md      # planning dispatches
+│   │   ├── ticket-001.md          # ticket-level dispatches
+│   │   ├── ticket-002.md
+│   │   └── ticket-003.md
+│   └── 002-next-sprint/
+│       └── ...
+└── adhoc/
+    ├── 001.md                     # first ad-hoc change
+    ├── 002.md                     # second ad-hoc change
+    └── ...                        # monotonic counter
+```
+
+**Routing rules:**
+- **Sprint dispatches** (sprint-planner, architect, technical-lead):
+  `docs/clasi/log/sprints/<sprint-name>/sprint-planner.md`
+- **Ticket dispatches** (ticket-implementer, python-expert,
+  code-reviewer, documentation-expert):
+  `docs/clasi/log/sprints/<sprint-name>/ticket-NNN.md`
+- **Ad-hoc dispatches** (ad-hoc-executor and its children):
+  `docs/clasi/log/adhoc/<N>.md` where N is a monotonically
+  incrementing counter (next unused integer in the directory)
+
+**Log format** (appended per dispatch):
+
+```markdown
+## Dispatch: <parent> → <child>
+- **Time**: 2026-03-19T14:30:00
+- **Scope**: docs/clasi/todo/
+- **Context files**: overview.md, todo/existing-idea.md, ...
+- **Prompt**: "Import GitHub issues as TODOs. Only modify files..."
+- **Result**: success — created 3 files
+```
 
 ### Mapping to Existing Agents
 
@@ -451,11 +468,15 @@ Changes planned for sprint 001:
 to install rule files during init. Follows the same idempotent pattern
 as `_write_se_skill` and `_update_hooks_config`.
 
-**Skill: `dispatch-subagent`** — Updated with `scope_directory` parameter,
-post-dispatch validation step, and rejection/re-dispatch flow.
+**Skill: `dispatch-subagent`** — Updated with `scope_directory` parameter
+and context logging.
 
 **Instruction: `subagent-protocol`** — New "Directory Scope" section
 defining the read-anywhere/write-in-scope constraint.
+
+**Log directory** (`docs/clasi/log/`) — New directory for dispatch
+context logs. Sprint logs in `log/sprints/<name>/`, ad-hoc logs in
+`log/adhoc/<N>.md`.
 
 ### Migration Concerns
 
