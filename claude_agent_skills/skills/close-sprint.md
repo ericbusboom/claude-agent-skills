@@ -92,8 +92,9 @@ the sprint branch, and archive the sprint document.
     - Releases the execution lock
 
 11. **Version update** (conditional): Check `docs/clasi/settings.yaml`
-    for `version_trigger`. If set to `every_sprint` or `every_change`,
-    run `clasi version bump` (or call `tag_version`). If `manual`, skip.
+    for `version_trigger`. If set to `every_sprint` or `every_change`
+    (default), run `clasi version bump` (or call `tag_version`). If
+    set to `manual`, skip versioning — the developer manages it.
 
 12. **Commit the archive**: Run `git add` for the moved sprint directory
     and the version file (if changed), then commit with a message like

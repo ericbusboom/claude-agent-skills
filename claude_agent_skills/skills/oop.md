@@ -40,3 +40,6 @@ That's it. No sprint, no tickets, no review gates, no architecture review.
 - Do NOT ask for stakeholder approval at process gates — there are no gates.
 - DO run tests before committing. Tests are never optional.
 - DO write a clear commit message explaining the change.
+- After committing, check `docs/clasi/settings.yaml` for `version_trigger`.
+  If set to `every_change` (default), run `tag_version` to bump the version.
+  If `manual` or `every_sprint`, skip versioning.

@@ -183,30 +183,68 @@ def build_tag_regex(parsed: list[tuple[str, int, bool]]) -> re.Pattern:
 
 # --- Settings ---
 
-def load_version_format(project_root: Path | None = None) -> str:
-    """Load the version format from docs/clasi/settings.yaml.
+DEFAULT_TRIGGER = "every_change"
+VALID_TRIGGERS = ("manual", "every_sprint", "every_change")
 
-    Falls back to DEFAULT_FORMAT if the file or key doesn't exist.
+
+def _load_settings(project_root: Path | None = None) -> dict:
+    """Load docs/clasi/settings.yaml as a dict.
+
+    Returns an empty dict if the file doesn't exist or can't be parsed.
     """
     if project_root is None:
         project_root = Path.cwd()
 
     settings_path = project_root / "docs" / "clasi" / "settings.yaml"
     if not settings_path.exists():
-        # Try legacy path
         settings_path = project_root / "docs" / "plans" / "settings.yaml"
     if not settings_path.exists():
-        return DEFAULT_FORMAT
+        return {}
 
     try:
         data = yaml.safe_load(settings_path.read_text(encoding="utf-8"))
     except Exception:
-        return DEFAULT_FORMAT
+        return {}
 
-    if not isinstance(data, dict):
-        return DEFAULT_FORMAT
+    return data if isinstance(data, dict) else {}
 
-    return data.get("version_format", DEFAULT_FORMAT)
+
+def load_version_format(project_root: Path | None = None) -> str:
+    """Load the version format from docs/clasi/settings.yaml.
+
+    Falls back to DEFAULT_FORMAT if the file or key doesn't exist.
+    """
+    return _load_settings(project_root).get("version_format", DEFAULT_FORMAT)
+
+
+def load_version_trigger(project_root: Path | None = None) -> str:
+    """Load the version trigger from docs/clasi/settings.yaml.
+
+    Returns one of: 'manual', 'every_sprint', 'every_change'.
+    Falls back to DEFAULT_TRIGGER ('every_change') if not set.
+    """
+    trigger = _load_settings(project_root).get("version_trigger", DEFAULT_TRIGGER)
+    if trigger not in VALID_TRIGGERS:
+        return DEFAULT_TRIGGER
+    return trigger
+
+
+def should_version(trigger: str, context: str) -> bool:
+    """Determine whether to update the version based on trigger and context.
+
+    Args:
+        trigger: The version_trigger setting value.
+        context: What just happened — 'sprint_close' or 'change'.
+
+    Returns True if the version should be updated.
+    """
+    if trigger == "manual":
+        return False
+    if trigger == "every_sprint":
+        return context == "sprint_close"
+    if trigger == "every_change":
+        return True
+    return False
 
 
 # --- Legacy compat ---

@@ -25,3 +25,11 @@
 #   X+.YYYYMMDD.0RRR  — 0.20260319.001 (zero-padded 3-digit revision)
 
 version_format: "X+.YYYYMMDD.R+"
+
+# When to update the version number:
+#   manual       — never auto-update; developer manages version manually
+#   every_sprint — update version when a sprint is closed
+#   every_change — update version after any change (sprint close or
+#                  out-of-process changes). This is the default.
+
+version_trigger: "every_change"

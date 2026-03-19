@@ -8,6 +8,7 @@ import pytest
 
 from claude_agent_skills.versioning import (
     DEFAULT_FORMAT,
+    DEFAULT_TRIGGER,
     VERSION_PATTERN,
     build_tag_regex,
     build_version,
@@ -16,7 +17,9 @@ from claude_agent_skills.versioning import (
     detect_version_file,
     format_has_auto,
     load_version_format,
+    load_version_trigger,
     parse_format,
+    should_version,
     update_package_json_version,
     update_pyproject_version,
     update_version_file,
@@ -381,3 +384,40 @@ class TestCreateVersionTag:
 
         with pytest.raises(RuntimeError, match="Failed to create tag"):
             create_version_tag("0.20260210.1")
+
+
+class TestLoadVersionTrigger:
+    def test_returns_default_when_no_file(self, tmp_path):
+        assert load_version_trigger(tmp_path) == DEFAULT_TRIGGER
+
+    def test_reads_every_sprint(self, tmp_path):
+        settings = tmp_path / "docs" / "clasi" / "settings.yaml"
+        settings.parent.mkdir(parents=True)
+        settings.write_text('version_trigger: "every_sprint"\n')
+        assert load_version_trigger(tmp_path) == "every_sprint"
+
+    def test_reads_manual(self, tmp_path):
+        settings = tmp_path / "docs" / "clasi" / "settings.yaml"
+        settings.parent.mkdir(parents=True)
+        settings.write_text('version_trigger: "manual"\n')
+        assert load_version_trigger(tmp_path) == "manual"
+
+    def test_invalid_value_returns_default(self, tmp_path):
+        settings = tmp_path / "docs" / "clasi" / "settings.yaml"
+        settings.parent.mkdir(parents=True)
+        settings.write_text('version_trigger: "bogus"\n')
+        assert load_version_trigger(tmp_path) == DEFAULT_TRIGGER
+
+
+class TestShouldVersion:
+    def test_manual_never_versions(self):
+        assert should_version("manual", "sprint_close") is False
+        assert should_version("manual", "change") is False
+
+    def test_every_sprint_only_on_close(self):
+        assert should_version("every_sprint", "sprint_close") is True
+        assert should_version("every_sprint", "change") is False
+
+    def test_every_change_always_versions(self):
+        assert should_version("every_change", "sprint_close") is True
+        assert should_version("every_change", "change") is True
