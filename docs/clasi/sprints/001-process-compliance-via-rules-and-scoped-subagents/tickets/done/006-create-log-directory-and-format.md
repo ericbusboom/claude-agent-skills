@@ -1,7 +1,7 @@
 ---
 id: "006"
 title: "Create log directory structure and format"
-status: todo
+status: done
 use-cases: []
 depends-on: []
 ---
@@ -52,12 +52,12 @@ files_modified:
 
 ## Acceptance Criteria
 
-- [ ] `docs/clasi/log/` directory structure documented
-- [ ] Logging utility creates files with correct frontmatter
-- [ ] Sprint log paths: `log/sprints/<name>/sprint-planner-NNN.md`
-- [ ] Ticket log paths: `log/sprints/<name>/ticket-NNN-NNN.md`
-- [ ] Ad-hoc log paths: `log/adhoc/<N>.md` with monotonic counter
-- [ ] Log body contains full prompt text, not summary
+- [x] `docs/clasi/log/` directory structure documented
+- [x] Logging utility creates files with correct frontmatter
+- [x] Sprint log paths: `log/sprints/<name>/sprint-planner-NNN.md`
+- [x] Ticket log paths: `log/sprints/<name>/ticket-NNN-NNN.md`
+- [x] Ad-hoc log paths: `log/adhoc/<N>.md` with monotonic counter
+- [x] Log body contains full prompt text, not summary
 
 ## Testing
 
