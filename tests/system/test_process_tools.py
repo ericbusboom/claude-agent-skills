@@ -42,8 +42,8 @@ class TestListDefinitions:
 
 class TestGetDefinition:
     def test_gets_agent(self):
-        content = _get_definition(content_path("agents"), "project-manager")
-        assert "Project Manager" in content
+        content = _get_definition(content_path("agents"), "main-controller")
+        assert "Main Controller" in content
 
     def test_not_found(self):
         with pytest.raises(ValueError, match="not found"):
@@ -60,7 +60,7 @@ class TestMCPTools:
     def test_list_agents(self):
         result = json.loads(list_agents())
         assert isinstance(result, list)
-        assert any(a["name"] == "project-manager" for a in result)
+        assert any(a["name"] == "main-controller" for a in result)
 
     def test_list_skills(self):
         result = json.loads(list_skills())
@@ -73,8 +73,8 @@ class TestMCPTools:
         assert any(i["name"] == "software-engineering" for i in result)
 
     def test_get_agent_definition(self):
-        result = get_agent_definition("project-manager")
-        assert "Project Manager" in result
+        result = get_agent_definition("main-controller")
+        assert "Main Controller" in result
 
     def test_get_skill_definition(self):
         result = get_skill_definition("execute-ticket")

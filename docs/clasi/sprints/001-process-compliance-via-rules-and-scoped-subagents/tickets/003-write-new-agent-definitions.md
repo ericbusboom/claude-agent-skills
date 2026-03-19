@@ -1,7 +1,7 @@
 ---
 id: "003"
 title: "Write new agent definitions"
-status: todo
+status: done
 use-cases: []
 depends-on: ["001"]
 ---
@@ -49,10 +49,10 @@ refactored.
 
 ## Acceptance Criteria
 
-- [ ] 5 new agent.md files created
-- [ ] main-controller refactored to pure dispatcher
-- [ ] code-monkey written as language-agnostic implementer
-- [ ] Each agent.md specifies: role, scope, receives, returns, delegates-to
+- [x] 5 new agent.md files created
+- [x] main-controller refactored to pure dispatcher
+- [x] code-monkey written as language-agnostic implementer
+- [x] Each agent.md specifies: role, scope, receives, returns, delegates-to
 
 ## Testing
 
