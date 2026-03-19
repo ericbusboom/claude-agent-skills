@@ -1,7 +1,7 @@
 ---
 id: "001"
 title: "Process Compliance via Rules and Scoped Subagents"
-status: planning
+status: done
 branch: sprint/001-process-compliance-via-rules-and-scoped-subagents
 use-cases:
   - SUC-001
