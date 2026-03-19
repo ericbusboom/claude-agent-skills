@@ -247,6 +247,25 @@ def should_version(trigger: str, context: str) -> bool:
     return False
 
 
+def load_version_source(project_root: Path | None = None) -> str | None:
+    """Load the version_source setting.
+
+    Returns the configured source file path, or None for auto-detect.
+    """
+    return _load_settings(project_root).get("version_source")
+
+
+def load_version_sync(project_root: Path | None = None) -> list[str]:
+    """Load the version_sync setting.
+
+    Returns a list of file paths to sync the version into after a bump.
+    """
+    val = _load_settings(project_root).get("version_sync")
+    if isinstance(val, list):
+        return [str(v) for v in val]
+    return []
+
+
 # --- Legacy compat ---
 
 # Keep VERSION_PATTERN for backward compatibility with existing code
@@ -330,16 +349,55 @@ def compute_next_version(major: int = 0) -> str:
     return build_version(parsed, values, rev=max_rev + 1, today=today)
 
 
+def _file_type_for(path: Path) -> str:
+    """Determine the version file type from a file path."""
+    name = path.name
+    if name == "pyproject.toml":
+        return "pyproject"
+    if name == "package.json":
+        return "package_json"
+    raise ValueError(f"Unknown version file type for {name}")
+
+
 def detect_version_file(project_root: Path) -> tuple[Path, str] | None:
     """Detect the project's version file by checking known filenames.
 
-    Returns (path, file_type) or None if no version file is found.
-    Checks in priority order: pyproject.toml, package.json.
+    Checks version_source setting first, then falls back to auto-detect
+    in priority order: pyproject.toml, package.json.
     """
+    source = load_version_source(project_root)
+    if source:
+        path = project_root / source
+        if path.exists():
+            return (path, _file_type_for(path))
+
     for filename, file_type in _VERSION_FILES:
         path = project_root / filename
         if path.exists():
             return (path, file_type)
+    return None
+
+
+def read_current_version(project_root: Path | None = None) -> str | None:
+    """Read the current version string from the project's version file.
+
+    Returns the version string, or None if no version file is found.
+    """
+    if project_root is None:
+        project_root = Path.cwd()
+
+    result = detect_version_file(project_root)
+    if result is None:
+        return None
+
+    path, file_type = result
+    if file_type == "pyproject":
+        content = path.read_text(encoding="utf-8")
+        m = re.search(r'^version\s*=\s*"([^"]*)"', content, re.MULTILINE)
+        return m.group(1) if m else None
+    elif file_type == "package_json":
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data.get("version")
     return None
 
 
@@ -380,6 +438,26 @@ def update_version_file(path: Path, file_type: str, version: str) -> None:
         raise ValueError(f"Unknown version file type: {file_type}")
 
 
+def sync_version(version: str, project_root: Path | None = None) -> list[str]:
+    """Write the version to all sync files listed in settings.
+
+    Returns a list of paths that were updated.
+    """
+    if project_root is None:
+        project_root = Path.cwd()
+
+    sync_files = load_version_sync(project_root)
+    updated = []
+    for rel_path in sync_files:
+        path = project_root / rel_path
+        if not path.exists():
+            continue
+        file_type = _file_type_for(path)
+        update_version_file(path, file_type, version)
+        updated.append(rel_path)
+    return updated
+
+
 def create_version_tag(version: str) -> None:
     """Create a git tag for the given version."""
     tag_name = f"v{version}"
@@ -391,3 +469,38 @@ def create_version_tag(version: str) -> None:
     )
     if result.returncode != 0:
         raise RuntimeError(f"Failed to create tag {tag_name}: {result.stderr.strip()}")
+
+
+def bump_version(major: int = 0, tag: bool = True) -> dict:
+    """Compute the next version, update all version files, and optionally tag.
+
+    This is the main entry point for `clasi version bump`.
+
+    Returns a dict with keys: version, source, synced, tag.
+    """
+    project_root = Path.cwd()
+    version = compute_next_version(major)
+
+    # Update source file
+    result = detect_version_file(project_root)
+    source_path = None
+    if result:
+        path, file_type = result
+        update_version_file(path, file_type, version)
+        source_path = str(path.relative_to(project_root))
+
+    # Sync to other files
+    synced = sync_version(version, project_root)
+
+    # Tag
+    tag_name = None
+    if tag:
+        create_version_tag(version)
+        tag_name = f"v{version}"
+
+    return {
+        "version": version,
+        "source": source_path,
+        "synced": synced,
+        "tag": tag_name,
+    }

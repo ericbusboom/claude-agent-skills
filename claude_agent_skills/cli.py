@@ -5,13 +5,15 @@ Subcommands:
     clasi init [target]             — Initialize a repo for CLASI
     clasi mcp                       — Run the MCP server (stdio)
     clasi todo-split                — Split multi-heading TODO files
+    clasi version                   — Show the current project version
+    clasi version bump              — Bump version, update files, tag
 """
 
 import click
 
 
 @click.group()
-@click.version_option(package_name="claude-agent-skills")
+@click.version_option(package_name="claude-agent-skills", prog_name="clasi")
 def cli():
     """CLASI — Claude Agent Skills Instructions.
 
@@ -51,6 +53,45 @@ def todo_split(todo_dir):
             click.echo(action)
     else:
         click.echo("No files needed splitting.")
+
+
+@cli.group(invoke_without_command=True)
+@click.pass_context
+def version(ctx):
+    """Show or bump the project version.
+
+    With no subcommand, shows the current version.
+    """
+    if ctx.invoked_subcommand is None:
+        from claude_agent_skills.versioning import read_current_version
+
+        ver = read_current_version()
+        if ver:
+            click.echo(ver)
+        else:
+            click.echo("No version file found.", err=True)
+            ctx.exit(1)
+
+
+@version.command(name="bump")
+@click.option("--major", default=0, type=int, help="Major version number.")
+@click.option("--no-tag", is_flag=True, help="Skip creating a git tag.")
+def version_bump(major, no_tag):
+    """Compute the next version, update version files, and tag.
+
+    Reads version_format from settings to determine the format.
+    Updates the source file and all sync files, then creates a git tag.
+    """
+    from claude_agent_skills.versioning import bump_version
+
+    result = bump_version(major=major, tag=not no_tag)
+    click.echo(f"Version: {result['version']}")
+    if result["source"]:
+        click.echo(f"Updated: {result['source']}")
+    for s in result["synced"]:
+        click.echo(f"Synced:  {s}")
+    if result["tag"]:
+        click.echo(f"Tagged:  {result['tag']}")
 
 
 @cli.command()
