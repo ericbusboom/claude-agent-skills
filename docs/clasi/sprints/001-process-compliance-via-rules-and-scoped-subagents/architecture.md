@@ -2,15 +2,14 @@
 version: "001"
 status: draft
 sprint: "001"
-description: Architecture update for sprint 001 — agent/subagent model, path-scoped rules, directory-scoped dispatch
+description: Architecture update for sprint 001 — three-tier agent hierarchy, path-scoped rules, dispatch logging
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
 # Architecture 001: CLASI System
 
 This document describes the CLASI system architecture as it will exist
-at the end of sprint 001, with significant new sections on the
-agent/subagent execution model and process compliance enforcement.
+at the end of sprint 001.
 
 ## Architecture Overview
 
@@ -20,7 +19,7 @@ design insight is that **LLM agents do not reliably follow behavioral
 instructions alone** — 12 documented process failures confirm this.
 CLASI responds with layered enforcement: a SQLite state machine for
 lifecycle gates, path-scoped rules for decision-point reminders, and
-directory-scoped subagent dispatch for execution isolation.
+a three-tier agent hierarchy with scoped dispatch.
 
 The system has four top-level responsibilities:
 
@@ -57,9 +56,9 @@ flowchart TB
     end
 
     subgraph Content["Bundled Content"]
-        agents["agents/"]
-        skills["skills/"]
-        instr["instructions/"]
+        agents_dir["agents/<br/>(3-tier hierarchy)"]
+        skills["skills/<br/>(global)"]
+        instr["instructions/<br/>(global)"]
         templates["templates/"]
         rules_tmpl["init/rules/"]
     end
@@ -88,132 +87,176 @@ flowchart TB
     style Content fill:#fef3e0,stroke:#333
 ```
 
-## Agent and Subagent Model
+## Agent Hierarchy
 
-This section describes how CLASI agents are organized, how subagents
-are dispatched, and how each is scoped to specific responsibilities.
+CLASI agents are organized in three tiers. Each tier delegates downward
+and validates upward. No tier reaches past its immediate children.
 
-### Agent Hierarchy
+For detailed design rationale, coverage analysis, and enforcement
+specifics, see `pc-architecture.md`.
 
-CLASI defines a **controller/worker** pattern. The controller agent
-(typically project-manager) orchestrates the process. It never writes
-code or planning documents directly — it dispatches specialized
-subagents for each task, reviews their output, and advances the process.
+### Hierarchy Diagram
 
 ```mermaid
 flowchart TB
     user["Stakeholder"]
-    pm["Controller<br/>(project-manager)"]
 
-    subgraph Planning["Planning Subagents"]
-        ra["requirements-analyst<br/>Scope: docs/clasi/overview.md"]
-        arch["architect<br/>Scope: docs/clasi/sprints/NNN/architecture.md"]
-        ar["architecture-reviewer<br/>Scope: read-only review"]
-        tl["technical-lead<br/>Scope: docs/clasi/sprints/NNN/tickets/"]
+    subgraph T0["Tier 0: Main Controller"]
+        mc["main-controller<br/>Knows: requirements, planning, execution<br/>Writes: nothing (dispatches only)"]
     end
 
-    subgraph Execution["Execution Subagents"]
-        py["python-expert<br/>Scope: source code + tests"]
-        cr["code-reviewer<br/>Scope: read-only review"]
-        doc["documentation-expert<br/>Scope: docs/, README"]
+    subgraph T1["Tier 1: Domain Controllers"]
+        rn["requirements-narrator<br/>Scope: docs/clasi/overview.md"]
+        tw["todo-worker<br/>Scope: docs/clasi/todo/"]
+        sp["sprint-planner<br/>Scope: docs/clasi/sprints/NNN/<br/>Receives: TODO IDs<br/>Returns: sprint with tickets"]
+        se["sprint-executor<br/>Scope: docs/clasi/sprints/NNN/<br/>Receives: sprint + tickets<br/>Returns: completed sprint"]
+        ah["ad-hoc-executor<br/>Scope: per-task<br/>No sprint ceremony"]
+        sr["sprint-reviewer<br/>Scope: read-only<br/>Post-sprint validation"]
     end
 
-    subgraph Support["Support Subagents"]
-        todo_agent["todo-worker<br/>Scope: docs/clasi/todo/"]
-        gh_agent["gh-import<br/>Scope: docs/clasi/todo/"]
+    subgraph T2["Tier 2: Task Workers"]
+        arch["architect<br/>Scope: architecture.md"]
+        ar["architecture-reviewer<br/>Scope: read-only"]
+        tl["technical-lead<br/>Scope: tickets/"]
+        cm["code-monkey<br/>Scope: source + tests + docs<br/>Receives: one ticket + plan<br/>Returns: implemented ticket"]
+        cr["code-reviewer<br/>Scope: read-only"]
     end
 
-    user -->|narrates| pm
-    pm -->|dispatches| Planning
-    pm -->|dispatches| Execution
-    pm -->|dispatches| Support
-    Planning -->|returns output| pm
-    Execution -->|returns output| pm
-    Support -->|returns output| pm
-    pm -->|reports| user
+    user --> mc
 
-    style pm fill:#e8f4fd,stroke:#069
-    style Planning fill:#f0f8e8,stroke:#333
-    style Execution fill:#fff3e0,stroke:#333
-    style Support fill:#fef0f0,stroke:#333
+    mc --> rn
+    mc --> tw
+    mc --> sp
+    mc --> se
+    mc --> ah
+    mc --> sr
+
+    sp --> arch
+    sp --> ar
+    sp --> tl
+
+    se --> cm
+
+    ah --> cm
+    ah --> cr
+
+    style T0 fill:#e8f4fd,stroke:#069
+    style T1 fill:#f0f8e8,stroke:#393
+    style T2 fill:#fff3e0,stroke:#f90
 ```
 
-### Agent Roles and Scope
+### Tier Descriptions
 
-Each agent has a defined role, a **scope directory** (where it may
-write), and a context set (what it reads).
+| Tier | Agent | Receives | Returns | Write Scope | Delegates to |
+|------|-------|----------|---------|-------------|-------------|
+| 0 | **main-controller** | Stakeholder input | Status reports | None | T1 agents. Validates sprint frontmatter on return. |
+| 1 | **requirements-narrator** | Stakeholder narrative | Overview doc | `docs/clasi/overview.md` | None |
+| 1 | **todo-worker** | Ideas, GitHub issues | TODO files | `docs/clasi/todo/` | None |
+| 1 | **sprint-planner** | TODO IDs, goals | Sprint with tickets | `docs/clasi/sprints/NNN/` | architect, arch-reviewer, technical-lead |
+| 1 | **sprint-executor** | Sprint + ticket list | Completed sprint | `docs/clasi/sprints/NNN/` | code-monkey. Validates ticket frontmatter after each return. Updates sprint frontmatter when all tickets complete. |
+| 1 | **ad-hoc-executor** | Change request | Completed change | Per-task | code-monkey, code-reviewer |
+| 1 | **sprint-reviewer** | Completed sprint | Review verdict | Read-only | None |
+| 2 | **architect** | Sprint goals, prev arch | Updated architecture.md | `architecture.md` | None |
+| 2 | **architecture-reviewer** | Architecture doc | Review verdict | Read-only | None |
+| 2 | **technical-lead** | Architecture, use cases | Numbered tickets | `tickets/` | None |
+| 2 | **code-monkey** | One ticket + plan | Implemented code, updated ticket frontmatter | Source + tests + docs | None. Gets language-specific instructions per project. |
+| 2 | **code-reviewer** | Changed files, ticket | Pass/fail verdict | Read-only | None |
 
-| Agent | Role | Write Scope | Read Context |
-|-------|------|-------------|-------------|
-| **project-manager** | Controller — orchestrates, never writes code | None (dispatches only) | All artifacts, sprint state |
-| **requirements-analyst** | Produces overview from stakeholder narrative | `docs/clasi/overview.md` | Stakeholder input |
-| **architect** | Updates architecture for each sprint | `docs/clasi/sprints/NNN/architecture.md` | Previous architecture, sprint goals |
-| **architecture-reviewer** | Reviews architecture (read-only) | None | Architecture doc, existing code |
-| **technical-lead** | Creates tickets from architecture | `docs/clasi/sprints/NNN/tickets/` | Architecture, use cases |
-| **python-expert** | Implements code per ticket plan | `claude_agent_skills/`, `tests/` | Ticket, plan, architecture, instructions |
-| **code-reviewer** | Reviews code changes (read-only) | None | Changed files, ticket, standards |
-| **documentation-expert** | Updates documentation | `docs/`, `README.md` | Source code, existing docs |
-| **todo-worker** | Creates/manages TODOs | `docs/clasi/todo/` | Issue data, existing TODOs |
+### Validation Chain
 
-### Subagent Dispatch Flow
-
-When the controller dispatches a subagent, three things happen:
-
-1. **Context curation** — The controller selects only the files and
-   instructions relevant to the task. See `instructions/subagent-protocol`
-   for include/exclude rules.
-
-2. **Scope declaration** — The controller specifies the directory the
-   subagent may write to. This is included in the subagent's prompt.
-
-3. **Post-dispatch validation** — After the subagent returns, the
-   controller checks which files were modified. If any file is outside
-   the declared scope, the output is rejected and the subagent is
-   re-dispatched with feedback (max 2 retries, then escalate to
-   stakeholder).
+The sprint-executor validates each ticket after the code-monkey returns,
+and the main controller validates the sprint after the executor returns:
 
 ```mermaid
 sequenceDiagram
-    participant C as Controller
-    participant S as Subagent
-    participant R as Rules (.claude/rules/)
-    participant V as Validator
+    participant MC as Main Controller
+    participant SE as Sprint Executor
+    participant CM as Code Monkey
 
-    C->>C: Curate context + set scope_directory
-    C->>S: Dispatch with prompt + scope constraint
-    S->>R: Accesses file in scope → rule loads
-    R-->>S: "Verify ticket is in-progress"
-    S->>S: Executes task within scope
-    S-->>C: Returns output
-    C->>V: Check modified files vs scope
-    alt All files in scope
-        V-->>C: PASS
-        C->>C: Accept output, continue process
-    else Files outside scope
-        V-->>C: FAIL — list violations
-        C->>S: Re-dispatch with feedback
-    end
+    MC->>SE: Execute sprint 001
+    SE->>CM: Execute ticket 001
+    CM->>CM: Implement, test, update frontmatter
+    CM-->>SE: Ticket 001 changes
+    SE->>SE: Validate ticket frontmatter (status=done, criteria checked)
+    Note over SE: If frontmatter incomplete, send back to code-monkey
+
+    SE->>CM: Execute ticket 002
+    CM-->>SE: Ticket 002 changes
+    SE->>SE: Validate ticket frontmatter
+
+    SE->>SE: All tickets done — update sprint frontmatter
+    SE-->>MC: Sprint complete (sprint.md status=done)
+    MC->>MC: Validate sprint frontmatter
+    MC->>MC: Close sprint, version bump
 ```
 
-### Isolation Model
+### Subagent Dispatch and Scope
 
-Subagents are isolated at two levels:
+When dispatching a subagent, the controller:
 
-**Context isolation** — Each subagent starts with a fresh context
-containing only the curated files and instructions. It does not inherit
-the controller's conversation history, other tickets, or debugging
-logs from prior attempts.
+1. **Curates context** — selects only relevant files and instructions
+2. **Declares scope** — specifies the directory the subagent may write to
+3. **Logs the dispatch** — writes the full prompt to the log directory
 
-**Directory isolation** — Each subagent has an explicit write scope.
-The subagent can read files from anywhere (it needs to for context),
-but may only create or modify files within its scope directory. If the
-task requires writing outside the scope, the subagent returns a request
-to the controller for expanded scope rather than writing directly.
+Scope enforcement is **prompt-level + rule-level**. The subagent prompt
+states the directory constraint. Path-scoped rules reinforce it when
+the subagent accesses files. Post-hoc validation is deferred to future
+work (may use OS-level file watching).
 
-For parallel execution (opt-in), subagents additionally get **filesystem
-isolation** via git worktrees — each subagent works in its own worktree
-on its own branch. See `skills/parallel-execution` and
-`instructions/worktree-protocol`.
+### Agent Directory Layout
+
+The code directory structure mirrors the hierarchy:
+
+```
+agents/
+├── main-controller/
+│   └── main-controller/
+│       ├── agent.md
+│       ├── next.md
+│       └── project-status.md
+├── domain-controllers/
+│   ├── requirements-narrator/
+│   │   ├── agent.md
+│   │   ├── elicit-requirements.md
+│   │   └── project-initiation.md
+│   ├── todo-worker/
+│   │   ├── agent.md
+│   │   ├── todo.md
+│   │   └── gh-import.md
+│   ├── sprint-planner/
+│   │   ├── agent.md
+│   │   ├── plan-sprint.md
+│   │   └── create-tickets.md
+│   ├── sprint-executor/
+│   │   ├── agent.md
+│   │   ├── execute-ticket.md
+│   │   └── close-sprint.md
+│   ├── ad-hoc-executor/
+│   │   ├── agent.md
+│   │   └── oop.md
+│   └── sprint-reviewer/
+│       └── agent.md
+└── task-workers/
+    ├── architect/
+    │   ├── agent.md
+    │   └── architectural-quality.md
+    ├── architecture-reviewer/
+    │   └── agent.md
+    ├── technical-lead/
+    │   └── agent.md
+    ├── code-monkey/
+    │   ├── agent.md
+    │   ├── tdd-cycle.md
+    │   ├── systematic-debugging.md
+    │   └── python-code-review.md
+    └── code-reviewer/
+        └── agent.md
+```
+
+Agent-specific skills and instructions live alongside `agent.md`.
+Global content (cross-cutting skills, instructions, language standards)
+remains at the top level. See `pc-architecture.md` § "Agent Directory
+Structure" for the full migration table.
 
 ## Process Compliance Enforcement
 
@@ -222,20 +265,13 @@ Four layers of enforcement, from weakest to strongest:
 ### Layer 1: Instructional (session start)
 
 CLAUDE.md, AGENTS.md, skill definitions, instruction files. Loaded at
-session start. Provides the complete process definition but fades from
-active context as the session progresses.
-
-**Weakness**: Agents read these once and rely on memory at decision
-points. 12 reflections document this failure mode.
+session start. Fades from active context as the session progresses.
 
 ### Layer 2: Contextual — Path-Scoped Rules (new in sprint 001)
 
 `.claude/rules/*.md` files with `paths` frontmatter. Claude Code loads
 these **on demand** when the agent accesses files matching the path
-pattern. Short (3-5 sentences), actionable, and re-injected after
-context compaction.
-
-**Rules installed by `clasi init`:**
+pattern. Short, actionable, re-injected after context compaction.
 
 | Rule file | Path pattern | Fires when |
 |-----------|-------------|------------|
@@ -244,38 +280,45 @@ context compaction.
 | `todo-dir.md` | `docs/clasi/todo/**` | Working in TODO directory |
 | `git-commits.md` | `**/*.py`, `**/*.md` | Touching any code or docs |
 
-**Coverage**: Rules target all five documented failure modes (process
-bypass, wrong tool selection, no tests before commit, decision-point
-consultation, completion bias). See `pc-architecture.md` for the
-detailed coverage matrix.
+See `pc-architecture.md` § "Path-Scoped Rules" for rule content and
+coverage matrix.
 
 ### Layer 3: Mechanical — State Machine (existing)
 
 SQLite state database with phase transitions, review gates, and
-execution locks. MCP tools reject invalid operations — `create_ticket`
-before ticketing phase, `advance_sprint_phase` without passing review
-gates, executing without the lock.
+execution locks. MCP tools reject invalid operations.
 
-**Strength**: Cannot be bypassed. The tool rejects the action regardless
-of what the agent thinks it should do.
+### Layer 4: Validation — Post-Hoc Checks (existing)
 
-### Layer 4: Validation — Post-Hoc Checks (existing + enhanced)
+Sprint review MCP tools. Subagent scope validation deferred to future
+(may use OS-level file watching).
 
-Sprint review MCP tools (`review_sprint_pre_execution`,
-`review_sprint_pre_close`, `review_sprint_post_close`) and the new
-subagent scope validation. The controller checks subagent output against
-the declared scope directory after every dispatch.
+## Dispatch Logging
+
+Every subagent dispatch is logged with YAML frontmatter for structured
+metadata and the full prompt text as the body.
+
+```
+docs/clasi/log/
+├── sprints/<sprint-name>/
+│   ├── sprint-planner-NNN.md
+│   └── ticket-NNN-NNN.md
+└── adhoc/
+    └── NNN.md
+```
+
+See `pc-architecture.md` § "Context Logging" for the full log format
+and routing rules.
 
 ## Technology Stack
 
 | Attribute | Value | Justification |
 |-----------|-------|---------------|
-| Language | Python >=3.10 | Target users are Claude Code / AI agent environments that have Python |
+| Language | Python >=3.10 | Target users are Claude Code / AI agent environments |
 | CLI framework | Click >=8.0 | Lightweight, composable subcommands |
 | MCP framework | FastMCP (mcp >=1.0) | Standard protocol for AI agent tool access |
 | YAML parsing | PyYAML >=6.0 | Frontmatter I/O for markdown artifacts |
-| State storage | SQLite (stdlib) | Zero-dependency, file-based, embedded in project |
-| Build system | setuptools >=61.0 | Standard Python packaging |
+| State storage | SQLite (stdlib) | Zero-dependency, file-based, embedded |
 | Version format | Configurable via `settings.yaml` | Default `X+.YYYYMMDD.R+` |
 | Test framework | pytest | 356 tests |
 
@@ -283,54 +326,33 @@ the declared scope directory after every dispatch.
 
 ### CLI (`cli.py`)
 
-**Purpose**: Routes user commands to the appropriate subsystem.
-
 **Subcommands**: `init`, `mcp`, `todo-split`, `version`, `version bump`.
 
 ### Init Command (`init_command.py`)
 
-**Purpose**: Installs the CLASI SE process into a target repository.
-
 **Outputs** (written to target project):
 - `CLAUDE.md` — CLASI process block inline
 - `.claude/skills/se/SKILL.md` — `/se` dispatcher skill
-- `.claude/rules/*.md` — Path-scoped compliance rules (new)
+- `.claude/rules/*.md` — Path-scoped compliance rules
 - `.claude/settings.json` — Session-start hook
 - `.claude/settings.local.json` — MCP permission allowlist
 - `.mcp.json` + `.vscode/mcp.json` — MCP server configuration
 
-**Key invariant**: All operations are idempotent.
+### Process Tools (`process_tools.py`)
 
-### MCP Server, Process Tools, Artifact Tools
-
-(Unchanged from architecture 021. See previous version for details.)
-
-### State Database (`state_db.py`)
-
-(Unchanged. Enforces sprint lifecycle state machine.)
-
-### Versioning (`versioning.py`)
-
-**Purpose**: Configurable version format, trigger-based auto-versioning,
-multi-file sync.
-
-**Settings** (from `docs/clasi/settings.yaml`):
-- `version_format` — Token-based format string
-- `version_trigger` — `manual`, `every_sprint`, `every_change`
-- `version_source` — Primary version file
-- `version_sync` — Additional files to update
+Updated to walk the three-tier agent directory tree. New
+`get_agent_context(name)` tool returns agent.md plus sibling files.
 
 ### Bundled Content
 
-- **9 agents**: architect, architecture-reviewer, code-reviewer,
-  documentation-expert, product-manager, project-manager, python-expert,
-  requirements-analyst, technical-lead
-- **Skills**: plan-sprint, execute-ticket, close-sprint, create-tickets,
-  dispatch-subagent, tdd-cycle, systematic-debugging, parallel-execution,
-  gh-import, and others
-- **Instructions**: software-engineering, architectural-quality,
-  coding-standards, git-workflow, testing, subagent-protocol,
-  worktree-protocol, dotconfig, rundbat
+Organized in the three-tier agent hierarchy (see Agent Directory Layout
+above), plus:
+- **Global skills**: se, dispatch-subagent, auto-approve, self-reflect,
+  parallel-execution, report, ghtodo, generate-documentation
+- **Global instructions**: software-engineering, coding-standards,
+  git-workflow, testing, subagent-protocol, worktree-protocol,
+  dotconfig, rundbat, languages/
+- **Templates**: sprint, ticket, overview, architecture, review-checklist
 - **Rules templates**: init/rules/ — installed by `clasi init`
 
 ## Data Model
@@ -355,19 +377,18 @@ stateDiagram-v2
 |----------|----------|-------------|
 | Sprint | `docs/clasi/sprints/NNN-slug/sprint.md` | id, title, status, branch, use-cases |
 | Architecture | `docs/clasi/sprints/NNN-slug/architecture.md` | version, status, sprint |
-| Ticket | `docs/clasi/sprints/NNN-slug/tickets/NNN-slug.md` | id, title, status, use-cases, depends-on, github-issue, todo |
+| Ticket | `docs/clasi/sprints/NNN-slug/tickets/NNN-slug.md` | id, title, status, depends-on, github-issue, todo |
 | TODO | `docs/clasi/todo/name.md` | status, sprint, github-issue |
 | Settings | `docs/clasi/settings.yaml` | version_format, version_trigger, version_source, version_sync |
+| Dispatch Log | `docs/clasi/log/sprints/...` or `log/adhoc/...` | timestamp, parent, child, scope, result |
 
 ## Security Considerations
 
-- The MCP server runs as a local subprocess over stdio — no network
-  exposure.
-- The state database is a local SQLite file (`.clasi.db`), gitignored.
-- `init_command` preserves existing file content outside CLASI-delimited
-  sections.
+- MCP server runs as local subprocess over stdio — no network exposure.
+- State database is a local SQLite file (`.clasi.db`), gitignored.
+- `init_command` preserves existing content outside CLASI sections.
 - GitHub operations use `gh` CLI (user's auth), never store tokens.
-- All `gh` subprocess calls use list-form arguments (no `shell=True`).
+- All subprocess calls use list-form arguments (no `shell=True`).
 
 ## Design Rationale
 
@@ -377,42 +398,39 @@ stateDiagram-v2
 
 ### DR-006: Path-Scoped Rules over Subdirectory CLAUDE.md
 
-**Decision**: Use `.claude/rules/*.md` with path frontmatter rather than
-placing CLAUDE.md files in each subdirectory. (Sprint 001)
+Use `.claude/rules/*.md` with path frontmatter. Centralized, path-scoped,
+installed by `clasi init`.
 
-**Context**: Need to inject process reminders at the point where agents
-access specific directories. Two options: scatter CLAUDE.md files across
-the project, or centralize rules in `.claude/rules/`.
+### DR-007: Directory Scope as Prompt + Rules
 
-**Alternatives**: (1) Subdirectory CLAUDE.md files, (2) `.claude/rules/`.
+Directory scoping is prompt-level + rule-level enforcement. Post-hoc
+validation deferred — the three-tier hierarchy with prompt constraints
+and path-scoped rules provides sufficient guidance. OS-level file
+watching may provide mechanical enforcement in the future.
 
-**Why rules**: Centralized — all enforcement in one directory, easy to
-audit. Path-scoped — same on-demand loading behavior as subdirectory
-CLAUDE.md. Installed by `clasi init` — consistent across projects.
+### DR-008: Three-Tier Agent Hierarchy
 
-**Consequences**: Requires Claude Code support for `.claude/rules/` with
-`paths` frontmatter.
+**Decision**: Organize agents into main-controller, domain-controllers,
+and task-workers with matching directory structure.
 
-### DR-007: Directory Scope as Convention, Not Enforcement
+**Context**: The flat agent model had project-manager doing everything.
+No isolation between planning and execution, no clear delegation
+boundaries.
 
-**Decision**: Directory scoping for subagents is prompt-level + post-hoc
-validation, not a hard filesystem restriction. (Sprint 001)
+**Why three tiers**: Main controller knows the process but not
+implementation. Domain controllers own lifecycles (sprint planning,
+sprint execution, TODO management). Task workers do the actual work
+(code, review, architecture). Each tier validates the output of its
+children before passing results up.
 
-**Context**: No mechanism exists to prevent a Claude Code subagent from
-writing to arbitrary file paths. The Agent tool's `isolation: "worktree"`
-provides whole-repo isolation, not directory-level restriction.
+### DR-009: Code Monkey as Language-Agnostic Implementer
 
-**Alternatives**: (1) Prompt-only restriction, (2) Worktree isolation per
-task, (3) Prompt + validation.
+**Decision**: Replace python-expert with code-monkey. Absorb
+documentation-expert. Language-agnostic by default, gets per-project
+language instructions.
 
-**Why prompt + validation**: Prompt tells the subagent the rule.
-Validation catches violations after the fact. Together they're much
-harder to bypass than either alone. Worktree-per-task is too heavy for
-most operations.
-
-**Consequences**: A subagent can still write outside scope; the violation
-is caught by the controller and the output is rejected. This is
-defense-in-depth, not absolute prevention.
+**Context**: python-expert had no Python-specific behavior.
+Documentation is part of ticket implementation, not a separate step.
 
 ## Open Questions
 
@@ -424,23 +442,33 @@ Changes planned for sprint 001:
 
 ### New Components
 
-**Path-scoped rules** (`.claude/rules/`) — Four rule files installed by
-`clasi init`. Static markdown with YAML frontmatter.
+**Agent directory hierarchy** — Three-tier structure under `agents/`
+with per-agent directories containing agent.md + agent-specific content.
 
-**Rules templates** (`init/rules/`) — Bundled rule content in the CLASI
-package, used by init to create project rules.
+**New agent definitions** — sprint-planner, sprint-executor,
+ad-hoc-executor, todo-worker, sprint-reviewer (5 new).
+
+**Refactored agents** — main-controller (pure dispatcher), code-monkey
+(language-agnostic, absorbs python-expert + documentation-expert).
+
+**Path-scoped rules** (`.claude/rules/`) — Four rule files.
+
+**Log directory** (`docs/clasi/log/`) — Dispatch logging with full
+prompt text.
 
 ### Changed Components
 
-**Init Command (`init_command.py`)** — New `_create_rules()` function.
-Follows the same idempotent pattern as other init functions.
+**Init Command** — New `_create_rules()` function.
 
-**Skill: `dispatch-subagent`** — Updated with `scope_directory` parameter,
-post-dispatch validation step, and rejection/re-dispatch flow.
+**Process Tools** — Walk nested agent directories. New
+`get_agent_context()` tool.
 
-**Instruction: `subagent-protocol`** — New "Directory Scope" section.
+**Skill: `dispatch-subagent`** — scope_directory + logging.
+
+**Instruction: `subagent-protocol`** — Directory Scope section.
 
 ### Migration Concerns
 
-Non-breaking. Running `clasi init` on existing projects adds rules
-without modifying other artifacts. Dispatch skill changes are additive.
+Non-breaking for external projects (rules are additive, init is
+idempotent). Internal migration requires moving 34 files per the
+migration table in `pc-architecture.md`.

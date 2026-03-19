@@ -10,6 +10,12 @@ depends-on: ["001"]
 
 ## Description
 
+**Reference**: See `pc-architecture.md` in the sprint directory for
+detailed design decisions, coverage analysis, and the full migration
+table. That document has the specifics; this ticket has the acceptance
+criteria.
+
+
 Create `agent.md` files for the new agents in the hierarchy that don't
 have existing definitions. Update existing agents that are being
 refactored.
