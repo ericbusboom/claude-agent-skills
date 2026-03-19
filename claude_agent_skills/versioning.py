@@ -1,10 +1,19 @@
 """Versioning utilities for the CLASI project.
 
-Version format: <major>.<YYYYMMDD>.<build>
+Supports configurable version formats via docs/clasi/settings.yaml.
 
-- major: manually bumped for breaking changes (default 0)
-- YYYYMMDD: date of the release
-- build: auto-incremented within the same date, resets to 1 on new date
+Default format: X.YYYYMMDD.R
+
+Format tokens:
+    X, XX, XXX    — manual segment (unpadded, min-width)
+    0XX, 0XXX     — manual segment (zero-padded to width)
+    YYYY, MM, DD  — date components
+    R, RR, RRR    — auto-incrementing revision (unpadded, min-width)
+    0RR, 0RRR     — revision (zero-padded to width)
+    .             — literal dot separator
+
+Fully manual formats (no R or date tokens) produce X.X.X style versions
+that are not auto-computed.
 """
 
 import json
@@ -13,7 +22,9 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-VERSION_PATTERN = re.compile(r"^v?(\d+)\.(\d{8})\.(\d+)$")
+import yaml
+
+DEFAULT_FORMAT = "X.YYYYMMDD.R"
 
 # Priority-ordered list of version file names and their types.
 _VERSION_FILES: list[tuple[str, str]] = [
@@ -21,6 +32,157 @@ _VERSION_FILES: list[tuple[str, str]] = [
     ("package.json", "package_json"),
 ]
 
+# --- Format parsing ---
+
+# Token pattern: longest match first
+_TOKEN_RE = re.compile(
+    r"(0X{2,}|X{2,}|X|YYYY|MM|DD|0R{2,}|R{2,}|R|\.)"
+)
+
+
+def _classify_token(tok: str) -> tuple[str, int, bool]:
+    """Classify a format token.
+
+    Returns (kind, width, zero_pad).
+    kind: 'manual', 'year', 'month', 'day', 'rev', 'dot'
+    """
+    if tok == ".":
+        return ("dot", 0, False)
+    if tok == "YYYY":
+        return ("year", 4, True)
+    if tok == "MM":
+        return ("month", 2, True)
+    if tok == "DD":
+        return ("day", 2, True)
+    if tok.startswith("0") and tok[1:] == "X" * (len(tok) - 1):
+        return ("manual", len(tok) - 1, True)
+    if tok == "X" * len(tok):
+        return ("manual", max(1, len(tok)), False)
+    if tok.startswith("0") and tok[1:] == "R" * (len(tok) - 1):
+        return ("rev", len(tok) - 1, True)
+    if tok == "R" * len(tok):
+        return ("rev", max(1, len(tok)), False)
+    raise ValueError(f"Unknown version format token: {tok}")
+
+
+def parse_format(fmt: str) -> list[tuple[str, int, bool]]:
+    """Parse a version format string into classified tokens."""
+    tokens = _TOKEN_RE.findall(fmt)
+    # Verify we consumed the entire format string
+    reconstructed = "".join(tokens)
+    if reconstructed != fmt:
+        raise ValueError(
+            f"Invalid version format: {fmt!r} — unrecognized characters "
+            f"(parsed as {reconstructed!r})"
+        )
+    return [_classify_token(t) for t in tokens]
+
+
+def format_has_auto(parsed: list[tuple[str, int, bool]]) -> bool:
+    """Check if the format has any auto-computed segments (date or rev)."""
+    return any(k in ("year", "month", "day", "rev") for k, _, _ in parsed)
+
+
+def _format_segment(value: int, width: int, zero_pad: bool) -> str:
+    """Format a numeric segment with optional zero-padding."""
+    if zero_pad:
+        return str(value).zfill(width)
+    return str(value)
+
+
+def build_version(
+    parsed: list[tuple[str, int, bool]],
+    manual_values: list[int],
+    rev: int = 1,
+    today: date | None = None,
+) -> str:
+    """Build a version string from parsed format, manual values, and auto values."""
+    if today is None:
+        today = date.today()
+
+    parts = []
+    manual_idx = 0
+    for kind, width, zero_pad in parsed:
+        if kind == "dot":
+            parts.append(".")
+        elif kind == "manual":
+            val = manual_values[manual_idx] if manual_idx < len(manual_values) else 0
+            manual_idx += 1
+            parts.append(_format_segment(val, width, zero_pad))
+        elif kind == "year":
+            parts.append(str(today.year))
+        elif kind == "month":
+            parts.append(f"{today.month:02d}")
+        elif kind == "day":
+            parts.append(f"{today.day:02d}")
+        elif kind == "rev":
+            parts.append(_format_segment(rev, width, zero_pad))
+    return "".join(parts)
+
+
+def build_tag_regex(parsed: list[tuple[str, int, bool]]) -> re.Pattern:
+    """Build a regex that matches version tags for this format.
+
+    Returns a compiled pattern with named groups for manual segments
+    (manual_0, manual_1, ...), date segments (year, month, day),
+    and revision (rev).
+    """
+    parts = ["^v?"]
+    manual_idx = 0
+    for kind, width, zero_pad in parsed:
+        if kind == "dot":
+            parts.append(r"\.")
+        elif kind == "manual":
+            parts.append(f"(?P<manual_{manual_idx}>\\d{{{width},}})")
+            manual_idx += 1
+        elif kind == "year":
+            parts.append(r"(?P<year>\d{4})")
+        elif kind == "month":
+            parts.append(r"(?P<month>\d{2})")
+        elif kind == "day":
+            parts.append(r"(?P<day>\d{2})")
+        elif kind == "rev":
+            parts.append(f"(?P<rev>\\d{{{width},}})")
+    parts.append("$")
+    return re.compile("".join(parts))
+
+
+# --- Settings ---
+
+def load_version_format(project_root: Path | None = None) -> str:
+    """Load the version format from docs/clasi/settings.yaml.
+
+    Falls back to DEFAULT_FORMAT if the file or key doesn't exist.
+    """
+    if project_root is None:
+        project_root = Path.cwd()
+
+    settings_path = project_root / "docs" / "clasi" / "settings.yaml"
+    if not settings_path.exists():
+        # Try legacy path
+        settings_path = project_root / "docs" / "plans" / "settings.yaml"
+    if not settings_path.exists():
+        return DEFAULT_FORMAT
+
+    try:
+        data = yaml.safe_load(settings_path.read_text(encoding="utf-8"))
+    except Exception:
+        return DEFAULT_FORMAT
+
+    if not isinstance(data, dict):
+        return DEFAULT_FORMAT
+
+    return data.get("version_format", DEFAULT_FORMAT)
+
+
+# --- Legacy compat ---
+
+# Keep VERSION_PATTERN for backward compatibility with existing code
+# that imports it directly
+VERSION_PATTERN = re.compile(r"^v?(\d+)\.(\d{8})\.(\d+)$")
+
+
+# --- Core API ---
 
 def _get_existing_tags() -> list[str]:
     """Return all git tags in the current repository."""
@@ -38,21 +200,62 @@ def _get_existing_tags() -> list[str]:
 def compute_next_version(major: int = 0) -> str:
     """Compute the next version string based on existing git tags.
 
-    Scans git tags matching the version pattern, finds the highest build
-    number for today's date (or 0 if none), and increments.
+    Reads the version format from project settings. For formats with
+    auto-computed segments (date, revision), scans git tags to find
+    the next revision number. For fully manual formats, returns the
+    major values joined by dots.
     """
-    today = date.today().strftime("%Y%m%d")
-    max_build = 0
+    fmt = load_version_format()
+    parsed = parse_format(fmt)
 
+    if not format_has_auto(parsed):
+        # Fully manual format — return manual values as-is
+        manual_count = sum(1 for k, _, _ in parsed if k == "manual")
+        values = [major] + [0] * (manual_count - 1)
+        return build_version(parsed, values)
+
+    today = date.today()
+    today_str = today.strftime("%Y%m%d")
+    tag_pattern = build_tag_regex(parsed)
+
+    max_rev = 0
     for tag in _get_existing_tags():
-        m = VERSION_PATTERN.match(tag.lstrip("v"))
+        m = tag_pattern.match(tag.lstrip("v"))
         if not m:
             continue
-        tag_major, tag_date, tag_build = int(m.group(1)), m.group(2), int(m.group(3))
-        if tag_major == major and tag_date == today:
-            max_build = max(max_build, tag_build)
 
-    return f"{major}.{today}.{max_build + 1}"
+        # Check manual segments match
+        manual_idx = 0
+        match = True
+        for kind, _, _ in parsed:
+            if kind == "manual":
+                tag_val = int(m.group(f"manual_{manual_idx}"))
+                expected = major if manual_idx == 0 else 0
+                if tag_val != expected:
+                    match = False
+                    break
+                manual_idx += 1
+        if not match:
+            continue
+
+        # Check date segments match today
+        tag_date = ""
+        if "year" in m.groupdict():
+            tag_date += m.group("year")
+        if "month" in m.groupdict():
+            tag_date += m.group("month")
+        if "day" in m.groupdict():
+            tag_date += m.group("day")
+
+        if tag_date and tag_date != today_str[:len(tag_date)]:
+            continue
+
+        if "rev" in m.groupdict():
+            max_rev = max(max_rev, int(m.group("rev")))
+
+    manual_count = sum(1 for k, _, _ in parsed if k == "manual")
+    values = [major] + [0] * (manual_count - 1)
+    return build_version(parsed, values, rev=max_rev + 1, today=today)
 
 
 def detect_version_file(project_root: Path) -> tuple[Path, str] | None:

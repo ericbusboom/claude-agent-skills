@@ -7,10 +7,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_agent_skills.versioning import (
+    DEFAULT_FORMAT,
     VERSION_PATTERN,
+    build_tag_regex,
+    build_version,
     compute_next_version,
     create_version_tag,
     detect_version_file,
+    format_has_auto,
+    load_version_format,
+    parse_format,
     update_package_json_version,
     update_pyproject_version,
     update_version_file,
@@ -26,6 +32,8 @@ def _mock_today(year, month, day):
 
 
 class TestVersionPattern:
+    """Legacy VERSION_PATTERN backward compat."""
+
     def test_matches_valid_version(self):
         assert VERSION_PATTERN.match("0.20260210.1")
         assert VERSION_PATTERN.match("1.20260210.42")
@@ -39,36 +47,182 @@ class TestVersionPattern:
         assert not VERSION_PATTERN.match("0.2026021.1")  # 7 digits
 
 
+class TestParseFormat:
+    def test_default_format(self):
+        tokens = parse_format("X.YYYYMMDD.R")
+        kinds = [k for k, _, _ in tokens]
+        assert kinds == ["manual", "dot", "year", "month", "day", "dot", "rev"]
+
+    def test_semver_manual(self):
+        tokens = parse_format("X.X.X")
+        kinds = [k for k, _, _ in tokens]
+        assert kinds == ["manual", "dot", "manual", "dot", "manual"]
+
+    def test_zero_padded_manual(self):
+        tokens = parse_format("0XX.YYYYMMDD.R")
+        kind, width, zpad = tokens[0]
+        assert kind == "manual"
+        assert width == 2
+        assert zpad is True
+
+    def test_zero_padded_rev(self):
+        tokens = parse_format("X.YYYYMMDD.0RRR")
+        kind, width, zpad = tokens[-1]
+        assert kind == "rev"
+        assert width == 3
+        assert zpad is True
+
+    def test_invalid_format_rejected(self):
+        with pytest.raises(ValueError, match="unrecognized"):
+            parse_format("X.YYYYMMDD.Z")
+
+    def test_wider_manual(self):
+        tokens = parse_format("XXX.YYYYMMDD.R")
+        kind, width, zpad = tokens[0]
+        assert kind == "manual"
+        assert width == 3
+        assert zpad is False
+
+
+class TestFormatHasAuto:
+    def test_default_is_auto(self):
+        assert format_has_auto(parse_format("X.YYYYMMDD.R")) is True
+
+    def test_semver_is_not_auto(self):
+        assert format_has_auto(parse_format("X.X.X")) is False
+
+    def test_date_only_is_auto(self):
+        assert format_has_auto(parse_format("X.YYYYMMDD")) is True
+
+
+class TestBuildVersion:
+    def test_default_format(self):
+        parsed = parse_format("X.YYYYMMDD.R")
+        result = build_version(parsed, [0], rev=3, today=date(2026, 3, 19))
+        assert result == "0.20260319.3"
+
+    def test_semver_manual(self):
+        parsed = parse_format("X.X.X")
+        result = build_version(parsed, [1, 2, 3])
+        assert result == "1.2.3"
+
+    def test_zero_padded_major(self):
+        parsed = parse_format("0XX.YYYYMMDD.R")
+        result = build_version(parsed, [1], rev=5, today=date(2026, 3, 19))
+        assert result == "01.20260319.5"
+
+    def test_zero_padded_rev(self):
+        parsed = parse_format("X.YYYYMMDD.0RRR")
+        result = build_version(parsed, [0], rev=7, today=date(2026, 3, 19))
+        assert result == "0.20260319.007"
+
+    def test_missing_manual_defaults_to_zero(self):
+        parsed = parse_format("X.X.X")
+        result = build_version(parsed, [1])
+        assert result == "1.0.0"
+
+
+class TestBuildTagRegex:
+    def test_default_format_matches(self):
+        pattern = build_tag_regex(parse_format("X.YYYYMMDD.R"))
+        m = pattern.match("0.20260319.3")
+        assert m is not None
+        assert m.group("manual_0") == "0"
+        assert m.group("year") == "2026"
+        assert m.group("month") == "03"
+        assert m.group("day") == "19"
+        assert m.group("rev") == "3"
+
+    def test_default_format_rejects_bad(self):
+        pattern = build_tag_regex(parse_format("X.YYYYMMDD.R"))
+        assert pattern.match("abc") is None
+
+    def test_semver_format(self):
+        pattern = build_tag_regex(parse_format("X.X.X"))
+        m = pattern.match("1.2.3")
+        assert m is not None
+        assert m.group("manual_0") == "1"
+        assert m.group("manual_1") == "2"
+        assert m.group("manual_2") == "3"
+
+    def test_v_prefix(self):
+        pattern = build_tag_regex(parse_format("X.YYYYMMDD.R"))
+        m = pattern.match("v0.20260319.1")
+        assert m is not None
+
+
+class TestLoadVersionFormat:
+    def test_returns_default_when_no_file(self, tmp_path):
+        assert load_version_format(tmp_path) == DEFAULT_FORMAT
+
+    def test_reads_from_settings(self, tmp_path):
+        settings = tmp_path / "docs" / "clasi" / "settings.yaml"
+        settings.parent.mkdir(parents=True)
+        settings.write_text('version_format: "X.X.X"\n')
+        assert load_version_format(tmp_path) == "X.X.X"
+
+    def test_returns_default_on_missing_key(self, tmp_path):
+        settings = tmp_path / "docs" / "clasi" / "settings.yaml"
+        settings.parent.mkdir(parents=True)
+        settings.write_text("other_key: value\n")
+        assert load_version_format(tmp_path) == DEFAULT_FORMAT
+
+    def test_returns_default_on_bad_yaml(self, tmp_path):
+        settings = tmp_path / "docs" / "clasi" / "settings.yaml"
+        settings.parent.mkdir(parents=True)
+        settings.write_text("not: valid: yaml: {{{\n")
+        assert load_version_format(tmp_path) == DEFAULT_FORMAT
+
+
 class TestComputeNextVersion:
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.YYYYMMDD.R")
     @patch("claude_agent_skills.versioning._get_existing_tags")
     @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
-    def test_first_version_of_day(self, mock_tags):
+    def test_first_version_of_day(self, mock_tags, _mock_fmt):
         mock_tags.return_value = []
         assert compute_next_version() == "0.20260210.1"
 
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.YYYYMMDD.R")
     @patch("claude_agent_skills.versioning._get_existing_tags")
     @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
-    def test_increments_build(self, mock_tags):
+    def test_increments_build(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260210.1", "v0.20260210.2"]
         assert compute_next_version() == "0.20260210.3"
 
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.YYYYMMDD.R")
     @patch("claude_agent_skills.versioning._get_existing_tags")
     @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 11))
-    def test_resets_on_new_date(self, mock_tags):
+    def test_resets_on_new_date(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260210.5"]
         assert compute_next_version() == "0.20260211.1"
 
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.YYYYMMDD.R")
     @patch("claude_agent_skills.versioning._get_existing_tags")
     @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
-    def test_respects_major(self, mock_tags):
+    def test_respects_major(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260210.3", "v1.20260210.1"]
         assert compute_next_version(major=1) == "1.20260210.2"
 
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.YYYYMMDD.R")
     @patch("claude_agent_skills.versioning._get_existing_tags")
     @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
-    def test_ignores_non_matching_tags(self, mock_tags):
+    def test_ignores_non_matching_tags(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["release-1.0", "v0.2.0", "v0.20260210.1"]
         assert compute_next_version() == "0.20260210.2"
+
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.YYYYMMDD.0RRR")
+    @patch("claude_agent_skills.versioning._get_existing_tags")
+    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 3, 19))
+    def test_zero_padded_rev(self, mock_tags, _mock_fmt):
+        mock_tags.return_value = ["v0.20260319.002"]
+        assert compute_next_version() == "0.20260319.003"
+
+    @patch("claude_agent_skills.versioning.load_version_format", return_value="X.X.X")
+    @patch("claude_agent_skills.versioning._get_existing_tags")
+    def test_fully_manual_format(self, mock_tags, _mock_fmt):
+        mock_tags.return_value = []
+        result = compute_next_version(major=1)
+        assert result == "1.0.0"
 
 
 class TestDetectVersionFile:

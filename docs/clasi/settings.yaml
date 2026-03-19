@@ -1,0 +1,24 @@
+# CLASI project settings
+#
+# Version format tokens:
+#   X    — manual segment (developer-controlled), unpadded
+#   XX   — manual segment, minimum 2 digits
+#   0XX  — manual segment, zero-padded to 2 digits
+#   0XXX — manual segment, zero-padded to 3 digits
+#   YYYY — four-digit year
+#   MM   — two-digit month
+#   DD   — two-digit day
+#   R    — auto-incrementing revision, unpadded
+#   RR   — revision, minimum 2 digits
+#   0RR  — revision, zero-padded to 2 digits
+#   0RRR — revision, zero-padded to 3 digits
+#
+# Dots are literal separators.
+#
+# Examples:
+#   X.YYYYMMDD.R    — 0.20260319.1 (default, current)
+#   X.X.X           — fully manual (semver-style)
+#   0XX.YYYYMMDD.R  — 01.20260319.1 (zero-padded major)
+#   X.YYYYMMDD.0RRR — 0.20260319.001 (zero-padded revision)
+
+version_format: "X.YYYYMMDD.R"
