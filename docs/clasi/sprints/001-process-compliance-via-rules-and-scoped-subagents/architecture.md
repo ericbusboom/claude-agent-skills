@@ -2,270 +2,417 @@
 version: "001"
 status: draft
 sprint: "001"
-description: Architecture update for sprint 001 — path-scoped rules and directory-scoped subagent dispatch
+description: Architecture update for sprint 001 — agent/subagent model, path-scoped rules, directory-scoped dispatch
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
-# Architecture 001: Process Compliance via Rules and Scoped Subagents
+# Architecture 001: CLASI System
 
-This document extends the CLASI architecture with two new enforcement
-layers: path-scoped rules that inject process reminders at the point
-of file access, and directory-scoped subagent dispatch that restricts
-what each subagent can modify.
+This document describes the CLASI system architecture as it will exist
+at the end of sprint 001, with significant new sections on the
+agent/subagent execution model and process compliance enforcement.
 
-## The Compliance Problem
+## Architecture Overview
 
-CLASI has three existing enforcement mechanisms:
+CLASI is a pip-installable Python package that provides a structured
+software engineering process for AI coding agents. The fundamental
+design insight is that **LLM agents do not reliably follow behavioral
+instructions alone** — 12 documented process failures confirm this.
+CLASI responds with layered enforcement: a SQLite state machine for
+lifecycle gates, path-scoped rules for decision-point reminders, and
+directory-scoped subagent dispatch for execution isolation.
 
-1. **Instructional** — CLAUDE.md, AGENTS.md, skill definitions telling
-   agents what to do. Loads at session start, fades from context.
-2. **Mechanical (state machine)** — SQLite phase transitions, review
-   gates, execution locks. Cannot be bypassed — tools reject invalid
-   operations.
-3. **Hooks** — Session-start hook that echoes a reminder. Fires once,
-   agent can ignore.
+The system has four top-level responsibilities:
 
-12 documented reflections show that mechanism 1 fails consistently.
-Mechanism 2 works perfectly but only covers sprint lifecycle transitions.
-Mechanism 3 is too weak.
-
-This sprint adds two new mechanisms:
-
-4. **Path-scoped rules** — `.claude/rules/` files with `paths` frontmatter.
-   Claude Code loads these on demand when the agent accesses files
-   matching the path pattern. Short, targeted, re-injected on every
-   file access.
-5. **Directory-scoped subagents** — Subagents dispatched with an explicit
-   working-directory constraint. Controller validates output stays in
-   scope.
-
-## Enforcement Layer Model
+1. **Process Content Delivery** — Serving SE process definitions
+   (agents, skills, instructions) to AI agents at runtime via MCP tools.
+2. **Project Artifact Management** — Creating and maintaining planning
+   artifacts (sprints, tickets, TODOs, architecture docs) in a project's
+   repository, enforced by a lifecycle state machine.
+3. **Project Initialization** — Installing the CLASI SE process into a
+   new repository: MCP config, skill stubs, rules, and hooks.
+4. **Process Compliance Enforcement** — Layered mechanisms that prevent
+   agents from bypassing the process at different points in the workflow.
 
 ```mermaid
 flowchart TB
-    subgraph L1["Layer 1: Instructional (weakest)"]
-        claude["CLAUDE.md / AGENTS.md"]
-        skills["Skill definitions"]
-        instr["Instruction files"]
+    subgraph CLI["CLI Layer (cli.py)"]
+        init["init"]
+        mcp["mcp"]
+        ts["todo-split"]
+        ver["version"]
     end
 
-    subgraph L2["Layer 2: Contextual (new)"]
-        rules["Path-scoped rules\n(.claude/rules/)"]
-        scope["Directory scope\nin subagent prompt"]
+    subgraph Runtime["MCP Runtime"]
+        server["MCP Server\n(mcp_server.py)"]
+        process["Process Tools\n(process_tools.py)\n— read-only —"]
+        artifact["Artifact Tools\n(artifact_tools.py)\n— read-write —"]
     end
 
-    subgraph L3["Layer 3: Mechanical (strongest)"]
-        statedb["State DB phase gates"]
-        locks["Execution locks"]
-        guards["MCP tool guards"]
+    subgraph Shared["Shared Modules"]
+        fm["Frontmatter\n(frontmatter.py)"]
+        tmpl["Templates\n(templates.py)"]
+        db["State DB\n(state_db.py)"]
+        vmod["Versioning\n(versioning.py)"]
     end
 
-    subgraph L4["Layer 4: Validation (post-hoc)"]
-        review["Controller reviews\nsubagent output"]
-        scopecheck["Directory scope\nvalidation"]
-        sprintreview["Sprint review\nMCP tools"]
+    subgraph Content["Bundled Content"]
+        agents["agents/"]
+        skills["skills/"]
+        instr["instructions/"]
+        templates["templates/"]
+        rules_tmpl["init/rules/"]
     end
 
-    L1 -->|"loads at session start\nfades from context"| agent["Agent"]
-    L2 -->|"loads on file access\nre-injects at decision point"| agent
-    L3 -->|"rejects invalid operations\ncannot be bypassed"| agent
-    agent -->|"produces output"| L4
-    L4 -->|"reject + re-dispatch\nif out of scope"| agent
+    init_cmd["Init Command\n(init_command.py)"]
+    todo_split["TODO Split\n(todo_split.py)"]
 
-    style L1 fill:#ffe0e0,stroke:#c00
-    style L2 fill:#fff3e0,stroke:#f90
-    style L3 fill:#e0f0e0,stroke:#090
-    style L4 fill:#e0e8f0,stroke:#069
+    init --> init_cmd
+    mcp --> server
+    ts --> todo_split
+    ver --> vmod
+
+    server --> process
+    server --> artifact
+
+    process -->|reads| Content
+    artifact -->|uses| fm
+    artifact -->|uses| tmpl
+    artifact -->|uses| db
+    artifact -->|uses| vmod
+    init_cmd -->|reads| Content
+
+    style CLI fill:#f0f0f0,stroke:#333
+    style Runtime fill:#e8f4fd,stroke:#333
+    style Shared fill:#f0f8e8,stroke:#333
+    style Content fill:#fef3e0,stroke:#333
 ```
 
-## Path-Scoped Rules
+## Agent and Subagent Model
 
-### How Claude Code loads rules
+This section describes how CLASI agents are organized, how subagents
+are dispatched, and how each is scoped to specific responsibilities.
 
-Rules live in `.claude/rules/*.md`. Each file has YAML frontmatter
-with a `paths` field — a list of glob patterns. When the agent reads
-or writes a file matching any pattern, Claude Code loads the rule into
-context. Rules are:
+### Agent Hierarchy
 
-- **On-demand** — not loaded at session start; loaded when a matching
-  file is accessed
-- **Re-injected** — loaded again if the agent accesses the path after
-  context compaction
-- **Additive** — multiple matching rules all load; they don't override
-  each other
-
-### Rule inventory
-
-```
-.claude/rules/
-├── clasi-artifacts.md    # paths: docs/clasi/**
-├── source-code.md        # paths: claude_agent_skills/**, tests/**
-├── todo-dir.md           # paths: docs/clasi/todo/**
-└── git-commits.md        # paths: **/*.py, **/*.md
-```
-
-### Rule: clasi-artifacts
-
-```yaml
-paths:
-  - docs/clasi/**
-```
-
-Fires when: agent touches any planning artifact (sprints, tickets,
-TODOs, architecture, overview).
-
-Content: Verify active sprint or OOP. Use CLASI MCP tools, not manual
-file operations.
-
-### Rule: source-code
-
-```yaml
-paths:
-  - claude_agent_skills/**
-  - tests/**
-```
-
-Fires when: agent modifies source code or tests.
-
-Content: Verify in-progress ticket or OOP. Follow execute-ticket skill.
-Run tests after changes.
-
-### Rule: todo-dir
-
-```yaml
-paths:
-  - docs/clasi/todo/**
-```
-
-Fires when: agent works in the TODO directory. More specific than
-clasi-artifacts — both fire, but this one adds the tool-routing rule.
-
-Content: Use CLASI `todo` skill or `move_todo_to_done` MCP tool. Do
-not use generic TodoWrite.
-
-### Rule: git-commits
-
-```yaml
-paths:
-  - "**/*.py"
-  - "**/*.md"
-```
-
-Fires when: agent touches any Python or Markdown file (which is nearly
-always when committing).
-
-Content: Run tests before committing. Verify sprint branch and
-execution lock if on a sprint. Reference ticket ID in commit message.
-
-### Coverage matrix
-
-| Failure Mode | Which rules fire |
-|---|---|
-| Process bypass (no sprint) | clasi-artifacts, source-code |
-| Wrong tool (TodoWrite) | todo-dir |
-| No tests before commit | git-commits, source-code |
-| Decision-point consultation | source-code (links to execute-ticket) |
-| Completion bias | git-commits (verify before commit) |
-
-## Directory-Scoped Subagent Dispatch
-
-### Current model
-
-The `dispatch-subagent` skill defines a controller/worker pattern:
-controller curates context, dispatches via the Agent tool, reviews
-results. But the subagent has no directory restriction — it can modify
-any file it can access.
-
-### New model
-
-The controller specifies a **scope directory** for each subagent. This
-is the directory the subagent is allowed to modify. The constraint
-operates at three levels:
+CLASI defines a **controller/worker** pattern. The controller agent
+(typically project-manager) orchestrates the process. It never writes
+code or planning documents directly — it dispatches specialized
+subagents for each task, reviews their output, and advances the process.
 
 ```mermaid
-flowchart LR
-    subgraph Dispatch["Controller dispatches"]
-        prompt["Subagent prompt includes:\n'Only modify files under\ndocs/clasi/todo/'"]
-        scope["scope_directory:\ndocs/clasi/todo/"]
+flowchart TB
+    user["Stakeholder"]
+    pm["Controller\n(project-manager)"]
+
+    subgraph Planning["Planning Subagents"]
+        ra["requirements-analyst\nScope: docs/clasi/overview.md"]
+        arch["architect\nScope: docs/clasi/sprints/NNN/architecture.md"]
+        ar["architecture-reviewer\nScope: read-only review"]
+        tl["technical-lead\nScope: docs/clasi/sprints/NNN/tickets/"]
     end
 
-    subgraph Execute["Subagent executes"]
-        work["Reads context files\n(any location)"]
-        write["Writes only to\nscoped directory"]
-        rules2["Rules for that directory\nreinforce the constraint"]
+    subgraph Execution["Execution Subagents"]
+        py["python-expert\nScope: source code + tests"]
+        cr["code-reviewer\nScope: read-only review"]
+        doc["documentation-expert\nScope: docs/, README"]
     end
 
-    subgraph Validate["Controller validates"]
-        check["Check: did subagent\nonly modify files in\nscope_directory?"]
-        accept["Accept output"]
-        reject["Reject + re-dispatch\nwith feedback"]
+    subgraph Support["Support Subagents"]
+        todo_agent["todo-worker\nScope: docs/clasi/todo/"]
+        gh_agent["gh-import\nScope: docs/clasi/todo/"]
     end
 
-    Dispatch --> Execute --> Validate
-    check -->|yes| accept
-    check -->|no| reject
-    reject -->|"feedback: you modified\nfiles outside scope"| Execute
+    user -->|narrates| pm
+    pm -->|dispatches| Planning
+    pm -->|dispatches| Execution
+    pm -->|dispatches| Support
+    Planning -->|returns output| pm
+    Execution -->|returns output| pm
+    Support -->|returns output| pm
+    pm -->|reports| user
 
-    style Dispatch fill:#e8f4fd
-    style Execute fill:#f0f8e8
-    style Validate fill:#fff3e0
+    style pm fill:#e8f4fd,stroke:#069
+    style Planning fill:#f0f8e8,stroke:#333
+    style Execution fill:#fff3e0,stroke:#333
+    style Support fill:#fef0f0,stroke:#333
 ```
 
-### Three levels of scope enforcement
+### Agent Roles and Scope
 
-1. **Prompt-level** (instructional) — The subagent prompt says "You may
-   only create or modify files under `<scope_directory>`." This is the
-   weakest but most flexible level. The subagent can still read files
-   anywhere (it needs to for context).
+Each agent has a defined role, a **scope directory** (where it may
+write), and a context set (what it reads).
 
-2. **Rule-level** (contextual) — If the subagent accesses files outside
-   its scope, the rules for those directories fire and remind it of the
-   process requirements. This creates friction for out-of-scope writes.
+| Agent | Role | Write Scope | Read Context |
+|-------|------|-------------|-------------|
+| **project-manager** | Controller — orchestrates, never writes code | None (dispatches only) | All artifacts, sprint state |
+| **requirements-analyst** | Produces overview from stakeholder narrative | `docs/clasi/overview.md` | Stakeholder input |
+| **architect** | Updates architecture for each sprint | `docs/clasi/sprints/NNN/architecture.md` | Previous architecture, sprint goals |
+| **architecture-reviewer** | Reviews architecture (read-only) | None | Architecture doc, existing code |
+| **technical-lead** | Creates tickets from architecture | `docs/clasi/sprints/NNN/tickets/` | Architecture, use cases |
+| **python-expert** | Implements code per ticket plan | `claude_agent_skills/`, `tests/` | Ticket, plan, architecture, instructions |
+| **code-reviewer** | Reviews code changes (read-only) | None | Changed files, ticket, standards |
+| **documentation-expert** | Updates documentation | `docs/`, `README.md` | Source code, existing docs |
+| **todo-worker** | Creates/manages TODOs | `docs/clasi/todo/` | Issue data, existing TODOs |
 
-3. **Validation-level** (post-hoc) — The controller reviews the
-   subagent's output and checks which files were modified. If any file
-   is outside the scope directory, the controller rejects the output
-   and re-dispatches with feedback explaining the violation.
+### Subagent Dispatch Flow
 
-### Subagent scope examples
+When the controller dispatches a subagent, three things happen:
 
-| Task | Subagent type | Scope directory | Can read |
-|---|---|---|---|
-| Create TODOs from GitHub issues | todo-worker | `docs/clasi/todo/` | issue data, existing TODOs |
-| Implement ticket code | python-expert | `claude_agent_skills/`, `tests/` | ticket, architecture, instructions |
-| Write sprint planning docs | planner | `docs/clasi/sprints/NNN-slug/` | overview, previous architecture, TODOs |
-| Update documentation | doc-writer | `docs/`, `README.md` | source code, existing docs |
-| Code review | reviewer | (read-only, no writes) | changed files, ticket, standards |
+1. **Context curation** — The controller selects only the files and
+   instructions relevant to the task. See `instructions/subagent-protocol`
+   for include/exclude rules.
 
-### Dispatch-subagent skill changes
+2. **Scope declaration** — The controller specifies the directory the
+   subagent may write to. This is included in the subagent's prompt.
 
-The skill gains:
-- `scope_directory` parameter in the dispatch prompt template
-- A post-dispatch validation step that lists modified files and checks
-  each against the scope
-- Rejection flow: if validation fails, compose a new prompt with the
-  violation details and re-dispatch (max 2 retries, then escalate)
+3. **Post-dispatch validation** — After the subagent returns, the
+   controller checks which files were modified. If any file is outside
+   the declared scope, the output is rejected and the subagent is
+   re-dispatched with feedback (max 2 retries, then escalate to
+   stakeholder).
 
-### Subagent-protocol instruction changes
+```mermaid
+sequenceDiagram
+    participant C as Controller
+    participant S as Subagent
+    participant R as Rules (.claude/rules/)
+    participant V as Validator
 
-The instruction gains a new section: **Directory Scope**
-- When dispatching, always specify the scope directory
-- Subagents may read files from any location (needed for context)
-- Subagents may only write/create/modify files within their scope
-- If the task requires writing outside the scope, the subagent should
-  return a request to the controller asking for expanded scope
+    C->>C: Curate context + set scope_directory
+    C->>S: Dispatch with prompt + scope constraint
+    S->>R: Accesses file in scope → rule loads
+    R-->>S: "Verify ticket is in-progress"
+    S->>S: Executes task within scope
+    S-->>C: Returns output
+    C->>V: Check modified files vs scope
+    alt All files in scope
+        V-->>C: PASS
+        C->>C: Accept output, continue process
+    else Files outside scope
+        V-->>C: FAIL — list violations
+        C->>S: Re-dispatch with feedback
+    end
+```
 
-## Init Command Changes
+### Isolation Model
 
-`init_command.py` gains a `_create_rules()` function that:
+Subagents are isolated at two levels:
 
-1. Creates `.claude/rules/` directory
-2. Writes each rule file (4 files)
-3. Is idempotent: compares content before writing, skips unchanged files
-4. Preserves any custom rules the developer has added
+**Context isolation** — Each subagent starts with a fresh context
+containing only the curated files and instructions. It does not inherit
+the controller's conversation history, other tickets, or debugging
+logs from prior attempts.
 
-The rules content is bundled with the CLASI package (in a new
-`init/rules/` directory or as string constants in `init_command.py`).
+**Directory isolation** — Each subagent has an explicit write scope.
+The subagent can read files from anywhere (it needs to for context),
+but may only create or modify files within its scope directory. If the
+task requires writing outside the scope, the subagent returns a request
+to the controller for expanded scope rather than writing directly.
+
+For parallel execution (opt-in), subagents additionally get **filesystem
+isolation** via git worktrees — each subagent works in its own worktree
+on its own branch. See `skills/parallel-execution` and
+`instructions/worktree-protocol`.
+
+## Process Compliance Enforcement
+
+Four layers of enforcement, from weakest to strongest:
+
+### Layer 1: Instructional (session start)
+
+CLAUDE.md, AGENTS.md, skill definitions, instruction files. Loaded at
+session start. Provides the complete process definition but fades from
+active context as the session progresses.
+
+**Weakness**: Agents read these once and rely on memory at decision
+points. 12 reflections document this failure mode.
+
+### Layer 2: Contextual — Path-Scoped Rules (new in sprint 001)
+
+`.claude/rules/*.md` files with `paths` frontmatter. Claude Code loads
+these **on demand** when the agent accesses files matching the path
+pattern. Short (3-5 sentences), actionable, and re-injected after
+context compaction.
+
+**Rules installed by `clasi init`:**
+
+| Rule file | Path pattern | Fires when |
+|-----------|-------------|------------|
+| `clasi-artifacts.md` | `docs/clasi/**` | Touching planning artifacts |
+| `source-code.md` | `claude_agent_skills/**`, `tests/**` | Modifying source or tests |
+| `todo-dir.md` | `docs/clasi/todo/**` | Working in TODO directory |
+| `git-commits.md` | `**/*.py`, `**/*.md` | Touching any code or docs |
+
+**Coverage**: Rules target all five documented failure modes (process
+bypass, wrong tool selection, no tests before commit, decision-point
+consultation, completion bias). See `pc-architecture.md` for the
+detailed coverage matrix.
+
+### Layer 3: Mechanical — State Machine (existing)
+
+SQLite state database with phase transitions, review gates, and
+execution locks. MCP tools reject invalid operations — `create_ticket`
+before ticketing phase, `advance_sprint_phase` without passing review
+gates, executing without the lock.
+
+**Strength**: Cannot be bypassed. The tool rejects the action regardless
+of what the agent thinks it should do.
+
+### Layer 4: Validation — Post-Hoc Checks (existing + enhanced)
+
+Sprint review MCP tools (`review_sprint_pre_execution`,
+`review_sprint_pre_close`, `review_sprint_post_close`) and the new
+subagent scope validation. The controller checks subagent output against
+the declared scope directory after every dispatch.
+
+## Technology Stack
+
+| Attribute | Value | Justification |
+|-----------|-------|---------------|
+| Language | Python >=3.10 | Target users are Claude Code / AI agent environments that have Python |
+| CLI framework | Click >=8.0 | Lightweight, composable subcommands |
+| MCP framework | FastMCP (mcp >=1.0) | Standard protocol for AI agent tool access |
+| YAML parsing | PyYAML >=6.0 | Frontmatter I/O for markdown artifacts |
+| State storage | SQLite (stdlib) | Zero-dependency, file-based, embedded in project |
+| Build system | setuptools >=61.0 | Standard Python packaging |
+| Version format | Configurable via `settings.yaml` | Default `X+.YYYYMMDD.R+` |
+| Test framework | pytest | 356 tests |
+
+## Module Design
+
+### CLI (`cli.py`)
+
+**Purpose**: Routes user commands to the appropriate subsystem.
+
+**Subcommands**: `init`, `mcp`, `todo-split`, `version`, `version bump`.
+
+### Init Command (`init_command.py`)
+
+**Purpose**: Installs the CLASI SE process into a target repository.
+
+**Outputs** (written to target project):
+- `CLAUDE.md` — CLASI process block inline
+- `.claude/skills/se/SKILL.md` — `/se` dispatcher skill
+- `.claude/rules/*.md` — Path-scoped compliance rules (new)
+- `.claude/settings.json` — Session-start hook
+- `.claude/settings.local.json` — MCP permission allowlist
+- `.mcp.json` + `.vscode/mcp.json` — MCP server configuration
+
+**Key invariant**: All operations are idempotent.
+
+### MCP Server, Process Tools, Artifact Tools
+
+(Unchanged from architecture 021. See previous version for details.)
+
+### State Database (`state_db.py`)
+
+(Unchanged. Enforces sprint lifecycle state machine.)
+
+### Versioning (`versioning.py`)
+
+**Purpose**: Configurable version format, trigger-based auto-versioning,
+multi-file sync.
+
+**Settings** (from `docs/clasi/settings.yaml`):
+- `version_format` — Token-based format string
+- `version_trigger` — `manual`, `every_sprint`, `every_change`
+- `version_source` — Primary version file
+- `version_sync` — Additional files to update
+
+### Bundled Content
+
+- **9 agents**: architect, architecture-reviewer, code-reviewer,
+  documentation-expert, product-manager, project-manager, python-expert,
+  requirements-analyst, technical-lead
+- **Skills**: plan-sprint, execute-ticket, close-sprint, create-tickets,
+  dispatch-subagent, tdd-cycle, systematic-debugging, parallel-execution,
+  gh-import, and others
+- **Instructions**: software-engineering, architectural-quality,
+  coding-standards, git-workflow, testing, subagent-protocol,
+  worktree-protocol, dotconfig, rundbat
+- **Rules templates**: init/rules/ — installed by `clasi init`
+
+## Data Model
+
+### Sprint Lifecycle (SQLite)
+
+```mermaid
+stateDiagram-v2
+    [*] --> planning_docs: create_sprint()
+    planning_docs --> architecture_review: advance_sprint_phase()
+    architecture_review --> stakeholder_review: advance_sprint_phase()
+    stakeholder_review --> ticketing: advance_sprint_phase()
+    ticketing --> executing: advance_sprint_phase()
+    executing --> closing: advance_sprint_phase()
+    closing --> done: close_sprint()
+    done --> [*]
+```
+
+### Markdown Artifacts
+
+| Artifact | Location | Key Metadata |
+|----------|----------|-------------|
+| Sprint | `docs/clasi/sprints/NNN-slug/sprint.md` | id, title, status, branch, use-cases |
+| Architecture | `docs/clasi/sprints/NNN-slug/architecture.md` | version, status, sprint |
+| Ticket | `docs/clasi/sprints/NNN-slug/tickets/NNN-slug.md` | id, title, status, use-cases, depends-on, github-issue, todo |
+| TODO | `docs/clasi/todo/name.md` | status, sprint, github-issue |
+| Settings | `docs/clasi/settings.yaml` | version_format, version_trigger, version_source, version_sync |
+
+## Security Considerations
+
+- The MCP server runs as a local subprocess over stdio — no network
+  exposure.
+- The state database is a local SQLite file (`.clasi.db`), gitignored.
+- `init_command` preserves existing file content outside CLASI-delimited
+  sections.
+- GitHub operations use `gh` CLI (user's auth), never store tokens.
+- All `gh` subprocess calls use list-form arguments (no `shell=True`).
+
+## Design Rationale
+
+### DR-001 through DR-005
+
+(Unchanged from architecture 021.)
+
+### DR-006: Path-Scoped Rules over Subdirectory CLAUDE.md
+
+**Decision**: Use `.claude/rules/*.md` with path frontmatter rather than
+placing CLAUDE.md files in each subdirectory. (Sprint 001)
+
+**Context**: Need to inject process reminders at the point where agents
+access specific directories. Two options: scatter CLAUDE.md files across
+the project, or centralize rules in `.claude/rules/`.
+
+**Alternatives**: (1) Subdirectory CLAUDE.md files, (2) `.claude/rules/`.
+
+**Why rules**: Centralized — all enforcement in one directory, easy to
+audit. Path-scoped — same on-demand loading behavior as subdirectory
+CLAUDE.md. Installed by `clasi init` — consistent across projects.
+
+**Consequences**: Requires Claude Code support for `.claude/rules/` with
+`paths` frontmatter.
+
+### DR-007: Directory Scope as Convention, Not Enforcement
+
+**Decision**: Directory scoping for subagents is prompt-level + post-hoc
+validation, not a hard filesystem restriction. (Sprint 001)
+
+**Context**: No mechanism exists to prevent a Claude Code subagent from
+writing to arbitrary file paths. The Agent tool's `isolation: "worktree"`
+provides whole-repo isolation, not directory-level restriction.
+
+**Alternatives**: (1) Prompt-only restriction, (2) Worktree isolation per
+task, (3) Prompt + validation.
+
+**Why prompt + validation**: Prompt tells the subagent the rule.
+Validation catches violations after the fact. Together they're much
+harder to bypass than either alone. Worktree-per-task is too heavy for
+most operations.
+
+**Consequences**: A subagent can still write outside scope; the violation
+is caught by the controller and the output is rejected. This is
+defense-in-depth, not absolute prevention.
 
 ## Open Questions
 
@@ -278,23 +425,22 @@ Changes planned for sprint 001:
 ### New Components
 
 **Path-scoped rules** (`.claude/rules/`) — Four rule files installed by
-`clasi init`. Not Python code — static markdown with YAML frontmatter.
+`clasi init`. Static markdown with YAML frontmatter.
+
+**Rules templates** (`init/rules/`) — Bundled rule content in the CLASI
+package, used by init to create project rules.
 
 ### Changed Components
 
-**Init Command (`init_command.py`)** — New `_create_rules()` function
-to install rule files during init. Follows the same idempotent pattern
-as `_write_se_skill` and `_update_hooks_config`.
+**Init Command (`init_command.py`)** — New `_create_rules()` function.
+Follows the same idempotent pattern as other init functions.
 
 **Skill: `dispatch-subagent`** — Updated with `scope_directory` parameter,
 post-dispatch validation step, and rejection/re-dispatch flow.
 
-**Instruction: `subagent-protocol`** — New "Directory Scope" section
-defining the read-anywhere/write-in-scope constraint.
+**Instruction: `subagent-protocol`** — New "Directory Scope" section.
 
 ### Migration Concerns
 
-Non-breaking. Rules are new files that don't affect existing behavior.
-Running `clasi init` on existing projects adds the rules without
-modifying other artifacts. The dispatch skill changes are additive —
-subagents dispatched without a scope directory work as before.
+Non-breaking. Running `clasi init` on existing projects adds rules
+without modifying other artifacts. Dispatch skill changes are additive.
