@@ -269,13 +269,8 @@ flowchart TB
         arch["architect<br/>Scope: architecture.md"]
         ar["architecture-reviewer<br/>Scope: read-only"]
         tl["technical-lead<br/>Scope: tickets/"]
-        ti["ticket-implementer<br/>Scope: per-ticket files<br/>Receives: one ticket + plan<br/>Returns: implemented ticket"]
-    end
-
-    subgraph T3["Tier 3: Leaf Workers"]
-        py["python-expert<br/>Scope: source + tests"]
+        cm["code-monkey<br/>Scope: source + tests + docs<br/>Receives: one ticket + plan<br/>Returns: implemented ticket"]
         cr["code-reviewer<br/>Scope: read-only"]
-        doc["documentation-expert<br/>Scope: docs/"]
     end
 
     user --> mc
@@ -291,39 +286,33 @@ flowchart TB
     sp --> ar
     sp --> tl
 
-    se --> ti
+    se --> cm
+    se -->|validates frontmatter| se
 
-    ah --> py
+    ah --> cm
     ah --> cr
-
-    ti --> py
-    ti --> cr
-    ti --> doc
 
     style T0 fill:#e8f4fd,stroke:#069
     style T1 fill:#f0f8e8,stroke:#393
     style T2 fill:#fff3e0,stroke:#f90
-    style T3 fill:#fef0f0,stroke:#c66
 ```
 
 ### Tier Descriptions
 
 | Tier | Agent | Receives | Returns | Write Scope | Delegates to |
 |------|-------|----------|---------|-------------|-------------|
-| 0 | **main-controller** | Stakeholder input | Status reports | None | T1 agents |
+| 0 | **main-controller** | Stakeholder input | Status reports | None | T1 agents. Validates sprint frontmatter on return. |
 | 1 | **requirements-narrator** | Stakeholder narrative | Overview doc | `docs/clasi/overview.md` | None |
 | 1 | **todo-worker** | Ideas, GitHub issues | TODO files | `docs/clasi/todo/` | None |
 | 1 | **sprint-planner** | TODO IDs, goals | Sprint with tickets | `docs/clasi/sprints/NNN/` | architect, arch-reviewer, technical-lead |
-| 1 | **sprint-executor** | Sprint + ticket list | Completed sprint | `docs/clasi/sprints/NNN/` | ticket-implementer |
-| 1 | **ad-hoc-executor** | Change request | Completed change | Per-task | python-expert, code-reviewer |
+| 1 | **sprint-executor** | Sprint + ticket list | Completed sprint | `docs/clasi/sprints/NNN/` | code-monkey. Validates ticket frontmatter after each return. Updates sprint frontmatter to done when all tickets complete. |
+| 1 | **ad-hoc-executor** | Change request | Completed change | Per-task | code-monkey, code-reviewer |
 | 1 | **sprint-reviewer** | Completed sprint | Review verdict | Read-only | None |
 | 2 | **architect** | Sprint goals, prev arch | Updated architecture.md | `architecture.md` | None |
 | 2 | **architecture-reviewer** | Architecture doc | Review verdict | Read-only | None |
 | 2 | **technical-lead** | Architecture, use cases | Numbered tickets | `tickets/` | None |
-| 2 | **ticket-implementer** | One ticket + plan | Implemented code | Source + tests | python-expert, code-reviewer, doc-expert |
-| 3 | **python-expert** | Ticket plan, source files | Code changes | Source + tests | None |
-| 3 | **code-reviewer** | Changed files, ticket | Pass/fail verdict | Read-only | None |
-| 3 | **documentation-expert** | Ticket plan, source | Doc updates | `docs/`, `README` | None |
+| 2 | **code-monkey** | One ticket + plan | Implemented code, updated ticket frontmatter | Source + tests + docs | None. Gets language-specific instructions per project. |
+| 2 | **code-reviewer** | Changed files, ticket | Pass/fail verdict | Read-only | None |
 
 ### Data Flow: TODO Through the Tiers
 
@@ -334,8 +323,8 @@ sequenceDiagram
     participant TW as TODO Worker
     participant SP as Sprint Planner
     participant SE as Sprint Executor
-    participant TI as Ticket Implementer
-    participant PY as Python Expert
+    participant CM as Code Monkey
+    participant CR as Code Reviewer
 
     S->>MC: "Import issues and plan a sprint"
     MC->>TW: Import GitHub issues as TODOs
@@ -348,19 +337,24 @@ sequenceDiagram
     SP-->>MC: Sprint 001 ready (3 tickets)
 
     MC->>SE: Execute sprint 001
-    SE->>TI: Execute ticket 001
-    TI->>PY: Implement code
-    PY-->>TI: Code changes
-    TI->>TI: Run tests, code review
-    TI-->>SE: Ticket 001 done
+    SE->>CM: Execute ticket 001
+    CM->>CM: Implement, test, update frontmatter
+    CM-->>SE: Ticket 001 changes
+    SE->>SE: Validate ticket 001 frontmatter (status=done, criteria checked)
+    Note over SE: If frontmatter incomplete, send back to code-monkey
 
-    SE->>TI: Execute ticket 002
-    TI-->>SE: Ticket 002 done
+    SE->>CM: Execute ticket 002
+    CM-->>SE: Ticket 002 changes
+    SE->>SE: Validate ticket 002 frontmatter
 
-    SE->>TI: Execute ticket 003
-    TI-->>SE: Ticket 003 done
+    SE->>CM: Execute ticket 003
+    CM-->>SE: Ticket 003 changes
+    SE->>SE: Validate ticket 003 frontmatter
 
-    SE-->>MC: Sprint 001 complete
+    SE->>SE: All tickets done — update sprint frontmatter to done
+    SE-->>MC: Sprint 001 complete (sprint.md status=done)
+
+    MC->>MC: Validate sprint frontmatter (status=done)
     MC->>MC: Close sprint, version bump
     MC-->>S: Sprint 001 closed
 ```
@@ -400,8 +394,7 @@ docs/clasi/log/
 **Routing rules:**
 - **Sprint dispatches** (sprint-planner, architect, technical-lead):
   `docs/clasi/log/sprints/<sprint-name>/sprint-planner.md`
-- **Ticket dispatches** (ticket-implementer, python-expert,
-  code-reviewer, documentation-expert):
+- **Ticket dispatches** (code-monkey, code-reviewer):
   `docs/clasi/log/sprints/<sprint-name>/ticket-NNN.md`
 - **Ad-hoc dispatches** (ad-hoc-executor and its children):
   `docs/clasi/log/adhoc/<N>.md` where N is a monotonically
@@ -426,16 +419,18 @@ docs/clasi/log/
 | requirements-narrator | `requirements-analyst.md` + `product-manager.md` | Merge or keep both |
 | todo-worker | (new) | New agent definition |
 | sprint-planner | (new) | Extracted from project-manager |
-| sprint-executor | (new) | Extracted from project-manager |
+| sprint-executor | (new) | Extracted from project-manager. Validates ticket frontmatter, updates sprint frontmatter. |
 | ad-hoc-executor | (new) | Formalize OOP pattern |
 | sprint-reviewer | (new, or extract from close-sprint) | Post-sprint validation |
 | architect | `architect.md` | Unchanged |
 | architecture-reviewer | `architecture-reviewer.md` | Unchanged |
 | technical-lead | `technical-lead.md` | Unchanged |
-| ticket-implementer | (new) | Extracted from execute-ticket |
-| python-expert | `python-expert.md` | Unchanged (leaf) |
-| code-reviewer | `code-reviewer.md` | Unchanged (leaf) |
-| documentation-expert | `documentation-expert.md` | Unchanged (leaf) |
+| code-monkey | `python-expert.md` | Renamed. Absorbs ticket-implementer + documentation-expert. Language-agnostic — gets language-specific instructions per project. |
+| code-reviewer | `code-reviewer.md` | Unchanged |
+
+**Removed agents:**
+- `python-expert.md` — replaced by code-monkey (no Python-specific behavior)
+- `documentation-expert.md` — absorbed into code-monkey (docs are part of ticket implementation)
 
 ## Init Command Changes
 
