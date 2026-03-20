@@ -1,7 +1,7 @@
 ---
 id: "014"
 title: "Enforce dispatch template usage"
-status: todo
+status: done
 use-cases: [SUC-003]
 depends-on: ["012"]
 github-issue: ""
@@ -61,13 +61,13 @@ must be present. Its absence is a verification failure.
 
 ## Acceptance Criteria
 
-- [ ] `get_dispatch_template` MCP tool exists and returns template text for a given agent
-- [ ] `get_dispatch_template` returns an error for agents without templates
-- [ ] `log_subagent_dispatch` accepts `template_used` parameter
-- [ ] `log_subagent_dispatch` rejects dispatches to templated agents when `template_used` is missing
-- [ ] `log_subagent_dispatch` allows omitting `template_used` for agents without templates
-- [ ] E2E verify script checks `template_used` in dispatch log frontmatter for templated agents
-- [ ] `uv run pytest` passes with no regressions
+- [x] `get_dispatch_template` MCP tool exists and returns template text for a given agent
+- [x] `get_dispatch_template` returns an error for agents without templates
+- [x] `log_subagent_dispatch` accepts `template_used` parameter
+- [x] `log_subagent_dispatch` rejects dispatches to templated agents when `template_used` is missing
+- [x] `log_subagent_dispatch` allows omitting `template_used` for agents without templates
+- [x] E2E verify script checks `template_used` in dispatch log frontmatter for templated agents
+- [x] `uv run pytest` passes with no regressions
 
 ## Testing
 
