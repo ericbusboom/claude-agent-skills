@@ -461,15 +461,27 @@ def _check_sprint_phase_for_ticketing(sprint_id: str) -> None:
 
 
 @server.tool()
-def create_ticket(sprint_id: str, title: str) -> str:
+def create_ticket(
+    sprint_id: str,
+    title: str,
+    todo: str | list[str] | None = None,
+) -> str:
     """Create a new ticket in a sprint's tickets/ directory.
 
     Auto-assigns the next ticket number within the sprint.
     Checks sprint phase if the state database exists.
 
+    When ``todo`` is provided (a filename or list of filenames), the
+    ticket's frontmatter ``todo`` field is set and the referenced TODO
+    files are updated with ``status: in-progress``, the sprint ID, and
+    the ticket ID.
+
     Args:
         sprint_id: The sprint ID (e.g., '001')
         title: The ticket title
+        todo: Optional TODO filename or list of filenames that this
+              ticket addresses (e.g., 'my-idea.md' or
+              ['idea-a.md', 'idea-b.md'])
     """
     _check_sprint_phase_for_ticketing(sprint_id)
     sprint_dir = _find_sprint_dir(sprint_id)
@@ -484,6 +496,35 @@ def create_ticket(sprint_id: str, title: str) -> str:
 
     content = TICKET_TEMPLATE.format(id=ticket_id, title=title)
     path.write_text(content, encoding="utf-8")
+
+    # Set the todo field in the ticket frontmatter if provided
+    if todo is not None:
+        todo_list = [todo] if isinstance(todo, str) else list(todo)
+        ticket_fm = read_frontmatter(path)
+        if len(todo_list) == 1:
+            ticket_fm["todo"] = todo_list[0]
+        else:
+            ticket_fm["todo"] = todo_list
+        write_frontmatter(path, ticket_fm)
+
+        # Update each referenced TODO file
+        full_ticket_id = f"{sprint_id}-{ticket_id}"
+        todo_directory = _todo_dir()
+        for todo_filename in todo_list:
+            todo_path = todo_directory / todo_filename
+            if not todo_path.exists():
+                continue  # Skip missing TODOs gracefully
+            todo_fm = read_frontmatter(todo_path)
+            todo_fm["status"] = "in-progress"
+            todo_fm["sprint"] = sprint_id
+            # Append ticket ID to the tickets list
+            existing_tickets = todo_fm.get("tickets", [])
+            if isinstance(existing_tickets, str):
+                existing_tickets = [existing_tickets]
+            if full_ticket_id not in existing_tickets:
+                existing_tickets.append(full_ticket_id)
+            todo_fm["tickets"] = existing_tickets
+            write_frontmatter(todo_path, todo_fm)
 
     return json.dumps({
         "id": ticket_id,
@@ -784,6 +825,21 @@ def close_sprint(sprint_id: str) -> str:
     fm["status"] = "done"
     write_frontmatter(sprint_file, fm)
 
+    # Move linked TODOs to done
+    moved_todos: list[str] = []
+    todo_directory = _todo_dir()
+    if todo_directory.exists():
+        for todo_file in sorted(todo_directory.glob("*.md")):
+            todo_fm = read_frontmatter(todo_file)
+            if todo_fm.get("sprint") == sprint_id:
+                todo_fm["status"] = "done"
+                write_frontmatter(todo_file, todo_fm)
+                todo_done = todo_directory / "done"
+                todo_done.mkdir(parents=True, exist_ok=True)
+                dest_todo = todo_done / todo_file.name
+                todo_file.rename(dest_todo)
+                moved_todos.append(todo_file.name)
+
     # Copy architecture-update to the architecture directory
     arch_update = sprint_dir / "architecture-update.md"
     if arch_update.exists():
@@ -841,6 +897,8 @@ def close_sprint(sprint_id: str) -> str:
         "old_path": str(sprint_dir),
         "new_path": str(new_path),
     }
+    if moved_todos:
+        result["moved_todos"] = moved_todos
     if version:
         result["version"] = version
         result["tag"] = f"v{version}"
@@ -960,11 +1018,12 @@ def _todo_dir() -> Path:
 
 @server.tool()
 def list_todos() -> str:
-    """List all active TODO files.
+    """List all active TODO files with sprint/ticket linkage.
 
     Scans docs/clasi/todo/*.md (excludes done/ subdirectory).
 
-    Returns JSON array of {filename, title}.
+    Returns JSON array of {filename, title, status, sprint, tickets}.
+    The sprint and tickets fields are present only for in-progress TODOs.
     """
     todo = _todo_dir()
     results = []
@@ -976,7 +1035,18 @@ def list_todos() -> str:
                 if line.startswith("# "):
                     title = line[2:].strip()
                     break
-            results.append({"filename": f.name, "title": title})
+            fm = read_frontmatter(f)
+            entry: dict = {"filename": f.name, "title": title}
+            status = fm.get("status", "pending")
+            entry["status"] = status
+            if status == "in-progress":
+                sprint = fm.get("sprint")
+                if sprint:
+                    entry["sprint"] = sprint
+                tickets = fm.get("tickets")
+                if tickets:
+                    entry["tickets"] = tickets
+            results.append(entry)
     return json.dumps(results, indent=2)
 
 

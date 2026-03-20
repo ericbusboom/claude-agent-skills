@@ -4,7 +4,19 @@ import json
 
 import pytest
 
-from claude_agent_skills.artifact_tools import list_todos, move_todo_to_done
+from claude_agent_skills.artifact_tools import (
+    close_sprint,
+    create_sprint,
+    create_ticket,
+    list_todos,
+    move_todo_to_done,
+)
+from claude_agent_skills.frontmatter import read_frontmatter
+from claude_agent_skills.state_db import (
+    acquire_lock,
+    advance_phase,
+    record_gate,
+)
 
 
 @pytest.fixture
@@ -16,15 +28,33 @@ def todo_dir(tmp_path, monkeypatch):
     return todo
 
 
+def _advance_to_ticketing(work_dir, sprint_id: str) -> None:
+    """Advance a sprint through review gates to ticketing phase for testing."""
+    db_path = work_dir / "docs" / "clasi" / ".clasi.db"
+    advance_phase(db_path, sprint_id)  # planning-docs -> architecture-review
+    record_gate(db_path, sprint_id, "architecture_review", "passed")
+    advance_phase(db_path, sprint_id)  # architecture-review -> stakeholder-review
+    record_gate(db_path, sprint_id, "stakeholder_approval", "passed")
+    advance_phase(db_path, sprint_id)  # stakeholder-review -> ticketing
+
+
 class TestListTodos:
     def test_lists_todos(self, todo_dir):
-        (todo_dir / "idea-one.md").write_text("# Idea One\n\nSome details.\n")
-        (todo_dir / "idea-two.md").write_text("# Idea Two\n\nMore details.\n")
+        (todo_dir / "idea-one.md").write_text(
+            "---\nstatus: pending\n---\n\n# Idea One\n\nSome details.\n"
+        )
+        (todo_dir / "idea-two.md").write_text(
+            "---\nstatus: pending\n---\n\n# Idea Two\n\nMore details.\n"
+        )
 
         result = json.loads(list_todos())
         assert len(result) == 2
-        assert result[0] == {"filename": "idea-one.md", "title": "Idea One"}
-        assert result[1] == {"filename": "idea-two.md", "title": "Idea Two"}
+        assert result[0]["filename"] == "idea-one.md"
+        assert result[0]["title"] == "Idea One"
+        assert result[0]["status"] == "pending"
+        assert result[1]["filename"] == "idea-two.md"
+        assert result[1]["title"] == "Idea Two"
+        assert result[1]["status"] == "pending"
 
     def test_excludes_done_directory(self, todo_dir):
         (todo_dir / "active.md").write_text("# Active\n")
@@ -51,6 +81,28 @@ class TestListTodos:
         result = json.loads(list_todos())
         assert len(result) == 1
         assert result[0]["title"] == "no-heading"
+
+    def test_shows_sprint_ticket_linkage_for_in_progress(self, todo_dir):
+        """In-progress TODOs show sprint and ticket linkage."""
+        (todo_dir / "linked.md").write_text(
+            "---\nstatus: in-progress\nsprint: '024'\n"
+            "tickets:\n  - '024-001'\n  - '024-002'\n---\n\n# Linked\n"
+        )
+        (todo_dir / "pending.md").write_text(
+            "---\nstatus: pending\n---\n\n# Pending\n"
+        )
+
+        result = json.loads(list_todos())
+        linked = next(r for r in result if r["filename"] == "linked.md")
+        pending = next(r for r in result if r["filename"] == "pending.md")
+
+        assert linked["status"] == "in-progress"
+        assert linked["sprint"] == "024"
+        assert linked["tickets"] == ["024-001", "024-002"]
+
+        assert pending["status"] == "pending"
+        assert "sprint" not in pending
+        assert "tickets" not in pending
 
 
 class TestMoveTodoToDone:
@@ -102,3 +154,157 @@ class TestMoveTodoToDone:
         content = (todo_dir / "done" / "idea.md").read_text()
         assert "status: done" in content
         assert 'sprint: "005"' in content or "sprint: '005'" in content
+
+
+class TestCreateTicketWithTodo:
+    """Tests for the create_ticket todo parameter (cross-referencing)."""
+
+    @pytest.fixture
+    def work_dir(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        return tmp_path
+
+    def _setup_sprint(self, work_dir):
+        """Create a sprint and advance to ticketing phase."""
+        create_sprint("Test Sprint")
+        _advance_to_ticketing(work_dir, "001")
+        # Create a TODO file
+        todo = work_dir / "docs" / "clasi" / "todo"
+        todo.mkdir(parents=True, exist_ok=True)
+        return todo
+
+    def test_creates_ticket_with_todo_field(self, work_dir):
+        todo = self._setup_sprint(work_dir)
+        (todo / "my-idea.md").write_text("---\nstatus: pending\n---\n\n# My Idea\n")
+
+        result = json.loads(create_ticket("001", "Implement Idea", todo="my-idea.md"))
+        from pathlib import Path
+        ticket_fm = read_frontmatter(result["path"])
+        assert ticket_fm["todo"] == "my-idea.md"
+
+    def test_updates_todo_frontmatter_on_create(self, work_dir):
+        todo = self._setup_sprint(work_dir)
+        (todo / "my-idea.md").write_text("---\nstatus: pending\n---\n\n# My Idea\n")
+
+        create_ticket("001", "Implement Idea", todo="my-idea.md")
+
+        todo_fm = read_frontmatter(todo / "my-idea.md")
+        assert todo_fm["status"] == "in-progress"
+        assert todo_fm["sprint"] == "001"
+        assert "001-001" in todo_fm["tickets"]
+
+    def test_multiple_todos(self, work_dir):
+        todo = self._setup_sprint(work_dir)
+        (todo / "idea-a.md").write_text("---\nstatus: pending\n---\n\n# Idea A\n")
+        (todo / "idea-b.md").write_text("---\nstatus: pending\n---\n\n# Idea B\n")
+
+        result = json.loads(
+            create_ticket("001", "Both Ideas", todo=["idea-a.md", "idea-b.md"])
+        )
+        from pathlib import Path
+        ticket_fm = read_frontmatter(result["path"])
+        assert ticket_fm["todo"] == ["idea-a.md", "idea-b.md"]
+
+        # Both TODOs should be updated
+        fm_a = read_frontmatter(todo / "idea-a.md")
+        fm_b = read_frontmatter(todo / "idea-b.md")
+        assert fm_a["status"] == "in-progress"
+        assert fm_b["status"] == "in-progress"
+        assert fm_a["sprint"] == "001"
+        assert fm_b["sprint"] == "001"
+
+    def test_multiple_tickets_same_todo(self, work_dir):
+        todo = self._setup_sprint(work_dir)
+        (todo / "big-idea.md").write_text("---\nstatus: pending\n---\n\n# Big Idea\n")
+
+        create_ticket("001", "Part 1", todo="big-idea.md")
+        create_ticket("001", "Part 2", todo="big-idea.md")
+
+        todo_fm = read_frontmatter(todo / "big-idea.md")
+        assert todo_fm["tickets"] == ["001-001", "001-002"]
+
+    def test_missing_todo_file_handled_gracefully(self, work_dir):
+        self._setup_sprint(work_dir)
+        # Don't create the TODO file -- should not raise
+        result = json.loads(
+            create_ticket("001", "Orphan", todo="nonexistent.md")
+        )
+        assert result["id"] == "001"
+
+    def test_todo_stays_in_active_dir(self, work_dir):
+        """TODO remains in todo/ (not done/) while sprint is active."""
+        todo = self._setup_sprint(work_dir)
+        (todo / "my-idea.md").write_text("---\nstatus: pending\n---\n\n# My Idea\n")
+
+        create_ticket("001", "Implement Idea", todo="my-idea.md")
+
+        # Still in the active directory
+        assert (todo / "my-idea.md").exists()
+        assert not (todo / "done" / "my-idea.md").exists()
+
+
+class TestCloseSprintMovesTodos:
+    """Tests for close_sprint moving linked TODOs to done."""
+
+    @pytest.fixture
+    def work_dir(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        return tmp_path
+
+    def test_moves_linked_todos_on_close(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+
+        todo = work_dir / "docs" / "clasi" / "todo"
+        todo.mkdir(parents=True, exist_ok=True)
+        (todo / "my-idea.md").write_text("---\nstatus: pending\n---\n\n# My Idea\n")
+
+        create_ticket("001", "Task", todo="my-idea.md")
+        close_sprint("001")
+
+        # TODO should be in done/
+        assert not (todo / "my-idea.md").exists()
+        assert (todo / "done" / "my-idea.md").exists()
+
+        # TODO should have status: done
+        todo_fm = read_frontmatter(todo / "done" / "my-idea.md")
+        assert todo_fm["status"] == "done"
+
+    def test_close_reports_moved_todos(self, work_dir):
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+
+        todo = work_dir / "docs" / "clasi" / "todo"
+        todo.mkdir(parents=True, exist_ok=True)
+        (todo / "idea.md").write_text("---\nstatus: pending\n---\n\n# Idea\n")
+
+        create_ticket("001", "Task", todo="idea.md")
+        result = json.loads(close_sprint("001"))
+        assert "moved_todos" in result
+        assert "idea.md" in result["moved_todos"]
+
+    def test_close_without_linked_todos(self, work_dir):
+        create_sprint("Sprint")
+        result = json.loads(close_sprint("001"))
+        assert "moved_todos" not in result
+
+    def test_unlinked_todos_stay(self, work_dir):
+        """TODOs not linked to the sprint are not moved."""
+        create_sprint("Sprint")
+        _advance_to_ticketing(work_dir, "001")
+
+        todo = work_dir / "docs" / "clasi" / "todo"
+        todo.mkdir(parents=True, exist_ok=True)
+        (todo / "linked.md").write_text("---\nstatus: pending\n---\n\n# Linked\n")
+        (todo / "unlinked.md").write_text(
+            "---\nstatus: pending\n---\n\n# Unlinked\n"
+        )
+
+        create_ticket("001", "Task", todo="linked.md")
+        close_sprint("001")
+
+        # Linked should be in done/
+        assert (todo / "done" / "linked.md").exists()
+        # Unlinked should still be in active dir
+        assert (todo / "unlinked.md").exists()
+        assert not (todo / "done" / "unlinked.md").exists()
