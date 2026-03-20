@@ -81,8 +81,15 @@ The full sprint lifecycle from main-controller's perspective:
    (`acquire_execution_lock`). Dispatch sprint-executor.
 4. **Validate**: Sprint-executor returns with completed sprint.
    Dispatch sprint-reviewer for post-sprint validation.
-5. **Close**: If sprint-reviewer passes, close the sprint
-   (`close_sprint`). Merge branch, archive directory, push tags.
+5. **Close**: If sprint-reviewer passes, close the sprint:
+   - Merge sprint branch to main
+   - Version architecture document
+   - Call `close_sprint` MCP tool (archives directory, releases lock)
+   - Commit the archive
+   - Run `clasi version bump` (it checks the trigger setting internally
+     and skips if set to `manual`)
+   - Push tags if a version was created
+   - Delete the sprint branch
 
 ### Validation on Return
 
