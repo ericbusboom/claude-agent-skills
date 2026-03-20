@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '024'
+tickets:
+- '016'
 ---
 
 # Extract Inline Process Text from get_se_overview() to a File

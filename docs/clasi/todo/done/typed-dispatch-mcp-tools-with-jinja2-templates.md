@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '024'
+tickets:
+- '015'
 ---
 
 # Typed Dispatch MCP Tools with Jinja2 Templates
