@@ -440,9 +440,8 @@ None.
 
 Changes planned for sprint 024:
 
-This sprint adds test infrastructure only. No changes to the CLASI
-Python package (`claude_agent_skills/`), MCP tools, or agent definitions.
-The MCP logging tools added in prior sprints are sufficient.
+This sprint has two tracks: E2E test infrastructure and process
+improvements (agent delegation boundaries + TODO cross-referencing).
 
 ### New Components
 
@@ -464,8 +463,36 @@ purpose, prerequisites, how to run, how to add new e2e tests.
 
 ### Changed Components
 
-None. No CLASI package changes in this sprint.
+**Agent definitions** — Team-lead, sprint-planner, and todo-worker
+agent definitions updated to enforce proper delegation boundaries:
+- Team-lead provides high-level goals and TODO references to subordinate
+  agents, not pre-digested specifications
+- Sprint planner owns ticket decomposition, scoping, and specification
+- Todo-worker owns TODO formatting and structuring from raw input
+
+**`create_ticket` MCP tool (`artifact_tools.py`)** — New optional `todo`
+parameter accepting a TODO filename or list of filenames. When provided,
+automatically updates the referenced TODO's frontmatter with sprint ID,
+ticket ID, and `status: in-progress`.
+
+**`close_sprint` MCP tool (`artifact_tools.py`)** — On sprint close,
+checks for TODOs linked to the sprint (via frontmatter `sprint` field)
+and moves them to `todo/done/` with `status: done`.
+
+**`list_todos` MCP tool (`artifact_tools.py`)** — Output now includes
+sprint/ticket linkage for in-progress TODOs so stakeholders can see
+which TODOs are in flight.
+
+**Ticket frontmatter schema** — New `todo` field (string or list of
+strings) pointing back to source TODO filename(s). Enables bidirectional
+traceability: TODO -> ticket and ticket -> TODO.
+
+**TODO frontmatter schema** — Extended with `sprint` (string) and
+`tickets` (list of strings) fields. Status lifecycle: `pending` ->
+`in-progress` -> `done`.
 
 ### Migration Concerns
 
-None. Test infrastructure is additive and isolated in `tests/e2e/`.
+Existing tickets with `todo: "filename.md"` (single string) continue to
+work. The new list form is additive. Existing TODOs without sprint/ticket
+fields are unaffected — the new fields are optional.

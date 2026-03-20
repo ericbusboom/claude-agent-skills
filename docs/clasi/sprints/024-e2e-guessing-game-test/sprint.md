@@ -74,10 +74,16 @@ testing today.
 - Team-lead agent definition -- pass raw stakeholder text to todo-worker
 - Todo-worker agent definition -- accept raw input, produce structured TODOs
 - Dispatch protocol -- support raw-text delegation pattern
+- Team-lead agent definition -- provide goals/TODO refs to sprint planner, not pre-digested tickets
+- Sprint-planner agent definition -- own ticket decomposition, scoping, and specification
+- `create_ticket` MCP tool -- accept optional `todo` parameter for cross-referencing
+- `close_sprint` MCP tool -- move linked TODOs to done on sprint close
+- `list_todos` MCP tool -- show sprint/ticket linkage for in-progress TODOs
+- Ticket frontmatter -- `todo` field pointing back to source TODO(s)
 
 ### Out of Scope
 
-- Changes to the CLASI Python package (`claude_agent_skills/`) beyond the items listed above
+- Changes to the CLASI Python package (`claude_agent_skills/`) beyond the MCP tool updates listed above
 - Automated CI integration (future work)
 - Performance benchmarks or timing constraints
 - Modifications to the guessing game spec itself
@@ -98,20 +104,26 @@ is layered:
 
 ## Architecture Notes
 
-This sprint adds test infrastructure only -- no changes to the CLASI
-package. The test harness uses the Claude Code Agent tool to dispatch a
-team-lead subagent, which in turn dispatches its own subagents
-through the normal CLASI process.
+This sprint has two tracks:
 
-The verification script is deliberately separate from the harness so it
-can be run against any project directory, enabling re-verification after
-manual interventions or partial runs.
+**Track 1: E2E test infrastructure** -- The test harness uses the Claude
+Code Agent tool to dispatch a team-lead subagent, which in turn
+dispatches its own subagents through the normal CLASI process. The
+verification script is deliberately separate from the harness so it can
+be run against any project directory.
 
 Key design decisions:
 - Temporary directory for isolation (no interference with this repo)
 - `clasi init` for realistic project setup
 - Agent tool dispatch mirrors how CLASI is actually used
 - Verification checks artifacts, not just exit codes
+
+**Track 2: Process improvements** -- Agent delegation boundaries and
+TODO lifecycle cross-referencing. The delegation tickets (004, 006, 007)
+establish a consistent principle: controllers provide goals and
+references, subordinate agents make implementation decisions. The
+cross-referencing ticket (008) adds bidirectional traceability between
+TODOs and tickets via frontmatter fields and MCP tool automation.
 
 ## GitHub Issues
 
@@ -139,3 +151,7 @@ Before tickets can be created, all of the following must be true:
    - use-cases: none | depends-on: none | todo: revise-architecture-process.md
 6. **006** -- Fix TODO delegation
    - use-cases: none | depends-on: none | todo: fix-todo-delegation.md
+7. **007** -- Fix team-lead over-specification to sprint planner
+   - use-cases: none | depends-on: 006 | todo: team-lead-over-specifies-tickets-to-sprint-planner.md
+8. **008** -- TODO-sprint-ticket cross-references
+   - use-cases: none | depends-on: none | todo: todo-sprint-ticket-cross-references.md
