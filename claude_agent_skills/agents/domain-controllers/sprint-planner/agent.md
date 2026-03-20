@@ -25,9 +25,14 @@ sprint-executor will carry out.
 ## What You Receive
 
 From team-lead:
-- A list of TODO IDs to address in the sprint
-- Sprint goals or stakeholder narrative describing the work
+- **High-level goals** describing what the sprint should accomplish
+- **TODO file references** (paths or filenames) identifying the items
+  to address — read these yourself to understand the details
 - The current project state (overview, latest architecture version)
+
+The team-lead provides WHAT goes into the sprint. You decide HOW to
+structure it into tickets, architecture updates, and use cases. The
+team-lead does not provide pre-digested ticket specifications.
 
 ## What You Return
 
@@ -68,6 +73,21 @@ To team-lead:
 9. Advance to ticketing phase. Dispatch **technical-lead** to create
    tickets from the architecture and use cases.
 10. Return the completed sprint plan to team-lead.
+
+## Planning Decisions You Own
+
+You are responsible for all ticket decomposition, scoping, and
+specification. When you receive goals and TODO references, you make
+the following decisions:
+
+- **How to decompose** goals into tickets (number, granularity, grouping)
+- **What each ticket's scope** and acceptance criteria should be
+- **What dependencies** exist between tickets
+- **How to sequence** the work
+- **Ticket titles and descriptions** — write these yourself based on
+  your reading of the TODOs, overview, and architecture
+- **Sprint scope boundaries** — decide what fits in this sprint and
+  what should be deferred
 
 ## Rules
 
