@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '024'
+tickets:
+- '011'
 ---
 
 # Missing Sub-Dispatch Logs in E2E Output
