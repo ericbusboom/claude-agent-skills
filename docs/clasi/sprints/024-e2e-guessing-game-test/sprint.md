@@ -261,3 +261,7 @@ Before tickets can be created, all of the following must be true:
     - use-cases: SUC-003 | depends-on: 009 | todo: dispatch-logs-should-reference-sprint-documents.md
 14. **014** -- Enforce dispatch template usage
     - use-cases: SUC-003 | depends-on: 012 | todo: enforce-dispatch-template-usage.md
+15. **015** -- Typed dispatch MCP tools with Jinja2 templates
+    - use-cases: SUC-003 | depends-on: 014 | todo: typed-dispatch-mcp-tools-with-jinja2-templates.md
+16. **016** -- Extract SE overview inline text to file
+    - use-cases: SUC-003 | depends-on: none | todo: extract-se-overview-inline-text-to-file.md
