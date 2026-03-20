@@ -249,3 +249,5 @@ Before tickets can be created, all of the following must be true:
    - use-cases: SUC-003 | depends-on: 006 | todo: team-lead-over-specifies-tickets-to-sprint-planner.md
 8. **008** -- TODO-sprint-ticket cross-references
    - use-cases: SUC-004 | depends-on: none | todo: todo-sprint-ticket-cross-references.md
+9. **009** -- Subagent dispatch logging at all levels
+   - use-cases: SUC-003 | depends-on: none | todo: subagent-dispatch-logging-at-all-levels.md
