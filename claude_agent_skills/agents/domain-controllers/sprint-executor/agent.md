@@ -64,8 +64,9 @@ To team-lead:
       - Source files the ticket will modify
       - Scope directory for the ticket's changes
    e. **Log the result**: Call `update_dispatch_log` with the dispatch ID
-      from step (c), the outcome (success/failure), and a summary of
-      files modified.
+      from step (c), the outcome (success/failure), a summary of files
+      modified, and the subagent's **response text** (via `response`
+      parameter).
    f. On code-monkey return, **validate the ticket**:
       - All acceptance criteria are checked (`- [x]`)
       - Ticket frontmatter `status` is `done`

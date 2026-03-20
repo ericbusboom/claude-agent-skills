@@ -64,16 +64,16 @@ To team-lead:
    sprint's goals. Provide: sprint goals, reference to the current
    consolidated architecture in `docs/clasi/architecture/`, relevant
    TODOs, overview.
-   **Log the result**: Call `update_dispatch_log` with outcome and
-   summary.
+   **Log the result**: Call `update_dispatch_log` with outcome,
+   summary, and the subagent's **response text** (`response` parameter).
 5. Advance to architecture-review phase
    (`advance_sprint_phase`).
 6. **Log the dispatch**: Call `log_subagent_dispatch` (parent:
    "sprint-planner", child: "architecture-reviewer", sprint ID, prompt).
    Dispatch **architecture-reviewer** to review the architecture.
    Record the gate result (`record_gate_result`).
-   **Log the result**: Call `update_dispatch_log` with outcome and
-   summary.
+   **Log the result**: Call `update_dispatch_log` with outcome,
+   summary, and the subagent's **response text** (`response` parameter).
 7. If the review fails, send feedback to architect, re-review. Maximum
    2 iterations before escalating to team-lead. Log each re-dispatch.
 8. Present the plan to the stakeholder for approval (via team-lead
@@ -83,8 +83,8 @@ To team-lead:
    "sprint-planner", child: "technical-lead", sprint ID, prompt).
    Dispatch **technical-lead** to create tickets from the architecture
    and use cases.
-   **Log the result**: Call `update_dispatch_log` with outcome and
-   summary.
+   **Log the result**: Call `update_dispatch_log` with outcome,
+   summary, and the subagent's **response text** (`response` parameter).
 10. Return the completed sprint plan to team-lead.
 
 ## Planning Decisions You Own

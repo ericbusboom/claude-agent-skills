@@ -108,9 +108,25 @@ def update_dispatch_result(
     log_path: Path,
     result: str,
     files_modified: list[str],
+    response: str | None = None,
 ) -> None:
-    """Add *result* and *files_modified* to an existing dispatch log's frontmatter."""
+    """Add *result* and *files_modified* to an existing dispatch log's frontmatter.
+
+    When *response* is provided, a ``# Response: <child>`` section is
+    appended to the log body so both sides of the conversation are
+    preserved.
+    """
     fm, body = read_document(log_path)
     fm["result"] = result
     fm["files_modified"] = files_modified
-    write_frontmatter(log_path, fm)
+
+    if response is not None:
+        child_name = fm.get("child", "subagent")
+        body += f"\n# Response: {child_name}\n\n{response}\n"
+
+    # Write the full file ourselves so the updated body (with optional
+    # response section) is persisted.  write_frontmatter would re-read
+    # the old body from disk and discard our appended response.
+    import yaml
+    yaml_str = yaml.dump(fm, default_flow_style=False, sort_keys=False).strip()
+    log_path.write_text(f"---\n{yaml_str}\n---\n{body}", encoding="utf-8")

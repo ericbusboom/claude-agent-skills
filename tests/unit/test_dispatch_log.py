@@ -226,3 +226,62 @@ class TestUpdateDispatchResult:
         assert fm["ticket"] == "002"
         assert fm["result"] == "failure"
         assert fm["files_modified"] == []
+
+    def test_response_appended_to_body(self, tmp_path):
+        path = log_dispatch(
+            parent="se",
+            child="cm",
+            scope="src/",
+            prompt="Implement feature.",
+            sprint_name="001-sprint",
+            ticket_id="001",
+        )
+        update_dispatch_result(
+            path,
+            result="success",
+            files_modified=["src/widget.py"],
+            response="All done. Created widget module with tests.",
+        )
+        fm, body = read_document(path)
+        assert fm["result"] == "success"
+        # Original prompt preserved
+        assert "Implement feature." in body
+        # Response section appended with child name from frontmatter
+        assert "# Response: cm" in body
+        assert "All done. Created widget module with tests." in body
+
+    def test_response_none_leaves_body_unchanged(self, tmp_path):
+        path = log_dispatch(
+            parent="se",
+            child="cm",
+            scope="src/",
+            prompt="Do something.",
+            sprint_name="001-sprint",
+            ticket_id="002",
+        )
+        _, body_before = read_document(path)
+        update_dispatch_result(
+            path,
+            result="success",
+            files_modified=[],
+            response=None,
+        )
+        _, body_after = read_document(path)
+        assert body_before == body_after
+        assert "# Response:" not in body_after
+
+    def test_response_omitted_leaves_body_unchanged(self, tmp_path):
+        """Backward compat: callers that don't pass response at all."""
+        path = log_dispatch(
+            parent="se",
+            child="cm",
+            scope="src/",
+            prompt="Work.",
+            sprint_name="001-sprint",
+            ticket_id="003",
+        )
+        _, body_before = read_document(path)
+        update_dispatch_result(path, result="success", files_modified=[])
+        _, body_after = read_document(path)
+        assert body_before == body_after
+        assert "# Response:" not in body_after

@@ -1971,16 +1971,19 @@ def update_dispatch_log(
     log_path: str,
     result: str,
     files_modified: list[str] | None = None,
+    response: str | None = None,
 ) -> str:
     """Update a dispatch log with the result after the subagent returns.
 
     Call this AFTER a subagent completes. It adds the result and list
-    of modified files to the log's YAML frontmatter.
+    of modified files to the log's YAML frontmatter. When *response* is
+    provided, the subagent's response text is appended to the log body.
 
     Args:
         log_path: Path to the log file (returned by log_subagent_dispatch)
         result: Result summary (e.g., 'success', 'failed - test failures')
         files_modified: List of file paths the subagent modified
+        response: Optional response text from the subagent
 
     Returns JSON with {log_path, result}.
     """
@@ -1990,5 +1993,6 @@ def update_dispatch_log(
         log_path=Path(log_path),
         result=result,
         files_modified=files_modified or [],
+        response=response,
     )
     return json.dumps({"log_path": log_path, "result": result}, indent=2)

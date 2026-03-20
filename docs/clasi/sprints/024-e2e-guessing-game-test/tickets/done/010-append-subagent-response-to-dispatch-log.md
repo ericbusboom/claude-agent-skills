@@ -1,7 +1,7 @@
 ---
 id: "010"
 title: "Append subagent response to dispatch log"
-status: open
+status: done
 use-cases: [SUC-003]
 depends-on: []
 github-issue: ""
@@ -54,12 +54,12 @@ skill and any direct callers in orchestration code.
 
 ## Acceptance Criteria
 
-- [ ] `update_dispatch_result` in `dispatch_log.py` accepts an optional `response` parameter
-- [ ] When `response` is provided, a `# Response: <child>` section is appended to the log body
-- [ ] `update_dispatch_log` in `artifact_tools.py` accepts and passes through the `response` parameter
-- [ ] Existing callers that do not pass `response` continue to work (backward compatible)
-- [ ] Dispatch skill and orchestration callers pass response text after subagent returns
-- [ ] `uv run pytest` passes with no regressions
+- [x] `update_dispatch_result` in `dispatch_log.py` accepts an optional `response` parameter
+- [x] When `response` is provided, a `# Response: <child>` section is appended to the log body
+- [x] `update_dispatch_log` in `artifact_tools.py` accepts and passes through the `response` parameter
+- [x] Existing callers that do not pass `response` continue to work (backward compatible)
+- [x] Dispatch skill and orchestration callers pass response text after subagent returns
+- [x] `uv run pytest` passes with no regressions
 
 ## Testing
 

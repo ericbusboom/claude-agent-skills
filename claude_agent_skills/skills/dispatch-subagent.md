@@ -75,9 +75,10 @@ Send the subagent via the Agent tool with the composed prompt.
 
 When the subagent returns:
 - **First, call `update_dispatch_log`** with the dispatch ID from step 4,
-  the outcome (success/failure), and a summary of what the subagent
-  produced (files modified, key results). This is mandatory — do not
-  skip it.
+  the outcome (success/failure), a summary of what the subagent
+  produced (files modified, key results), and the subagent's **response
+  text** (via the `response` parameter). This preserves both sides of
+  the conversation in the log. This is mandatory — do not skip it.
 - Read the output
 - Check that the work meets the task requirements
 - If issues found, compose a new prompt with feedback and re-dispatch
