@@ -1,10 +1,13 @@
 ---
-status: pending
+status: done
+sprint: '024'
+tickets:
+- '013'
 ---
 
 # Dispatch Logs Should Reference Sprint Planning Documents
 
-**Do not implement yet.**
+
 
 ## Problem
 
@@ -90,6 +93,10 @@ dispatching agent.
 
 This is the preferred option — it keeps logging accurate without
 relying on the agent to remember which documents to list.
+
+### Use a Template
+
+Ensure that every high-level agent gives its instructions to a lower-level agent or sub-agent, using a template to format their request. Ensure those templates include references to the proper documents or locations of documents. 
 
 ## Files to Modify
 

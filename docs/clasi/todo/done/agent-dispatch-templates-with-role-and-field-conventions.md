@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '024'
+tickets:
+- '012'
 ---
 
 # Agent Dispatch Templates with Role and Field Conventions
