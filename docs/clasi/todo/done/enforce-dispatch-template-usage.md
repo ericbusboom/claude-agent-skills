@@ -1,10 +1,12 @@
 ---
-status: pending
+status: done
+sprint: '024'
+tickets:
+- '014'
 ---
 
 # Enforce Dispatch Template Usage
 
-**Do not implement yet.**
 
 ## Problem
 
