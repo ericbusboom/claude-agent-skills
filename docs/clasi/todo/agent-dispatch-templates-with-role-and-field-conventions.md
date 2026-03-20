@@ -86,16 +86,7 @@ form it followed.
 
 ### File location
 
-Templates live in a dedicated directory, e.g.:
-
-```
-docs/clasi/templates/
-  dispatch-to-sprint-planner.md
-  dispatch-to-sprint-executor.md
-  dispatch-to-code-monkey.md
-```
-
-Or alongside agent definitions if that's more natural:
+Templates live alongside agent definitions if that's more natural:
 
 ```
 agents/
@@ -175,14 +166,15 @@ claude_agent_skills/dispatch_log.py       (optional: add template_used field)
 - Agent definitions in `agents/` — these define agent roles but
   currently don't include dispatch templates.
 
+## Decisions
+
+- Templates are part of the CLASI package, not project-level artifacts.
+  Versioned with the package, served via MCP.
+- `log_subagent_dispatch` should enforce template usage for dispatches
+  to the agents we have identified templates for.
+
 ## Open Questions
 
-- Where should templates live — in `docs/clasi/templates/`, alongside
-  agent definitions, or somewhere else?
-- Should templates be versioned with the architecture doc across
-  sprints, or remain stable project-wide artifacts?
-- Should the MCP `log_subagent_dispatch` tool enforce that a template
-  was used, or just record it optionally?
 - How much behavioral instruction belongs in the template vs. in the
   agent definition? The template is per-dispatch; the agent definition
   is per-role. Some instructions (like "run tests before marking
