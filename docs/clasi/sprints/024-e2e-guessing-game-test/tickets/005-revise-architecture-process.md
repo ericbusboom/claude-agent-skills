@@ -2,7 +2,7 @@
 id: "005"
 title: "Revise architecture process"
 status: todo
-use-cases: []
+use-cases: [SUC-005]
 depends-on: []
 todo: "revise-architecture-process.md"
 ---

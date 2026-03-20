@@ -2,7 +2,7 @@
 id: "004"
 title: "Team-lead identity binding"
 status: todo
-use-cases: []
+use-cases: [SUC-003]
 depends-on: []
 todo: "team-lead-identity-binding.md"
 ---

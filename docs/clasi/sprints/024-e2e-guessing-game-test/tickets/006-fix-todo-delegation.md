@@ -2,7 +2,7 @@
 id: "006"
 title: "Fix TODO delegation"
 status: todo
-use-cases: []
+use-cases: [SUC-003]
 depends-on: []
 todo: "fix-todo-delegation.md"
 ---

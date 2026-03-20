@@ -2,7 +2,7 @@
 id: "008"
 title: "TODO-sprint-ticket cross-references"
 status: todo
-use-cases: []
+use-cases: [SUC-004]
 depends-on: []
 github-issue: ""
 todo: "todo-sprint-ticket-cross-references.md"

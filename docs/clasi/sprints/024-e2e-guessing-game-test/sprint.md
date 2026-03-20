@@ -1,25 +1,42 @@
 ---
 id: "024"
-title: "E2E Guessing Game Test"
+title: "E2E Test and Process Improvements"
 status: planning
 branch: sprint/024-e2e-guessing-game-test
 use-cases:
 - SUC-001
 - SUC-002
+- SUC-003
+- SUC-004
+- SUC-005
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
-# Sprint 024: E2E Guessing Game Test
+# Sprint 024: E2E Test and Process Improvements
 
 ## Goals
 
-Build end-to-end test infrastructure that validates the entire CLASI SE
-process by having it build a real application from a spec. A test harness
-sets up a temporary project, initializes CLASI, places a guessing game
-spec, dispatches a team-lead subagent to implement it across 4
-sprints, then verifies all artifacts are correct.
+This sprint has two tracks:
+
+1. **E2E test infrastructure** -- Build end-to-end test infrastructure
+   that validates the entire CLASI SE process by having it build a real
+   application from a spec. A test harness sets up a temporary project,
+   initializes CLASI, places a guessing game spec, dispatches a
+   team-lead subagent to implement it across 4 sprints, then verifies
+   all artifacts are correct.
+
+2. **Process improvements** -- Fix agent delegation boundaries and add
+   TODO lifecycle traceability. The delegation fixes (tickets 004, 006,
+   007) establish a consistent principle: controllers provide goals and
+   references, subordinate agents make implementation decisions. The
+   architecture revision (005) replaces full architecture copies with
+   lightweight update documents. The cross-referencing ticket (008) adds
+   bidirectional traceability between TODOs and tickets via frontmatter
+   fields and MCP tool automation.
 
 ## Problem
+
+### E2E testing gap
 
 CLASI has 356+ unit tests covering individual tools and modules, but no
 integration test that exercises the full SE process end-to-end: project
@@ -28,7 +45,31 @@ version tagging. Process regressions (broken lifecycle transitions,
 missing artifacts, incomplete ticket moves) can only be caught by manual
 testing today.
 
+### Agent delegation boundaries
+
+The team-lead agent does the work of subordinate agents. When delegating
+to the todo-worker, it pre-formats TODO content instead of passing raw
+stakeholder input. When delegating to the sprint planner, it provides
+fully pre-digested ticket specifications instead of high-level goals
+and TODO references. This makes subordinate agents into transcription
+agents rather than planning/structuring agents.
+
+### Architecture process overhead
+
+Each sprint copies the full architecture document and the architect
+rewrites it from scratch. This is expensive and error-prone. A
+lightweight update model would be more efficient.
+
+### TODO traceability gap
+
+When a TODO is picked up for implementation, there is no visible link
+between the TODO and the sprint/ticket addressing it. TODOs either
+disappear immediately or sit in the pending list with no indication of
+progress. Tickets also lack a backlink to their source TODO(s).
+
 ## Solution
+
+### Track 1: E2E test infrastructure
 
 1. **E2E test harness (`run_e2e.py`)** -- A Python script that:
    - Creates a temporary project directory
@@ -50,14 +91,51 @@ testing today.
    explaining how to run and extend e2e tests, plus cleanup of the
    originating TODO.
 
+### Track 2: Process improvements
+
+4. **Team-lead identity binding** -- Update CLAUDE.md and AGENTS.md so
+   the top-level Claude session explicitly knows it is the team-lead
+   and dispatches to subagents rather than writing files directly.
+
+5. **Architecture process revision** -- Replace full architecture copies
+   per sprint with lightweight architecture-update documents. Add an
+   on-demand consolidation skill for merging updates into a full
+   architecture document.
+
+6. **TODO delegation fix** -- Update team-lead and todo-worker agent
+   definitions so the team-lead passes raw stakeholder text to the
+   todo-worker instead of pre-formatting it.
+
+7. **Sprint planner delegation fix** -- Update team-lead and sprint-
+   planner agent definitions so the team-lead provides high-level goals
+   and TODO references instead of pre-digested ticket specifications.
+   Depends on the TODO delegation fix (006) to ensure a coherent
+   delegation philosophy.
+
+8. **TODO-sprint-ticket cross-references** -- Implement bidirectional
+   traceability: TODOs get sprint/ticket IDs in frontmatter when tickets
+   are created from them; tickets get a `todo` frontmatter field
+   pointing to source TODO(s). MCP tools (`create_ticket`,
+   `close_sprint`, `list_todos`) are updated to facilitate this
+   automatically.
+
 ## Success Criteria
 
+### E2E test infrastructure
 - `run_e2e.py` creates a valid temporary project with CLASI initialized
 - `run_e2e.py` dispatches a team-lead subagent that can execute
   the full spec
 - `verify.py` validates all expected artifacts exist and are correct
 - `verify.py` validates the built application works
 - Tests in `tests/e2e/` directory are self-documenting
+
+### Process improvements
+- Team-lead sessions self-identify and dispatch rather than writing directly
+- Architecture process uses lightweight updates instead of full copies
+- Team-lead passes raw input to todo-worker and goals to sprint planner
+- TODOs show sprint/ticket linkage while work is in progress
+- Tickets have `todo` frontmatter linking back to source TODO(s)
+- MCP tools automate cross-referencing on ticket creation and sprint close
 
 ## Scope
 
@@ -90,7 +168,9 @@ testing today.
 
 ## Test Strategy
 
-This sprint produces test infrastructure itself, so the testing approach
+### Track 1: E2E test infrastructure
+
+This track produces test infrastructure itself, so the testing approach
 is layered:
 
 - **Unit verification**: Each script (`run_e2e.py`, `verify.py`) should
@@ -101,6 +181,15 @@ is layered:
   be run manually or in a dedicated CI step.
 - **Regression**: `uv run pytest` must continue to pass (no regressions
   to existing tests).
+
+### Track 2: Process improvements
+
+- **MCP tool changes** (005, 008): Unit tests for modified `create_sprint`,
+  `close_sprint`, `create_ticket`, and `list_todos` behavior.
+- **Agent definition changes** (004, 006, 007): Manual verification by
+  starting sessions and confirming agents identify correctly and delegate
+  appropriately.
+- **Regression**: `uv run pytest` must continue to pass for all tickets.
 
 ## Architecture Notes
 
@@ -139,19 +228,24 @@ Before tickets can be created, all of the following must be true:
 
 ## Tickets
 
+### Track 1: E2E Test Infrastructure
+
 1. **001** -- E2E test harness (run_e2e.py)
    - use-cases: SUC-001 | depends-on: none
 2. **002** -- Verification script (verify.py)
    - use-cases: SUC-002 | depends-on: none
 3. **003** -- Documentation and TODO cleanup
    - use-cases: SUC-001, SUC-002 | depends-on: 001, 002
+
+### Track 2: Process Improvements
+
 4. **004** -- Team-lead identity binding
-   - use-cases: none | depends-on: none | todo: team-lead-identity-binding.md
+   - use-cases: SUC-003 | depends-on: none | todo: team-lead-identity-binding.md
 5. **005** -- Revise architecture process
-   - use-cases: none | depends-on: none | todo: revise-architecture-process.md
+   - use-cases: SUC-005 | depends-on: none | todo: revise-architecture-process.md
 6. **006** -- Fix TODO delegation
-   - use-cases: none | depends-on: none | todo: fix-todo-delegation.md
+   - use-cases: SUC-003 | depends-on: none | todo: fix-todo-delegation.md
 7. **007** -- Fix team-lead over-specification to sprint planner
-   - use-cases: none | depends-on: 006 | todo: team-lead-over-specifies-tickets-to-sprint-planner.md
+   - use-cases: SUC-003 | depends-on: 006 | todo: team-lead-over-specifies-tickets-to-sprint-planner.md
 8. **008** -- TODO-sprint-ticket cross-references
-   - use-cases: none | depends-on: none | todo: todo-sprint-ticket-cross-references.md
+   - use-cases: SUC-004 | depends-on: none | todo: todo-sprint-ticket-cross-references.md

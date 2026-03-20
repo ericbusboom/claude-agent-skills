@@ -2,7 +2,7 @@
 id: "007"
 title: "Fix team-lead over-specification to sprint planner"
 status: todo
-use-cases: []
+use-cases: [SUC-003]
 depends-on: ["006"]
 github-issue: ""
 todo: "team-lead-over-specifies-tickets-to-sprint-planner.md"
