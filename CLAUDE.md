@@ -1,4 +1,3 @@
-@AGENTS.md
 
 <!-- CLASI:START -->
 ## CLASI Software Engineering Process

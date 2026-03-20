@@ -32,7 +32,7 @@ The script must:
 4. **Initialize git** in the temp directory (`git init`, initial
    commit) so the CLASI process can create branches and tags.
 
-5. **Dispatch a main-controller subagent** via the Claude Code Agent
+5. **Dispatch a team-lead subagent** via the Claude Code Agent
    tool. The subagent prompt must:
    - Reference the spec file
    - Instruct the agent to implement the spec following the CLASI SE
@@ -55,7 +55,7 @@ Reference: `tests/e2e/guessing-game-spec.md` for the spec content.
 - [ ] Runs `clasi init` successfully in the temp directory
 - [ ] Copies `guessing-game-spec.md` into the temp project
 - [ ] Initializes a git repo with an initial commit
-- [ ] Dispatches a main-controller subagent with the spec and 4-sprint instruction
+- [ ] Dispatches a team-lead subagent with the spec and 4-sprint instruction
 - [ ] Prints the temp directory path for subsequent verification
 - [ ] Handles errors gracefully with clear messages
 

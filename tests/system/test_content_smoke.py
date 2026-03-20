@@ -41,7 +41,7 @@ class TestContentSmoke:
         assert len(result) > 0
 
     def test_get_agent_returns_markdown(self):
-        content = get_agent_definition("main-controller")
+        content = get_agent_definition("team-lead")
         assert "# " in content
         assert len(content) > 100
 

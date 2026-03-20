@@ -1872,7 +1872,7 @@ def log_subagent_dispatch(
     - neither                 -> log/adhoc/NNN.md
 
     Args:
-        parent: The dispatching agent name (e.g., 'main-controller')
+        parent: The dispatching agent name (e.g., 'team-lead')
         child: The receiving agent name (e.g., 'sprint-planner')
         scope: The directory scope for the subagent
         prompt: The FULL prompt text being sent to the subagent

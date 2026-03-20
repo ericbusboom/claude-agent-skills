@@ -101,8 +101,8 @@ specifics, see `pc-architecture.md`.
 flowchart TB
     user["Stakeholder"]
 
-    subgraph T0["Tier 0: Main Controller"]
-        mc["main-controller<br/>Knows: requirements, planning, execution<br/>Writes: nothing (dispatches only)"]
+    subgraph T0["Tier 0: Team Lead"]
+        mc["team-lead<br/>Knows: requirements, planning, execution<br/>Writes: nothing (dispatches only)"]
     end
 
     subgraph T1["Tier 1: Domain Controllers"]
@@ -149,7 +149,7 @@ flowchart TB
 
 | Tier | Agent | Receives | Returns | Write Scope | Delegates to |
 |------|-------|----------|---------|-------------|-------------|
-| 0 | **main-controller** | Stakeholder input | Status reports | None | T1 agents. Validates sprint frontmatter on return. |
+| 0 | **team-lead** | Stakeholder input | Status reports | None | T1 agents. Validates sprint frontmatter on return. |
 | 1 | **requirements-narrator** | Stakeholder narrative | Overview doc | `docs/clasi/overview.md` | None |
 | 1 | **todo-worker** | Ideas, GitHub issues | TODO files | `docs/clasi/todo/` | None |
 | 1 | **sprint-planner** | TODO IDs, goals | Sprint with tickets | `docs/clasi/sprints/NNN/` | architect, arch-reviewer, technical-lead |
@@ -165,11 +165,11 @@ flowchart TB
 ### Validation Chain
 
 The sprint-executor validates each ticket after the code-monkey returns,
-and the main controller validates the sprint after the executor returns:
+and the team lead validates the sprint after the executor returns:
 
 ```mermaid
 sequenceDiagram
-    participant MC as Main Controller
+    participant MC as Team Lead
     participant SE as Sprint Executor
     participant CM as Code Monkey
 
@@ -209,12 +209,12 @@ The code directory structure mirrors the hierarchy:
 
 ```
 agents/
-├── main-controller/
-│   └── main-controller/
+├── team-lead/
+│   └── team-lead/
 │       ├── agent.md
 │       ├── next.md
 │       └── project-status.md
-├── domain-controllers/
+├── doteam-leads/
 │   ├── requirements-narrator/
 │   │   ├── agent.md
 │   │   ├── elicit-requirements.md
@@ -410,7 +410,7 @@ watching may provide mechanical enforcement in the future.
 
 ### DR-008: Three-Tier Agent Hierarchy
 
-**Decision**: Organize agents into main-controller, domain-controllers,
+**Decision**: Organize agents into team-lead, doteam-leads,
 and task-workers with matching directory structure.
 
 **Context**: The flat agent model had project-manager doing everything.
@@ -418,7 +418,7 @@ No isolation between planning and execution, no clear delegation
 boundaries.
 
 **Why three tiers**: Main controller knows the process but not
-implementation. Domain controllers own lifecycles (sprint planning,
+implementation. Doteam leads own lifecycles (sprint planning,
 sprint execution, TODO management). Task workers do the actual work
 (code, review, architecture). Each tier validates the output of its
 children before passing results up.
@@ -448,7 +448,7 @@ The MCP logging tools added in prior sprints are sufficient.
 
 **`tests/e2e/run_e2e.py`** — E2E test harness script. Creates a
 temporary project directory, runs `clasi init`, copies the guessing game
-spec, and dispatches a main-controller subagent via the Agent tool to
+spec, and dispatches a team-lead subagent via the Agent tool to
 implement the spec across 4 sprints. Captures result and reports the
 temp project path for verification.
 

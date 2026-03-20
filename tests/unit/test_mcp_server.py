@@ -23,8 +23,8 @@ class TestContentPath:
         assert content_path("instructions", "languages").is_dir()
 
     def test_resolves_specific_file(self):
-        # Agent files are now in the hierarchy: agents/main-controller/main-controller/agent.md
-        assert content_path("agents", "main-controller", "main-controller", "agent.md").is_file()
+        # Agent files are now in the hierarchy: agents/main-controller/team-lead/agent.md
+        assert content_path("agents", "main-controller", "team-lead", "agent.md").is_file()
 
     def test_resolves_rules_directory(self):
         assert content_path("rules").is_dir()

@@ -16,7 +16,7 @@ use-cases:
 Build end-to-end test infrastructure that validates the entire CLASI SE
 process by having it build a real application from a spec. A test harness
 sets up a temporary project, initializes CLASI, places a guessing game
-spec, dispatches a main-controller subagent to implement it across 4
+spec, dispatches a team-lead subagent to implement it across 4
 sprints, then verifies all artifacts are correct.
 
 ## Problem
@@ -34,7 +34,7 @@ testing today.
    - Creates a temporary project directory
    - Runs `clasi init` to install the SE process
    - Copies the guessing game spec into the project
-   - Dispatches a main-controller subagent (via the Agent tool) with
+   - Dispatches a team-lead subagent (via the Agent tool) with
      instructions to implement the spec across 4 sprints
    - Captures the result and exit status
 
@@ -53,7 +53,7 @@ testing today.
 ## Success Criteria
 
 - `run_e2e.py` creates a valid temporary project with CLASI initialized
-- `run_e2e.py` dispatches a main-controller subagent that can execute
+- `run_e2e.py` dispatches a team-lead subagent that can execute
   the full spec
 - `verify.py` validates all expected artifacts exist and are correct
 - `verify.py` validates the built application works
@@ -94,7 +94,7 @@ is layered:
 
 This sprint adds test infrastructure only -- no changes to the CLASI
 package. The test harness uses the Claude Code Agent tool to dispatch a
-main-controller subagent, which in turn dispatches its own subagents
+team-lead subagent, which in turn dispatches its own subagents
 through the normal CLASI process.
 
 The verification script is deliberately separate from the harness so it

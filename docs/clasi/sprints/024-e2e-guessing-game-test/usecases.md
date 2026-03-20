@@ -16,7 +16,7 @@ Parent: none (new capability)
   2. Script creates a temporary project directory
   3. Script runs `clasi init` to install the SE process into the temp project
   4. Script copies `guessing-game-spec.md` into the temp project
-  5. Script dispatches a main-controller subagent via the Agent tool
+  5. Script dispatches a team-lead subagent via the Agent tool
   6. The subagent receives the spec and instructions to implement it
      across 4 sprints (menu, number game, color game, city game)
   7. The subagent executes the full CLASI SE process: planning, ticketing,
