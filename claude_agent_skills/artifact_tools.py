@@ -1846,3 +1846,77 @@ def review_sprint_post_close(sprint_id: str) -> str:
         "passed": not any(i["severity"] == "error" for i in issues),
         "issues": issues,
     }, indent=2)
+
+
+# --- Dispatch logging tools ---
+
+
+@server.tool()
+def log_subagent_dispatch(
+    parent: str,
+    child: str,
+    scope: str,
+    prompt: str,
+    sprint_name: str | None = None,
+    ticket_id: str | None = None,
+) -> str:
+    """Log a subagent dispatch with full prompt text.
+
+    Call this BEFORE dispatching a subagent. It records the complete
+    prompt that will be sent, with YAML frontmatter for structured
+    metadata.
+
+    Routing:
+    - sprint_name + ticket_id -> log/sprints/<sprint>/ticket-<ticket>-NNN.md
+    - sprint_name only        -> log/sprints/<sprint>/sprint-planner-NNN.md
+    - neither                 -> log/adhoc/NNN.md
+
+    Args:
+        parent: The dispatching agent name (e.g., 'main-controller')
+        child: The receiving agent name (e.g., 'sprint-planner')
+        scope: The directory scope for the subagent
+        prompt: The FULL prompt text being sent to the subagent
+        sprint_name: Optional sprint name for routing
+        ticket_id: Optional ticket ID for routing
+
+    Returns JSON with {log_path}.
+    """
+    from claude_agent_skills.dispatch_log import log_dispatch
+
+    log_path = log_dispatch(
+        parent=parent,
+        child=child,
+        scope=scope,
+        prompt=prompt,
+        sprint_name=sprint_name,
+        ticket_id=ticket_id,
+    )
+    return json.dumps({"log_path": str(log_path)}, indent=2)
+
+
+@server.tool()
+def update_dispatch_log(
+    log_path: str,
+    result: str,
+    files_modified: list[str] | None = None,
+) -> str:
+    """Update a dispatch log with the result after the subagent returns.
+
+    Call this AFTER a subagent completes. It adds the result and list
+    of modified files to the log's YAML frontmatter.
+
+    Args:
+        log_path: Path to the log file (returned by log_subagent_dispatch)
+        result: Result summary (e.g., 'success', 'failed - test failures')
+        files_modified: List of file paths the subagent modified
+
+    Returns JSON with {log_path, result}.
+    """
+    from claude_agent_skills.dispatch_log import update_dispatch_result
+
+    update_dispatch_result(
+        log_path=Path(log_path),
+        result=result,
+        files_modified=files_modified or [],
+    )
+    return json.dumps({"log_path": log_path, "result": result}, indent=2)
