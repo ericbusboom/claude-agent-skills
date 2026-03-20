@@ -259,3 +259,5 @@ Before tickets can be created, all of the following must be true:
     - use-cases: SUC-003 | depends-on: 009 | todo: agent-dispatch-templates-with-role-and-field-conventions.md
 13. **013** -- Dispatch logs should reference sprint documents
     - use-cases: SUC-003 | depends-on: 009 | todo: dispatch-logs-should-reference-sprint-documents.md
+14. **014** -- Enforce dispatch template usage
+    - use-cases: SUC-003 | depends-on: 012 | todo: enforce-dispatch-template-usage.md
