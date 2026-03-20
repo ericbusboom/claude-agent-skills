@@ -166,7 +166,7 @@ def _check_dispatch_logs(project_dir: Path) -> CheckResult:
     if not log_dir.exists():
         return _fail("Dispatch logs exist", "log/ directory does not exist")
 
-    log_files = list(log_dir.glob("*.md"))
+    log_files = list(log_dir.rglob("*.md"))
     if not log_files:
         return _fail("Dispatch logs exist", "no log files found")
 

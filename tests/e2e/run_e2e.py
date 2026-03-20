@@ -57,10 +57,13 @@ def _run(cmd: list[str], cwd: Path, *, check: bool = True) -> subprocess.Complet
 
 
 def _create_temp_project() -> Path:
-    """Create a persistent temporary directory for the project."""
-    tmp = Path(tempfile.mkdtemp(prefix="clasi-e2e-"))
-    print(f"[INFO] Temp project directory: {tmp}")
-    return tmp
+    """Create the project directory at tests/e2e/project/ (gitignored)."""
+    project = _THIS_DIR / "project"
+    if project.exists():
+        shutil.rmtree(project)
+    project.mkdir()
+    print(f"[INFO] Project directory: {project}")
+    return project
 
 
 def _init_clasi(project_dir: Path) -> None:

@@ -54,3 +54,4 @@ tmp/
 *.tmp
 *.bak
 *.log
+tests/e2e/project/
