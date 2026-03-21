@@ -876,22 +876,28 @@ def close_sprint(sprint_id: str) -> str:
         except (ValueError, Exception):
             pass  # Graceful degradation
 
-    # Auto-version after archiving
+    # Auto-version after archiving (respects version_trigger setting)
     version = None
     try:
         from claude_agent_skills.versioning import (
             compute_next_version,
             create_version_tag,
             detect_version_file,
+            load_version_trigger,
+            should_version,
             update_version_file,
         )
-        version = compute_next_version()
-        detected = detect_version_file(Path.cwd())
-        if detected:
-            update_version_file(detected[0], detected[1], version)
-        create_version_tag(version)
-    except Exception:
-        pass  # Versioning is best-effort
+        trigger = load_version_trigger()
+        if should_version(trigger, "sprint_close"):
+            version = compute_next_version()
+            detected = detect_version_file(Path.cwd())
+            if detected:
+                update_version_file(detected[0], detected[1], version)
+            create_version_tag(version)
+    except Exception as exc:
+        # Log the error instead of silently swallowing it
+        import sys
+        print(f"[CLASI] Versioning failed: {exc}", file=sys.stderr)
 
     result = {
         "old_path": str(sprint_dir),
