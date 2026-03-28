@@ -8,7 +8,7 @@ description: Architecture update for sprint 019 — TDD cycle and systematic deb
 
 # Architecture 019: TDD and Systematic Debugging
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 architecture as it exists at the end of sprint 017.
 
 ## Architecture Overview

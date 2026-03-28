@@ -11,7 +11,7 @@ from mcp.server.fastmcp import FastMCP
 server = FastMCP(
     "clasi",
     instructions=(
-        "CLASI — Claude Agent Skills Instructions. "
+        "CLASI. "
         "Provides SE process access tools (agents, skills, instructions) "
         "and artifact management tools (sprints, tickets, briefs)."
     ),

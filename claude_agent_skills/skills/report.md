@@ -1,11 +1,11 @@
 ---
 name: report
-description: Create a GitHub issue on the claude-agent-skills repository to report bugs or problems encountered while working in another repository
+description: Create a GitHub issue on the clasi repository to report bugs or problems encountered while working in another repository
 ---
 
 # Report Issue Skill
 
-This skill creates a GitHub issue on the `ericbusboom/claude-agent-skills` repository using direct GitHub API access (preferred) or the GitHub CLI (`gh`) as a fallback. Use this when working in another repository with the SE process MCP server to report bugs, issues, or problems with the CLASI tools, agents, skills, or instructions.
+This skill creates a GitHub issue on the `ericbusboom/clasi` repository using direct GitHub API access (preferred) or the GitHub CLI (`gh`) as a fallback. Use this when working in another repository with the SE process MCP server to report bugs, issues, or problems with the CLASI tools, agents, skills, or instructions.
 
 ## Process
 
@@ -19,10 +19,10 @@ This skill creates a GitHub issue on the `ericbusboom/claude-agent-skills` repos
      - Any error messages or logs
      - Context (which skill/agent/instruction was involved)
 
-2. Prefer direct GitHub API creation when `GITHUB_TOKEN` or `GH_TOKEN` is available. If not, use `gh` to create the issue on the `ericbusboom/claude-agent-skills` repository:
+2. Prefer direct GitHub API creation when `GITHUB_TOKEN` or `GH_TOKEN` is available. If not, use `gh` to create the issue on the `ericbusboom/clasi` repository:
    ```bash
    gh issue create \
-     --repo ericbusboom/claude-agent-skills \
+     --repo ericbusboom/clasi \
      --title "TITLE" \
      --body "DESCRIPTION"
    ```
@@ -55,7 +55,7 @@ The python-expert agent suggests using deprecated libraries without checking the
 
 **Process:**
 1. Parse the user input into title and description (auto-generate title if missing)
-2. Execute (API preferred): create the issue on `ericbusboom/claude-agent-skills`
+2. Execute (API preferred): create the issue on `ericbusboom/clasi`
 3. Report success with issue URL
 
 **Output:**
@@ -63,7 +63,7 @@ The python-expert agent suggests using deprecated libraries without checking the
 ✅ Issue created successfully!
 
 Issue #42: Python-expert agent suggests deprecated libraries
-URL: https://github.com/ericbusboom/claude-agent-skills/issues/42
+URL: https://github.com/ericbusboom/clasi/issues/42
 
 The issue has been reported and will be reviewed by the maintainers.
 ```

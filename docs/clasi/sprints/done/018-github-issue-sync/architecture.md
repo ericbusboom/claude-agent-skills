@@ -8,7 +8,7 @@ description: Architecture update for sprint 018 — GitHub issue sync (import, r
 
 # Architecture 018: GitHub Issue Sync
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 architecture as it will exist at the end of sprint 018.
 
 ## Architecture Overview

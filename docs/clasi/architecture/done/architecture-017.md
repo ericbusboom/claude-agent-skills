@@ -8,7 +8,7 @@ description: Architecture at the end of sprint 017 — comprehensive rewrite wit
 
 # Architecture 017: CLASI System
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 architecture as it exists at the end of sprint 017.
 
 ## Architecture Overview

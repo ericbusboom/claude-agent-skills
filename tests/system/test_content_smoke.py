@@ -67,5 +67,5 @@ class TestContentSmoke:
         content = get_skill_definition("report")
         assert "# Report Issue Skill" in content
         assert "gh issue create" in content
-        assert "ericbusboom/claude-agent-skills" in content
+        assert "ericbusboom/clasi" in content
         assert len(content) > 500

@@ -12,7 +12,7 @@ areas of code change: the TODO cleanup CLI command and per-language MCP tools.
 The existing package structure from sprint 001 is extended, not reorganized.
 
 ```
-claude-agent-skills/
+clasi/
 ├── instructions/
 │   ├── system-engineering.md      # Updated: TODO dir, overview doc
 │   ├── coding-standards.md        # Unchanged

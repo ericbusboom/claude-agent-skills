@@ -24,8 +24,7 @@ target repo and configures the MCP server.
 
 ### In Scope
 
-1. **Rename CLI** from `link-claude-agents` to `clasi` (Claude Agent Skills
-   Instructions).
+1. **Rename CLI** from `link-claude-agents` to `clasi`.
 
 2. **`clasi init` command**: Initialize a target repo:
    - Write instruction files into `.claude/rules/` and

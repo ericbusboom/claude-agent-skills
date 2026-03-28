@@ -6,10 +6,10 @@ status: draft
 
 ## Architecture Overview
 
-A single Python package (`claude-agent-skills`) containing:
+A single Python package (`clasi`) containing:
 
 ```
-claude-agent-skills/
+clasi/
 ├── agents/              # Agent definitions (shared)
 ├── skills/              # Skill definitions (shared)
 ├── instructions/        # SE process & testing instructions (shared)

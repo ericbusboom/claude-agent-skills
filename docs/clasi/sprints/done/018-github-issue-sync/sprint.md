@@ -95,7 +95,7 @@ set up `gh` for repo access. The existing `_get_github_token` / API
 approach remains for `create_github_issue` but is not extended.
 
 The `github-issue` field uses the format `owner/repo#number` (e.g.,
-`ericbusboom/claude-agent-skills#42`). This is unambiguous across repos.
+`ericbusboom/clasi#42`). This is unambiguous across repos.
 
 ## Definition of Ready
 

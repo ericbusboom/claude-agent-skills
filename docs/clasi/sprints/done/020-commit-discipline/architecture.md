@@ -8,7 +8,7 @@ description: Architecture update for sprint 020 — commit discipline tied to te
 
 # Architecture 020: Commit Discipline
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 architecture as it exists at the end of sprint 017.
 
 ## Architecture Overview

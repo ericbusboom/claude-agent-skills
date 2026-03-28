@@ -8,7 +8,7 @@ description: Architecture update for sprint 022 — subagent dispatch protocol a
 
 # Architecture 022: Subagent Dispatch and Two-Stage Review
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 architecture as it exists at the end of sprint 017.
 
 ## Architecture Overview

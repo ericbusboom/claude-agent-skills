@@ -1,4 +1,4 @@
-# CLASI — Claude Agent Skills Instructions
+# CLASI
 
 An MCP server that gives Claude Code (and GitHub Copilot) a structured
 software engineering process. It provides agents, skills, and instructions
@@ -11,20 +11,20 @@ release.
 Install with [pipx](https://pipx.pypa.io/) directly from GitHub:
 
 ```bash
-pipx install git+https://github.com/ericbusboom/claude-agent-skills.git
+pipx install git+https://github.com/ericbusboom/clasi.git
 ```
 
 This puts the `clasi` command on your PATH. To update later:
 
 ```bash
-pipx upgrade claude-agent-skills
+pipx upgrade clasi
 ```
 
 For development, clone and install in editable mode:
 
 ```bash
-git clone https://github.com/ericbusboom/claude-agent-skills.git
-cd claude-agent-skills
+git clone https://github.com/ericbusboom/clasi.git
+cd clasi
 pipx install -e .
 ```
 

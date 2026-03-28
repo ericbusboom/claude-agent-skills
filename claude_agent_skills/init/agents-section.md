@@ -14,8 +14,8 @@ MCP server. Do not create files manually. Tell the stakeholder to check
 **MANDATORY: Call `get_se_overview()` to load the software engineering
 process.** Do this at the start of every conversation. No exceptions.
 
-This project uses the **CLASI** (Claude Agent Skills Instructions)
-software engineering process, managed via an MCP server.
+This project uses the **CLASI** software engineering process, managed
+via an MCP server.
 
 **The SE process is the default.** Any activity that results in changes
 to the codebase — or plans to change the codebase — falls under this

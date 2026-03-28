@@ -8,7 +8,7 @@ description: Architecture update for sprint 023 — parallel execution via git w
 
 # Architecture 023: Parallel Execution via Worktrees
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 architecture as it exists at the end of sprint 017.
 
 ## Architecture Overview

@@ -7,7 +7,7 @@ description: Architecture at the end of sprint 014 — retroactive baseline of t
 
 # Architecture 014: CLASI System Baseline
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 as it exists today. It is a retroactive baseline, not a design document —
 no architectural changes are being proposed.
 

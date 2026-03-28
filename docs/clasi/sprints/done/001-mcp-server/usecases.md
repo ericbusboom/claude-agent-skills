@@ -7,7 +7,7 @@ status: draft
 ## SUC-001: Initialize a Repository for CLASI
 
 - **Actor**: Developer
-- **Preconditions**: `claude-agent-skills` is installed via pip/pipx. Target
+- **Preconditions**: `clasi` is installed via pip/pipx. Target
   repository exists on disk.
 - **Main Flow**:
   1. Developer runs `clasi init` from the target repo.

@@ -1,5 +1,5 @@
 """
-CLI entry point for clasi (Claude Agent Skills Instructions).
+CLI entry point for CLASI.
 
 Subcommands:
     clasi init [target]             — Initialize a repo for CLASI
@@ -15,7 +15,7 @@ import click
 @click.group()
 @click.version_option(package_name="clasi")
 def cli():
-    """CLASI — Claude Agent Skills Instructions.
+    """CLASI.
 
     MCP server for AI-driven software engineering process.
     """

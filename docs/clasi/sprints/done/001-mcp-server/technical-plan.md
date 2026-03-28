@@ -6,7 +6,7 @@ status: draft
 
 ## Architecture Overview
 
-The `claude-agent-skills` package is restructured from a symlink-based
+The `clasi` package is restructured from a symlink-based
 distribution tool into an MCP server with a CLI frontend. The package
 provides two entry points:
 
@@ -22,7 +22,7 @@ serves content from the installed package) and Artifact Management
 ## Package Structure
 
 ```
-claude-agent-skills/
+clasi/
 ├── agents/                        # Agent definitions (served via MCP)
 ├── skills/                        # Skill definitions (served via MCP)
 ├── instructions/                  # Instructions (served via MCP)

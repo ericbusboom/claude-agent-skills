@@ -6,7 +6,7 @@ status: draft
 
 ## Project Name
 
-claude-agent-skills
+clasi
 
 ## Problem Statement
 

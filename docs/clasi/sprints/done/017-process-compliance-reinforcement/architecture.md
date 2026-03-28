@@ -7,7 +7,7 @@ description: Architecture update for sprint 017 — inline CLASI into CLAUDE.md,
 
 # Architecture 017: Process Compliance Reinforcement
 
-This document describes the CLASI (Claude Agent Skills Instructions) system
+This document describes the CLASI system
 as it exists today, updated with sprint 017 changes.
 
 ## Architecture Overview

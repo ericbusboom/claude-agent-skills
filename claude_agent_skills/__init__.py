@@ -1,4 +1,4 @@
-"""CLASI — Claude Agent Skills Instructions.
+"""CLASI.
 
 MCP server for AI-driven software engineering process.
 """

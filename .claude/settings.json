@@ -22,5 +22,10 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__clasi__get_version"
+    ]
   }
 }

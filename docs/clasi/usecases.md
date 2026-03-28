@@ -7,7 +7,7 @@ status: draft
 ## UC-001: Link Shared Definitions into a Target Repository
 
 - **Actor**: Developer
-- **Preconditions**: `claude-agent-skills` is installed via pip/pipx. Target
+- **Preconditions**: `clasi` is installed via pip/pipx. Target
   repository exists on disk.
 - **Main Flow**:
   1. Developer runs `link-claude-agents` from the target repo (or passes

@@ -1,7 +1,7 @@
 # CLASI SE Process
 
-This project uses the CLASI (Claude Agent Skills Instructions) software
-engineering process, served via MCP tools.
+This project uses the CLASI software engineering process, served via MCP
+tools.
 
 ## Process Overview
 

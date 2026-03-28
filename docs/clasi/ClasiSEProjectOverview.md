@@ -10,7 +10,7 @@ audience: "LLM researcher performing comparative software-process analysis"
 
 ## 1. Executive Summary
 
-CLASI (Claude Agent Skills Instructions) is a software engineering process
+CLASI is a software engineering process
 designed for AI coding agents — specifically LLMs operating as autonomous
 software engineers inside a code editor. It provides a pip-installable
 Python package that stores canonical agent definitions, skill workflows,
@@ -18,7 +18,7 @@ coding instructions, and an MCP (Model Context Protocol) server that
 exposes 30 tools for managing sprints, tickets, architecture documents,
 and lifecycle enforcement.
 
-The CLASI code is [available at https://github.com/ericbusboom/claude-agent-skills](https://github.com/ericbusboom/claude-agent-skills)
+The CLASI code is [available at https://github.com/ericbusboom/clasi](https://github.com/ericbusboom/clasi)
 
 The fundamental insight behind CLASI is that **LLM agents do not reliably
 follow behavioral instructions alone**. Over 15 sprints and 8 formal

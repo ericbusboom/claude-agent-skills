@@ -14,7 +14,7 @@ definitions, SE process instructions, and the ticket system itself.
 
 ## Goals
 
-- Establish the `claude-agent-skills` package
+- Establish the `clasi` package
 - Create agent definitions (project-manager, requirements-analyst, architect,
   systems-engineer, python-expert, documentation-expert, code-reviewer,
   architecture-reviewer)
