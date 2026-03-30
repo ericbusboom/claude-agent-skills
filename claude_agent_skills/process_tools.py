@@ -203,10 +203,30 @@ def list_instructions() -> str:
 def get_agent_definition(name: str) -> str:
     """Get the full markdown content of a named agent definition.
 
+    Returns the agent.md content. If a contract.yaml exists alongside
+    the agent.md, its content is appended as a YAML-fenced section.
+
     Args:
-        name: The agent name (e.g., 'project-manager', 'python-expert')
+        name: The agent name (e.g., 'code-monkey', 'sprint-planner')
     """
-    return _get_definition(content_path("agents"), name)
+    agent_content = _get_definition(content_path("agents"), name)
+
+    # Try to find and append contract.yaml
+    agents_dir = content_path("agents")
+    agent_dir = _find_agent_dir(agents_dir, name)
+    if agent_dir:
+        contract_path = agent_dir / "contract.yaml"
+        if contract_path.exists():
+            contract_text = contract_path.read_text(encoding="utf-8")
+            agent_content += (
+                "\n\n---\n\n"
+                "## Contract\n\n"
+                "```yaml\n"
+                f"{contract_text}"
+                "```\n"
+            )
+
+    return agent_content
 
 
 @server.tool()

@@ -1,0 +1,93 @@
+name: code-monkey
+tier: 2
+model: "sonnet"
+description: >
+  Implements one ticket at a time. Writes production code, tests,
+  and documentation. Updates ticket frontmatter to reflect completion.
+
+inputs:
+  required:
+    - name: ticket
+      type: file
+      description: The ticket file with acceptance criteria
+      pattern: "docs/clasi/sprints/*/tickets/*.md"
+
+    - name: ticket-plan
+      type: file
+      description: Implementation plan for the ticket
+      pattern: "docs/clasi/sprints/*/tickets/*-plan.md"
+
+  optional:
+    - name: architecture
+      type: file
+      description: Current architecture document for context
+      default: "docs/clasi/architecture/architecture-{latest}.md"
+
+    - name: coding-standards
+      type: file-list
+      description: Language-specific instructions for the project
+      default: "instructions/languages/*.md"
+
+    - name: implementation-notes
+      type: file
+      description: >
+        Stakeholder guidance on preferences or constraints for
+        this ticket's implementation.
+
+outputs:
+  required:
+    - path: "{ticket_path}"
+      frontmatter:
+        status: done
+      acceptance_criteria_checked: true
+  validates:
+    - "pytest passes (exit code 0)"
+    - "ticket frontmatter status is done"
+    - "all acceptance criteria checked off"
+
+returns:
+  type: object
+  required: [status, summary, files_changed, tests_passed]
+  properties:
+    status:
+      type: string
+      enum: [success, partial, failed]
+    summary:
+      type: string
+      description: What was implemented and how
+    files_changed:
+      type: array
+      items: { type: string }
+      description: Paths to all files created or modified
+    tests_passed:
+      type: boolean
+      description: Whether the full test suite passes
+    test_output:
+      type: string
+      description: Abbreviated pytest output (last 20 lines)
+    acceptance_criteria:
+      type: object
+      required: [total, checked]
+      properties:
+        total: { type: integer }
+        checked: { type: integer }
+      description: How many acceptance criteria were checked off
+    errors:
+      type: array
+      items: { type: string }
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"

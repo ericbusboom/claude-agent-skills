@@ -1,0 +1,73 @@
+name: todo-worker
+tier: 1
+model: "haiku"
+description: >
+  Creates and manages TODO items, including importing GitHub issues.
+  Handles TODO creation from stakeholder ideas, organization, and
+  lifecycle management.
+
+inputs:
+  required:
+    - name: action
+      type: text
+      description: >
+        What to do: create, import, list, summarize, or prioritize.
+
+  optional:
+    - name: raw-input
+      type: text
+      description: >
+        Raw stakeholder text to interpret and format into TODOs.
+
+    - name: github-refs
+      type: text
+      description: >
+        GitHub issue URLs or repository references to import.
+
+    - name: todo-ids
+      type: file-list
+      description: Existing TODO files to operate on
+      pattern: "docs/clasi/todo/*.md"
+
+outputs:
+  required: []
+  validates:
+    - "TODO files created in docs/clasi/todo/ with proper frontmatter"
+
+returns:
+  type: object
+  required: [status, summary]
+  properties:
+    status:
+      type: string
+      enum: [success, partial, failed]
+    summary:
+      type: string
+      description: What was done with the TODOs
+    todos_created:
+      type: array
+      items: { type: string }
+      description: Paths to created TODO files
+    todos_updated:
+      type: array
+      items: { type: string }
+      description: Paths to updated TODO files
+    errors:
+      type: array
+      items: { type: string }
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"

@@ -1,0 +1,73 @@
+name: ad-hoc-executor
+tier: 1
+model: "sonnet"
+description: >
+  Doteam lead that handles out-of-process changes without sprint
+  ceremony. Dispatches code-monkey and optionally code-reviewer
+  for quick, authorized changes.
+
+inputs:
+  required:
+    - name: task-description
+      type: text
+      description: Description of the change to make
+
+    - name: scope-directory
+      type: text
+      description: Directory scope for the change
+
+  optional:
+    - name: context-files
+      type: file-list
+      description: Additional files for context
+
+outputs:
+  required: []
+  validates:
+    - "Change implemented and committed"
+    - "pytest passes (exit code 0)"
+
+returns:
+  type: object
+  required: [status, summary, files_changed]
+  properties:
+    status:
+      type: string
+      enum: [success, failed]
+    summary:
+      type: string
+      description: What was changed and why
+    files_changed:
+      type: array
+      items: { type: string }
+      description: Paths to files created or modified
+    tests_passed:
+      type: boolean
+      description: Whether the test suite passes
+    errors:
+      type: array
+      items: { type: string }
+
+delegates_to:
+  - agent: code-monkey
+    when: >
+      To implement the requested change. Always dispatched.
+
+  - agent: code-reviewer
+    when: >
+      Optionally, after code-monkey returns, to review the change
+      before committing.
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"

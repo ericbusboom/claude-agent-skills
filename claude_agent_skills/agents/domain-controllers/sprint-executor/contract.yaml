@@ -1,0 +1,82 @@
+name: sprint-executor
+tier: 1
+model: "sonnet"
+description: >
+  Doteam lead that executes sprint tickets by dispatching code-monkey
+  for each ticket and validating completion. Iterates through tickets
+  in dependency order.
+
+inputs:
+  required:
+    - name: sprint-id
+      type: text
+      description: The sprint ID (e.g., "001")
+
+    - name: sprint-directory
+      type: file
+      description: Path to the sprint directory
+      pattern: "docs/clasi/sprints/*"
+
+    - name: tickets
+      type: file-list
+      description: Ticket files to execute in order
+      pattern: "docs/clasi/sprints/*/tickets/*.md"
+
+  optional:
+    - name: branch-name
+      type: text
+      description: Git branch name for the sprint
+
+outputs:
+  required:
+    - path: "tickets/done/*.md"
+      min_count: 1
+      frontmatter:
+        status: done
+      acceptance_criteria_checked: true
+  validates:
+    - "All tickets moved to tickets/done/"
+    - "pytest passes (exit code 0)"
+    - "Sprint frontmatter status updated"
+
+returns:
+  type: object
+  required: [status, summary, tickets_completed]
+  properties:
+    status:
+      type: string
+      enum: [success, partial, failed]
+    summary:
+      type: string
+      description: Summary of sprint execution results
+    tickets_completed:
+      type: array
+      items: { type: string }
+      description: IDs of tickets completed
+    tickets_failed:
+      type: array
+      items: { type: string }
+      description: IDs of tickets that failed
+    errors:
+      type: array
+      items: { type: string }
+
+delegates_to:
+  - agent: code-monkey
+    when: >
+      For each ticket in dependency order. Dispatches one at a time,
+      validates completion before moving to the next.
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{sprint_directory}"

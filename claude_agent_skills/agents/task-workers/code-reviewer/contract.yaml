@@ -1,0 +1,98 @@
+name: code-reviewer
+tier: 2
+model: "haiku"
+description: >
+  Reviews code changes during ticket execution for correctness
+  against acceptance criteria, quality against coding standards,
+  and security. Read-only — reports findings but does not modify code.
+
+inputs:
+  required:
+    - name: file-paths
+      type: file-list
+      description: Files to review
+
+    - name: review-scope
+      type: text
+      description: Description of what to review and the acceptance criteria
+
+  optional:
+    - name: ticket
+      type: file
+      description: The ticket file with acceptance criteria
+      pattern: "docs/clasi/sprints/*/tickets/*.md"
+
+    - name: coding-standards
+      type: file-list
+      description: Coding standards to review against
+      default: "instructions/coding-standards.md"
+
+outputs:
+  required: []
+  validates:
+    - "No files modified — read-only agent"
+
+returns:
+  type: object
+  required: [status, verdict, phase1, phase2]
+  properties:
+    status:
+      type: string
+      enum: [success, failed]
+    verdict:
+      type: string
+      enum: [pass, fail]
+      description: Overall review verdict
+    phase1:
+      type: object
+      required: [verdict, criteria]
+      properties:
+        verdict:
+          type: string
+          enum: [pass, fail]
+        criteria:
+          type: array
+          items:
+            type: object
+            required: [criterion, result]
+            properties:
+              criterion:
+                type: string
+              result:
+                type: string
+                enum: [pass, fail]
+              details:
+                type: string
+    phase2:
+      type: object
+      properties:
+        verdict:
+          type: string
+          enum: [pass, fail, skipped]
+        findings:
+          type: array
+          items:
+            type: object
+            required: [category, severity, description]
+            properties:
+              category:
+                type: string
+              severity:
+                type: string
+                enum: [blocking, advisory]
+              description:
+                type: string
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"

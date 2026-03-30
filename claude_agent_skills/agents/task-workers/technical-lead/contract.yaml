@@ -1,0 +1,79 @@
+name: technical-lead
+tier: 2
+model: "sonnet"
+description: >
+  Breaks sprint architecture and use cases into sequenced
+  implementation tickets with detailed plans. Produces numbered
+  ticket files with acceptance criteria and dependency ordering.
+
+inputs:
+  required:
+    - name: sprint-id
+      type: text
+      description: The sprint ID to create tickets for
+
+    - name: sprint-directory
+      type: file
+      description: Path to the sprint directory
+      pattern: "docs/clasi/sprints/*"
+
+  optional:
+    - name: architecture
+      type: file
+      description: Sprint architecture document
+      default: "{sprint_directory}/architecture-update.md"
+
+    - name: usecases
+      type: file
+      description: Sprint use cases document
+      default: "{sprint_directory}/usecases.md"
+
+outputs:
+  required:
+    - path: "tickets/*.md"
+      min_count: 1
+      frontmatter:
+        status: pending
+        id: { type: string, required: true }
+  validates:
+    - "Tickets numbered sequentially (001, 002, ...)"
+    - "Dependencies reference valid ticket IDs"
+    - "Each ticket has acceptance criteria checkboxes"
+
+returns:
+  type: object
+  required: [status, summary, ticket_ids, files_created]
+  properties:
+    status:
+      type: string
+      enum: [success, partial, failed]
+    summary:
+      type: string
+      description: Summary of ticket decomposition
+    ticket_ids:
+      type: array
+      items: { type: string }
+      description: IDs of created tickets
+    files_created:
+      type: array
+      items: { type: string }
+      description: Paths to created ticket files
+    errors:
+      type: array
+      items: { type: string }
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{sprint_directory}"

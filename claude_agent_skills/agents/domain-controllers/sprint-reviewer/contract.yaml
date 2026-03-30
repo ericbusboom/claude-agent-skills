@@ -1,0 +1,70 @@
+name: sprint-reviewer
+tier: 1
+model: "sonnet"
+description: >
+  Performs post-sprint validation, checking that all tickets are
+  done, process was followed correctly, tests pass, and the sprint
+  is ready to close. Strictly read-only.
+
+inputs:
+  required:
+    - name: sprint-id
+      type: text
+      description: The sprint ID to review
+
+    - name: sprint-directory
+      type: file
+      description: Path to the sprint directory
+      pattern: "docs/clasi/sprints/*"
+
+outputs:
+  required: []
+  validates:
+    - "No files modified — read-only agent"
+
+returns:
+  type: object
+  required: [status, verdict, checklist]
+  properties:
+    status:
+      type: string
+      enum: [success, failed]
+    verdict:
+      type: string
+      enum: [pass, fail]
+      description: Overall sprint review verdict
+    checklist:
+      type: array
+      items:
+        type: object
+        required: [item, result]
+        properties:
+          item:
+            type: string
+          result:
+            type: string
+            enum: [pass, fail]
+          details:
+            type: string
+    blocking_issues:
+      type: array
+      items: { type: string }
+      description: Issues that must be fixed before closing
+    advisory_notes:
+      type: array
+      items: { type: string }
+      description: Non-blocking observations
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"
