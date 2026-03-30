@@ -11,7 +11,7 @@ from claude_agent_skills.artifact_tools import (
     list_todos,
     move_todo_to_done,
 )
-from claude_agent_skills.frontmatter import read_frontmatter
+from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
 from claude_agent_skills.state_db import (
     acquire_lock,
     advance_phase,
@@ -188,7 +188,8 @@ class TestCreateTicketWithTodo:
 
         create_ticket("001", "Implement Idea", todo="my-idea.md")
 
-        todo_fm = read_frontmatter(todo / "my-idea.md")
+        # TODO is now in in-progress/
+        todo_fm = read_frontmatter(todo / "in-progress" / "my-idea.md")
         assert todo_fm["status"] == "in-progress"
         assert todo_fm["sprint"] == "001"
         assert "001-001" in todo_fm["tickets"]
@@ -205,9 +206,9 @@ class TestCreateTicketWithTodo:
         ticket_fm = read_frontmatter(result["path"])
         assert ticket_fm["todo"] == ["idea-a.md", "idea-b.md"]
 
-        # Both TODOs should be updated
-        fm_a = read_frontmatter(todo / "idea-a.md")
-        fm_b = read_frontmatter(todo / "idea-b.md")
+        # Both TODOs should be in in-progress/
+        fm_a = read_frontmatter(todo / "in-progress" / "idea-a.md")
+        fm_b = read_frontmatter(todo / "in-progress" / "idea-b.md")
         assert fm_a["status"] == "in-progress"
         assert fm_b["status"] == "in-progress"
         assert fm_a["sprint"] == "001"
@@ -220,7 +221,8 @@ class TestCreateTicketWithTodo:
         create_ticket("001", "Part 1", todo="big-idea.md")
         create_ticket("001", "Part 2", todo="big-idea.md")
 
-        todo_fm = read_frontmatter(todo / "big-idea.md")
+        # TODO is in in-progress/
+        todo_fm = read_frontmatter(todo / "in-progress" / "big-idea.md")
         assert todo_fm["tickets"] == ["001-001", "001-002"]
 
     def test_missing_todo_file_handled_gracefully(self, work_dir):
@@ -231,27 +233,31 @@ class TestCreateTicketWithTodo:
         )
         assert result["id"] == "001"
 
-    def test_todo_stays_in_active_dir(self, work_dir):
-        """TODO remains in todo/ (not done/) while sprint is active."""
+    def test_todo_moves_to_in_progress_not_done(self, work_dir):
+        """TODO moves to in-progress/ (not done/) when ticket is created."""
         todo = self._setup_sprint(work_dir)
         (todo / "my-idea.md").write_text("---\nstatus: pending\n---\n\n# My Idea\n")
 
         create_ticket("001", "Implement Idea", todo="my-idea.md")
 
-        # Still in the active directory
-        assert (todo / "my-idea.md").exists()
+        # Should be in in-progress/, not in pending or done
+        assert not (todo / "my-idea.md").exists()
+        assert (todo / "in-progress" / "my-idea.md").exists()
         assert not (todo / "done" / "my-idea.md").exists()
 
 
-class TestCloseSprintMovesTodos:
-    """Tests for close_sprint moving linked TODOs to done."""
+class TestCloseSprintTodoHandling:
+    """Tests for close_sprint TODO verification (no bulk-move)."""
 
     @pytest.fixture
     def work_dir(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         return tmp_path
 
-    def test_moves_linked_todos_on_close(self, work_dir):
+    def test_close_succeeds_when_todos_already_done(self, work_dir):
+        """TODOs moved to done/ by ticket completion don't block close."""
+        from claude_agent_skills.artifact_tools import move_ticket_to_done
+
         create_sprint("Sprint")
         _advance_to_ticketing(work_dir, "001")
 
@@ -259,18 +265,24 @@ class TestCloseSprintMovesTodos:
         todo.mkdir(parents=True, exist_ok=True)
         (todo / "my-idea.md").write_text("---\nstatus: pending\n---\n\n# My Idea\n")
 
-        create_ticket("001", "Task", todo="my-idea.md")
-        close_sprint("001")
+        result = json.loads(create_ticket("001", "Task", todo="my-idea.md"))
+        ticket_path = result["path"]
 
-        # TODO should be in done/
-        assert not (todo / "my-idea.md").exists()
+        # Complete ticket which triggers TODO completion
+        fm = read_frontmatter(ticket_path)
+        fm["status"] = "done"
+        write_frontmatter(ticket_path, fm)
+        move_ticket_to_done(ticket_path)
+
+        # TODO should already be in done/
         assert (todo / "done" / "my-idea.md").exists()
 
-        # TODO should have status: done
-        todo_fm = read_frontmatter(todo / "done" / "my-idea.md")
-        assert todo_fm["status"] == "done"
+        result = json.loads(close_sprint("001"))
+        # No bulk-move needed
+        assert "moved_todos" not in result
 
-    def test_close_reports_moved_todos(self, work_dir):
+    def test_close_reports_unresolved_in_progress_todos(self, work_dir):
+        """In-progress TODOs are reported as unresolved, not bulk-moved."""
         create_sprint("Sprint")
         _advance_to_ticketing(work_dir, "001")
 
@@ -279,17 +291,21 @@ class TestCloseSprintMovesTodos:
         (todo / "idea.md").write_text("---\nstatus: pending\n---\n\n# Idea\n")
 
         create_ticket("001", "Task", todo="idea.md")
+        # Don't complete the ticket — TODO stays in-progress
         result = json.loads(close_sprint("001"))
-        assert "moved_todos" in result
-        assert "idea.md" in result["moved_todos"]
+        assert "unresolved_todos" in result
+        assert "idea.md" in result["unresolved_todos"]
 
     def test_close_without_linked_todos(self, work_dir):
         create_sprint("Sprint")
         result = json.loads(close_sprint("001"))
         assert "moved_todos" not in result
+        assert "unresolved_todos" not in result
 
-    def test_unlinked_todos_stay(self, work_dir):
-        """TODOs not linked to the sprint are not moved."""
+    def test_unlinked_todos_not_affected(self, work_dir):
+        """TODOs not linked to the sprint are not touched."""
+        from claude_agent_skills.artifact_tools import move_ticket_to_done
+
         create_sprint("Sprint")
         _advance_to_ticketing(work_dir, "001")
 
@@ -300,10 +316,18 @@ class TestCloseSprintMovesTodos:
             "---\nstatus: pending\n---\n\n# Unlinked\n"
         )
 
-        create_ticket("001", "Task", todo="linked.md")
+        result = json.loads(create_ticket("001", "Task", todo="linked.md"))
+        ticket_path = result["path"]
+
+        # Complete ticket to move linked TODO to done
+        fm = read_frontmatter(ticket_path)
+        fm["status"] = "done"
+        write_frontmatter(ticket_path, fm)
+        move_ticket_to_done(ticket_path)
+
         close_sprint("001")
 
-        # Linked should be in done/
+        # Linked should be in done/ (moved by ticket completion)
         assert (todo / "done" / "linked.md").exists()
         # Unlinked should still be in active dir
         assert (todo / "unlinked.md").exists()

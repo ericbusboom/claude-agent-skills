@@ -462,6 +462,20 @@ def run_init(target: str) -> None:
     # Install path-scoped rules in .claude/rules/
     click.echo("Path-scoped rules:")
     _create_rules(target_path)
+    click.echo()
+
+    # Create TODO directories (including in-progress/)
+    click.echo("TODO directories:")
+    todo_dir = target_path / "docs" / "clasi" / "todo"
+    todo_in_progress = todo_dir / "in-progress"
+    todo_done = todo_dir / "done"
+    for d in [todo_dir, todo_in_progress, todo_done]:
+        d.mkdir(parents=True, exist_ok=True)
+        # Add .gitkeep to keep empty dirs in git
+        gitkeep = d / ".gitkeep"
+        if not gitkeep.exists() and not any(d.iterdir()):
+            gitkeep.touch()
+    click.echo(f"  Created: docs/clasi/todo/ (with in-progress/ and done/)")
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")
