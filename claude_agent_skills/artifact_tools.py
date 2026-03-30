@@ -5,6 +5,7 @@ Read-write tools for creating, querying, and updating SE artifacts
 """
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -16,6 +17,8 @@ from typing import Optional
 
 from claude_agent_skills.frontmatter import read_document, read_frontmatter, write_frontmatter
 from claude_agent_skills.mcp_server import server
+
+logger = logging.getLogger("clasi.artifact")
 from claude_agent_skills.state_db import (
     PHASES as _PHASES,
     advance_phase as _advance_phase,
