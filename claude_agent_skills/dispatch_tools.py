@@ -150,9 +150,12 @@ async def _dispatch(
     env = {k: v for k, v in os.environ.items()}
     env.pop("CLAUDECODE", None)
 
-    # Capture stderr to a buffer for error diagnostics
-    import io
-    stderr_buf = io.StringIO()
+    # Write stderr to a file for error diagnostics
+    stderr_log = Path(work_dir) / ".dispatch-stderr.log"
+    try:
+        stderr_file = open(stderr_log, "w", encoding="utf-8")
+    except OSError:
+        stderr_file = None
 
     options = ClaudeAgentOptions(
         system_prompt=_load_agent_system_prompt(child),
@@ -162,7 +165,7 @@ async def _dispatch(
         model=contract.get("model", "sonnet"),
         env=env,
         permission_mode="bypassPermissions",
-        debug_stderr=stderr_buf,
+        debug_stderr=stderr_file,
     )
 
     # 4. EXECUTE
@@ -174,7 +177,14 @@ async def _dispatch(
     except Exception as e:
         # Extract detailed error info if available
         error_msg = str(e)
-        stderr_output = getattr(e, "stderr", None) or stderr_buf.getvalue() or ""
+        if stderr_file:
+            stderr_file.close()
+        stderr_from_file = ""
+        try:
+            stderr_from_file = stderr_log.read_text(encoding="utf-8").strip()
+        except OSError:
+            pass
+        stderr_output = stderr_from_file or getattr(e, "stderr", None) or ""
         exit_code = getattr(e, "exit_code", None)
         detail = error_msg
         if stderr_output:
@@ -194,6 +204,10 @@ async def _dispatch(
             "exit_code": exit_code,
             "log_path": str(log_path),
         }, indent=2)
+
+    # Close stderr file on success
+    if stderr_file:
+        stderr_file.close()
 
     # 5. VALIDATE
     validation = validate_return(contract, mode, result_text, work_dir)
