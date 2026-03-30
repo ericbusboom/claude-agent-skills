@@ -14,6 +14,7 @@ from claude_agent_skills.init_command import (
     _AGENTS_SECTION_PATH,
     _AGENTS_SECTION_START,
     _AGENTS_SECTION_END,
+    _detect_mcp_command,
 )
 
 
@@ -103,7 +104,8 @@ class TestRunInit:
         assert mcp_json.exists()
 
         data = json.loads(mcp_json.read_text(encoding="utf-8"))
-        assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
+        expected = _detect_mcp_command(target_dir)
+        assert data["mcpServers"]["clasi"] == expected
 
     def test_idempotent(self, target_dir):
         target_dir.mkdir()
@@ -112,7 +114,8 @@ class TestRunInit:
 
         mcp_json = target_dir / ".mcp.json"
         data = json.loads(mcp_json.read_text(encoding="utf-8"))
-        assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
+        expected = _detect_mcp_command(target_dir)
+        assert data["mcpServers"]["clasi"] == expected
 
     def test_merges_existing_mcp_json(self, target_dir):
         target_dir.mkdir()
@@ -124,7 +127,8 @@ class TestRunInit:
 
         data = json.loads(mcp_json.read_text(encoding="utf-8"))
         assert data["mcpServers"]["other"] == {"command": "other"}
-        assert data["mcpServers"]["clasi"] == MCP_CONFIG["clasi"]
+        expected = _detect_mcp_command(target_dir)
+        assert data["mcpServers"]["clasi"] == expected
 
     def test_adds_permission_to_settings(self, target_dir):
         target_dir.mkdir()
@@ -165,7 +169,8 @@ class TestRunInit:
         vscode_mcp = target_dir / ".vscode" / "mcp.json"
         assert vscode_mcp.exists()
         data = json.loads(vscode_mcp.read_text(encoding="utf-8"))
-        assert data["servers"]["clasi"] == VSCODE_MCP_CONFIG["clasi"]
+        expected = {"type": "stdio", **_detect_mcp_command(target_dir)}
+        assert data["servers"]["clasi"] == expected
 
     def test_vscode_mcp_json_idempotent(self, target_dir):
         target_dir.mkdir()
@@ -174,7 +179,8 @@ class TestRunInit:
 
         vscode_mcp = target_dir / ".vscode" / "mcp.json"
         data = json.loads(vscode_mcp.read_text(encoding="utf-8"))
-        assert data["servers"]["clasi"] == VSCODE_MCP_CONFIG["clasi"]
+        expected = {"type": "stdio", **_detect_mcp_command(target_dir)}
+        assert data["servers"]["clasi"] == expected
 
     def test_vscode_mcp_json_merges_existing(self, target_dir):
         target_dir.mkdir()
@@ -188,7 +194,8 @@ class TestRunInit:
 
         data = json.loads((vscode_dir / "mcp.json").read_text(encoding="utf-8"))
         assert data["servers"]["other"] == {"type": "stdio", "command": "other"}
-        assert data["servers"]["clasi"] == VSCODE_MCP_CONFIG["clasi"]
+        expected = {"type": "stdio", **_detect_mcp_command(target_dir)}
+        assert data["servers"]["clasi"] == expected
 
     def test_does_not_create_agents_md(self, target_dir):
         target_dir.mkdir()

@@ -13,6 +13,17 @@ from typing import Dict
 
 import click
 
+def _detect_mcp_command(target: Path) -> dict:
+    """Detect the correct MCP server command for the target project.
+
+    Uses 'uv run clasi mcp' when a pyproject.toml exists (uv project),
+    otherwise falls back to bare 'clasi mcp'.
+    """
+    if (target / "pyproject.toml").exists() or (Path.cwd() / "pyproject.toml").exists():
+        return {"command": "uv", "args": ["run", "clasi", "mcp"]}
+    return {"command": "clasi", "args": ["mcp"]}
+
+
 MCP_CONFIG = {
     "clasi": {
         "command": "clasi",
@@ -224,12 +235,13 @@ VSCODE_MCP_CONFIG = {
 }
 
 
-def _update_mcp_json(mcp_json_path: Path) -> bool:
+def _update_mcp_json(mcp_json_path: Path, target: Path) -> bool:
     """Merge MCP server config into .mcp.json.
 
     Returns True if the file was written/updated, False if unchanged.
     """
     rel = str(mcp_json_path.name)
+    mcp_config = _detect_mcp_command(target)
 
     if mcp_json_path.exists():
         try:
@@ -241,11 +253,11 @@ def _update_mcp_json(mcp_json_path: Path) -> bool:
 
     mcp_servers = data.setdefault("mcpServers", {})
 
-    if mcp_servers.get("clasi") == MCP_CONFIG["clasi"]:
+    if mcp_servers.get("clasi") == mcp_config:
         click.echo(f"  Unchanged: {rel}")
         return False
 
-    mcp_servers["clasi"] = MCP_CONFIG["clasi"]
+    mcp_servers["clasi"] = mcp_config
     mcp_json_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
@@ -273,12 +285,15 @@ def _update_vscode_mcp_json(target: Path) -> bool:
 
     servers = data.setdefault("servers", {})
 
-    if servers.get("clasi") == VSCODE_MCP_CONFIG["clasi"]:
+    mcp_config = _detect_mcp_command(target)
+    vscode_config = {"type": "stdio", **mcp_config}
+
+    if servers.get("clasi") == vscode_config:
         click.echo(f"  Unchanged: {rel}")
         return False
 
     vscode_dir.mkdir(parents=True, exist_ok=True)
-    servers["clasi"] = VSCODE_MCP_CONFIG["clasi"]
+    servers["clasi"] = vscode_config
     mcp_json_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
@@ -438,7 +453,7 @@ def run_init(target: str) -> None:
 
     # Configure MCP server in .mcp.json at project root
     click.echo("MCP server configuration:")
-    _update_mcp_json(target_path / ".mcp.json")
+    _update_mcp_json(target_path / ".mcp.json", target_path)
     _update_vscode_mcp_json(target_path)
     click.echo()
 
