@@ -1,0 +1,76 @@
+name: team-lead
+tier: 0
+description: >
+  Top-level dispatcher. Routes stakeholder requests to domain
+  controllers. Validates results on return. Never writes files.
+
+inputs:
+  required:
+    - name: stakeholder-input
+      type: interactive
+      description: Feature requests, directives, questions
+
+outputs:
+  required: []
+  validates:
+    - "Status reports and summaries delivered conversationally"
+
+returns:
+  type: object
+  required: [status, summary]
+  properties:
+    status:
+      type: string
+      enum: [success, failed]
+    summary:
+      type: string
+      description: Summary of what was accomplished or decided
+
+delegates_to:
+  - agent: requirements-narrator
+    when: >
+      Stakeholder describes project goals or wants requirements
+      captured as an overview document.
+
+  - agent: todo-worker
+    when: >
+      Stakeholder has ideas to capture, feedback to record, or
+      GitHub issues to import as TODOs.
+
+  - agent: sprint-planner
+    mode: roadmap
+    when: >
+      Stakeholder wants multiple sprints scoped at a high level.
+      Provide TODO IDs and goals for each sprint.
+
+  - agent: sprint-planner
+    mode: detail
+    when: >
+      A roadmap sprint is next up for execution. Triggers full
+      planning: use cases, architecture, tickets.
+
+  - agent: sprint-executor
+    when: >
+      A sprint is fully planned (detail mode complete) and ready
+      for execution. Acquire execution lock first.
+
+  - agent: ad-hoc-executor
+    when: >
+      Stakeholder requests an out-of-process change. No sprint
+      ceremony required.
+
+  - agent: sprint-reviewer
+    when: >
+      Sprint execution complete. Validate before closing.
+
+allowed_tools:
+  - Read
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"

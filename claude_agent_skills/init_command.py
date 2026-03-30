@@ -6,10 +6,23 @@ MCP config, and permissions. Does not take over existing files.
 """
 
 import json
+import shutil
+import stat
 from pathlib import Path
 from typing import Dict
 
 import click
+
+def _detect_mcp_command(target: Path) -> dict:
+    """Detect the correct MCP server command for the target project.
+
+    Uses 'uv run clasi mcp' when a pyproject.toml exists (uv project),
+    otherwise falls back to bare 'clasi mcp'.
+    """
+    if (target / "pyproject.toml").exists() or (Path.cwd() / "pyproject.toml").exists():
+        return {"command": "uv", "args": ["run", "clasi", "mcp"]}
+    return {"command": "clasi", "args": ["mcp"]}
+
 
 MCP_CONFIG = {
     "clasi": {
@@ -29,6 +42,17 @@ HOOKS_CONFIG = {
                         "echo 'CLASI: Call get_se_overview() to load the"
                         " SE process before doing any work.'"
                     ),
+                }
+            ],
+        }
+    ],
+    "PreToolUse": [
+        {
+            "matcher": "Edit|Write|MultiEdit",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "python3 .claude/hooks/role_guard.py",
                 }
             ],
         }
@@ -128,6 +152,7 @@ See `instructions/git-workflow` for full rules.
 _PACKAGE_DIR = Path(__file__).parent
 _SE_SKILL_PATH = _PACKAGE_DIR / "skills" / "se.md"
 _AGENTS_SECTION_PATH = _PACKAGE_DIR / "init" / "agents-section.md"
+_ROLE_GUARD_SOURCE = _PACKAGE_DIR / "hooks" / "role_guard.py"
 
 # Marker used to find/replace the CLASI section in CLAUDE.md.
 _AGENTS_SECTION_START = "<!-- CLASI:START -->"
@@ -210,12 +235,13 @@ VSCODE_MCP_CONFIG = {
 }
 
 
-def _update_mcp_json(mcp_json_path: Path) -> bool:
+def _update_mcp_json(mcp_json_path: Path, target: Path) -> bool:
     """Merge MCP server config into .mcp.json.
 
     Returns True if the file was written/updated, False if unchanged.
     """
     rel = str(mcp_json_path.name)
+    mcp_config = _detect_mcp_command(target)
 
     if mcp_json_path.exists():
         try:
@@ -227,11 +253,11 @@ def _update_mcp_json(mcp_json_path: Path) -> bool:
 
     mcp_servers = data.setdefault("mcpServers", {})
 
-    if mcp_servers.get("clasi") == MCP_CONFIG["clasi"]:
+    if mcp_servers.get("clasi") == mcp_config:
         click.echo(f"  Unchanged: {rel}")
         return False
 
-    mcp_servers["clasi"] = MCP_CONFIG["clasi"]
+    mcp_servers["clasi"] = mcp_config
     mcp_json_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
@@ -259,12 +285,15 @@ def _update_vscode_mcp_json(target: Path) -> bool:
 
     servers = data.setdefault("servers", {})
 
-    if servers.get("clasi") == VSCODE_MCP_CONFIG["clasi"]:
+    mcp_config = _detect_mcp_command(target)
+    vscode_config = {"type": "stdio", **mcp_config}
+
+    if servers.get("clasi") == vscode_config:
         click.echo(f"  Unchanged: {rel}")
         return False
 
     vscode_dir.mkdir(parents=True, exist_ok=True)
-    servers["clasi"] = VSCODE_MCP_CONFIG["clasi"]
+    servers["clasi"] = vscode_config
     mcp_json_path.write_text(
         json.dumps(data, indent=2) + "\n", encoding="utf-8"
     )
@@ -380,6 +409,28 @@ def _create_rules(target: Path) -> bool:
     return changed
 
 
+def _install_role_guard(target: Path) -> bool:
+    """Install role_guard.py to .claude/hooks/ with execute permissions.
+
+    Copies from the package's hooks/role_guard.py source file.
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    source = _ROLE_GUARD_SOURCE.read_text(encoding="utf-8")
+    dest = target / ".claude" / "hooks" / "role_guard.py"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    rel = ".claude/hooks/role_guard.py"
+
+    if dest.exists() and dest.read_text(encoding="utf-8") == source:
+        click.echo(f"  Unchanged: {rel}")
+        return False
+
+    dest.write_text(source, encoding="utf-8")
+    # Set execute permission
+    dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    click.echo(f"  Wrote: {rel}")
+    return True
+
+
 def run_init(target: str) -> None:
     """Initialize a repository for the CLASI SE process.
 
@@ -402,7 +453,7 @@ def run_init(target: str) -> None:
 
     # Configure MCP server in .mcp.json at project root
     click.echo("MCP server configuration:")
-    _update_mcp_json(target_path / ".mcp.json")
+    _update_mcp_json(target_path / ".mcp.json", target_path)
     _update_vscode_mcp_json(target_path)
     click.echo()
 
@@ -418,9 +469,28 @@ def run_init(target: str) -> None:
     _update_hooks_config(settings_shared)
     click.echo()
 
+    # Install role guard hook to .claude/hooks/
+    click.echo("Role guard hook:")
+    _install_role_guard(target_path)
+    click.echo()
+
     # Install path-scoped rules in .claude/rules/
     click.echo("Path-scoped rules:")
     _create_rules(target_path)
+    click.echo()
+
+    # Create TODO directories (including in-progress/)
+    click.echo("TODO directories:")
+    todo_dir = target_path / "docs" / "clasi" / "todo"
+    todo_in_progress = todo_dir / "in-progress"
+    todo_done = todo_dir / "done"
+    for d in [todo_dir, todo_in_progress, todo_done]:
+        d.mkdir(parents=True, exist_ok=True)
+        # Add .gitkeep to keep empty dirs in git
+        gitkeep = d / ".gitkeep"
+        if not gitkeep.exists() and not any(d.iterdir()):
+            gitkeep.touch()
+    click.echo(f"  Created: docs/clasi/todo/ (with in-progress/ and done/)")
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")

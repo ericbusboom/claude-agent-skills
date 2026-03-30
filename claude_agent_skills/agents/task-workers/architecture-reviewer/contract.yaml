@@ -1,0 +1,73 @@
+name: architecture-reviewer
+tier: 2
+model: "sonnet"
+description: >
+  Reviews sprint architecture updates for consistency with the
+  existing system, quality of design, codebase alignment, and
+  risk. Read-only — reports findings but does not modify files.
+
+inputs:
+  required:
+    - name: sprint-id
+      type: text
+      description: The sprint ID whose architecture to review
+
+    - name: sprint-directory
+      type: file
+      description: Path to the sprint directory
+      pattern: "docs/clasi/sprints/*"
+
+  optional:
+    - name: current-architecture
+      type: file
+      description: Current architecture document for comparison
+      default: "docs/clasi/architecture/architecture-{latest}.md"
+
+outputs:
+  required: []
+  validates:
+    - "No files modified — read-only agent"
+
+returns:
+  type: object
+  required: [status, verdict, findings]
+  properties:
+    status:
+      type: string
+      enum: [success, failed]
+    verdict:
+      type: string
+      enum: [passed, failed]
+      description: Overall architecture review verdict
+    findings:
+      type: array
+      items:
+        type: object
+        required: [category, severity, description]
+        properties:
+          category:
+            type: string
+            description: "Review category (consistency, quality, alignment, risk)"
+          severity:
+            type: string
+            enum: [blocking, advisory]
+          description:
+            type: string
+    recommendations:
+      type: array
+      items: { type: string }
+      description: Suggested improvements
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{project_root}"

@@ -128,27 +128,41 @@ def _dispatch_subagent(project_dir: Path, spec_path: Path) -> bool:
     """Dispatch the team-lead subagent via ``claude`` CLI.
 
     Returns True if the subagent exited successfully, False otherwise.
+    Streams output in real time so progress is visible.
     """
     print("[STEP] Dispatching team-lead subagent ...")
     prompt = _build_subagent_prompt(spec_path)
 
-    # The ``claude`` CLI accepts a prompt on stdin with --print or can be
-    # invoked with a -p flag.  We use -p for direct prompting.
-    result = _run(
-        [
-            "claude",
-            "-p", prompt,
-            "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep,Agent",
-        ],
-        cwd=project_dir,
-        check=False,
+    cmd = [
+        "claude",
+        "-p", prompt,
+        "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep,Agent,mcp__clasi__*",
+        "--mcp-config", str(project_dir / ".mcp.json"),
+    ]
+    print(f"  $ {' '.join(cmd[:3])} ...")
+
+    # Stream output in real time instead of buffering
+    process = subprocess.Popen(
+        cmd,
+        cwd=str(project_dir),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
     )
 
-    if result.returncode == 0:
+    output_lines = []
+    for line in process.stdout:
+        print(f"  | {line}", end="")
+        output_lines.append(line)
+
+    returncode = process.wait()
+
+    if returncode == 0:
         print("  [OK] Subagent completed successfully")
         return True
     else:
-        print(f"  [FAIL] Subagent exited with code {result.returncode}")
+        print(f"  [FAIL] Subagent exited with code {returncode}")
         return False
 
 

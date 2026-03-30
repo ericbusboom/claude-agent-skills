@@ -5,6 +5,7 @@ Read-write tools for creating, querying, and updating SE artifacts
 """
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -16,6 +17,8 @@ from typing import Optional
 
 from claude_agent_skills.frontmatter import read_document, read_frontmatter, write_frontmatter
 from claude_agent_skills.mcp_server import server
+
+logger = logging.getLogger("clasi.artifact")
 from claude_agent_skills.state_db import (
     PHASES as _PHASES,
     advance_phase as _advance_phase,
@@ -25,6 +28,9 @@ from claude_agent_skills.state_db import (
     get_sprint_state as _get_sprint_state,
     register_sprint as _register_sprint,
     rename_sprint as _rename_sprint,
+    write_recovery_state as _write_recovery_state,
+    get_recovery_state as _get_recovery_state,
+    clear_recovery_state as _clear_recovery_state,
 )
 from claude_agent_skills.templates import (
     slugify,
@@ -108,6 +114,32 @@ def _find_sprint_dir(sprint_id: str) -> Path:
             if fm.get("id") == sprint_id:
                 return d
     raise ValueError(f"Sprint '{sprint_id}' not found")
+
+
+def _is_ticket_done(ticket_ref: str) -> bool:
+    """Check if a ticket (referenced as 'sprint_id-ticket_id') has status done.
+
+    Searches both active and done ticket directories across all sprints.
+    Returns True if the ticket is found with status 'done', False otherwise.
+    """
+    parts = ticket_ref.split("-", 1)
+    if len(parts) != 2:
+        return False
+    sprint_id, ticket_id = parts
+    try:
+        sprint_dir = _find_sprint_dir(sprint_id)
+    except ValueError:
+        return False
+    tickets_dir = sprint_dir / "tickets"
+    # Check in tickets/ and tickets/done/
+    for search_dir in [tickets_dir, tickets_dir / "done"]:
+        if not search_dir.exists():
+            continue
+        for ticket_file in search_dir.glob("*.md"):
+            fm = read_frontmatter(ticket_file)
+            if fm.get("id") == ticket_id:
+                return fm.get("status") == "done"
+    return False
 
 
 def _next_sprint_id() -> str:
@@ -507,12 +539,22 @@ def create_ticket(
             ticket_fm["todo"] = todo_list
         write_frontmatter(path, ticket_fm)
 
-        # Update each referenced TODO file
+        # Update each referenced TODO file and move to in-progress/
         full_ticket_id = f"{sprint_id}-{ticket_id}"
         todo_directory = _todo_dir()
+        in_progress_dir = todo_directory / "in-progress"
+        in_progress_dir.mkdir(parents=True, exist_ok=True)
         for todo_filename in todo_list:
-            todo_path = todo_directory / todo_filename
-            if not todo_path.exists():
+            # Check in-progress/ first, then pending (todo/)
+            todo_path_in_progress = in_progress_dir / todo_filename
+            todo_path_pending = todo_directory / todo_filename
+            if todo_path_in_progress.exists():
+                # Already in-progress — just append ticket ID
+                todo_path = todo_path_in_progress
+            elif todo_path_pending.exists():
+                # Pending — move to in-progress/
+                todo_path = todo_path_pending
+            else:
                 continue  # Skip missing TODOs gracefully
             todo_fm = read_frontmatter(todo_path)
             todo_fm["status"] = "in-progress"
@@ -525,6 +567,9 @@ def create_ticket(
                 existing_tickets.append(full_ticket_id)
             todo_fm["tickets"] = existing_tickets
             write_frontmatter(todo_path, todo_fm)
+            # Move from pending to in-progress/ if not already there
+            if todo_path == todo_path_pending:
+                todo_path.rename(in_progress_dir / todo_filename)
 
     return json.dumps({
         "id": ticket_id,
@@ -747,6 +792,41 @@ def move_ticket_to_done(path: str) -> str:
         result["plan_old_path"] = str(plan_path)
         result["plan_new_path"] = str(new_plan_path)
 
+    # Check if this ticket references any TODOs and trigger completion
+    ticket_fm = read_frontmatter(new_path)
+    todo_refs = ticket_fm.get("todo")
+    if todo_refs is not None:
+        if isinstance(todo_refs, str):
+            todo_refs = [todo_refs]
+        todo_directory = _todo_dir()
+        in_progress_dir = todo_directory / "in-progress"
+        completed_todos: list[str] = []
+        for todo_filename in todo_refs:
+            todo_path = in_progress_dir / todo_filename
+            if not todo_path.exists():
+                continue
+            todo_fm = read_frontmatter(todo_path)
+            ref_tickets = todo_fm.get("tickets", [])
+            if isinstance(ref_tickets, str):
+                ref_tickets = [ref_tickets]
+            # Check if ALL referencing tickets are done
+            all_done = True
+            for ref_ticket_id in ref_tickets:
+                # ref_ticket_id is like "001-003" — find the ticket file
+                if not _is_ticket_done(ref_ticket_id):
+                    all_done = False
+                    break
+            if all_done and ref_tickets:
+                # Move TODO from in-progress/ to done/
+                todo_fm["status"] = "done"
+                write_frontmatter(todo_path, todo_fm)
+                todo_done_dir = todo_directory / "done"
+                todo_done_dir.mkdir(parents=True, exist_ok=True)
+                todo_path.rename(todo_done_dir / todo_filename)
+                completed_todos.append(todo_filename)
+        if completed_todos:
+            result["completed_todos"] = completed_todos
+
     return json.dumps(result, indent=2)
 
 
@@ -809,14 +889,41 @@ def reopen_ticket(path: str) -> str:
 
 
 @server.tool()
-def close_sprint(sprint_id: str) -> str:
+def close_sprint(
+    sprint_id: str,
+    branch_name: Optional[str] = None,
+    main_branch: str = "master",
+    push_tags: bool = True,
+    delete_branch: bool = True,
+) -> str:
     """Close a sprint by updating its status and moving it to sprints/done/.
+
+    When branch_name is provided, executes the full lifecycle including
+    pre-condition verification with self-repair, test run, archive, state
+    DB update, version bump, git merge, push tags, and branch deletion.
+
+    When branch_name is omitted, falls back to legacy behavior (archive
+    + state only, no git operations).
 
     Args:
         sprint_id: The sprint ID (e.g., '001')
+        branch_name: Sprint branch name (e.g., 'sprint/001-my-sprint').
+            When provided, enables full lifecycle with git operations.
+        main_branch: Target branch for merge (default: 'master')
+        push_tags: Whether to push tags after tagging (default: True)
+        delete_branch: Whether to delete the sprint branch after merge (default: True)
 
-    Returns JSON with {old_path, new_path}.
+    Returns JSON with structured result (success or error).
     """
+    if branch_name is not None:
+        return _close_sprint_full(
+            sprint_id, branch_name, main_branch, push_tags, delete_branch
+        )
+    return _close_sprint_legacy(sprint_id)
+
+
+def _close_sprint_legacy(sprint_id: str) -> str:
+    """Original close_sprint behavior: archive + state, no git."""
     sprint_dir = _find_sprint_dir(sprint_id)
 
     # Update sprint status to done
@@ -825,20 +932,38 @@ def close_sprint(sprint_id: str) -> str:
     fm["status"] = "done"
     write_frontmatter(sprint_file, fm)
 
-    # Move linked TODOs to done
-    moved_todos: list[str] = []
+    # Check in-progress TODOs — they should already be resolved individually
+    unresolved_todos: list[str] = []
     todo_directory = _todo_dir()
+    in_progress_todo_dir = todo_directory / "in-progress"
+    if in_progress_todo_dir.exists():
+        for todo_file in sorted(in_progress_todo_dir.glob("*.md")):
+            todo_fm = read_frontmatter(todo_file)
+            if todo_fm.get("sprint") == sprint_id:
+                if todo_fm.get("status") in ("done", "complete", "completed"):
+                    # Self-repair: move to done/
+                    todo_fm["status"] = "done"
+                    write_frontmatter(todo_file, todo_fm)
+                    todo_done = todo_directory / "done"
+                    todo_done.mkdir(parents=True, exist_ok=True)
+                    todo_file.rename(todo_done / todo_file.name)
+                else:
+                    unresolved_todos.append(todo_file.name)
+
+    # Also check legacy pending TODOs tagged with this sprint
+    moved_todos: list[str] = []
     if todo_directory.exists():
         for todo_file in sorted(todo_directory.glob("*.md")):
             todo_fm = read_frontmatter(todo_file)
             if todo_fm.get("sprint") == sprint_id:
-                todo_fm["status"] = "done"
-                write_frontmatter(todo_file, todo_fm)
-                todo_done = todo_directory / "done"
-                todo_done.mkdir(parents=True, exist_ok=True)
-                dest_todo = todo_done / todo_file.name
-                todo_file.rename(dest_todo)
-                moved_todos.append(todo_file.name)
+                if todo_fm.get("status") in ("done", "complete", "completed"):
+                    todo_fm["status"] = "done"
+                    write_frontmatter(todo_file, todo_fm)
+                    todo_done = todo_directory / "done"
+                    todo_done.mkdir(parents=True, exist_ok=True)
+                    dest_todo = todo_done / todo_file.name
+                    todo_file.rename(dest_todo)
+                    moved_todos.append(todo_file.name)
 
     # Copy architecture-update to the architecture directory
     arch_update = sprint_dir / "architecture-update.md"
@@ -863,14 +988,12 @@ def close_sprint(sprint_id: str) -> str:
     if db.exists():
         try:
             state = _get_sprint_state(str(db), sprint_id)
-            # Advance through closing → done if needed
             from claude_agent_skills.state_db import PHASES
             phase_idx = PHASES.index(state["phase"])
             done_idx = PHASES.index("done")
             while phase_idx < done_idx:
                 _advance_phase(str(db), sprint_id)
                 phase_idx += 1
-            # Release execution lock if held
             if state["lock"]:
                 _release_lock(str(db), sprint_id)
         except (ValueError, Exception):
@@ -895,20 +1018,494 @@ def close_sprint(sprint_id: str) -> str:
                 update_version_file(detected[0], detected[1], version)
             create_version_tag(version)
     except Exception as exc:
-        # Log the error instead of silently swallowing it
         import sys
         print(f"[CLASI] Versioning failed: {exc}", file=sys.stderr)
 
-    result = {
+    result: dict = {
         "old_path": str(sprint_dir),
         "new_path": str(new_path),
     }
     if moved_todos:
         result["moved_todos"] = moved_todos
+    if unresolved_todos:
+        result["unresolved_todos"] = unresolved_todos
     if version:
         result["version"] = version
         result["tag"] = f"v{version}"
 
+    return json.dumps(result, indent=2)
+
+
+def _close_sprint_full(
+    sprint_id: str,
+    branch_name: str,
+    main_branch: str,
+    push_tags_flag: bool,
+    delete_branch_flag: bool,
+) -> str:
+    """Full lifecycle close: preconditions, tests, archive, git ops."""
+    db = _db_path()
+    db_str = str(db)
+    completed_steps: list[str] = []
+    repairs: list[str] = []
+
+    # ── Step 1: Pre-condition verification with self-repair ──
+
+    # 1a. Check tickets — all should be in tickets/done/ with status done
+    try:
+        sprint_dir = _find_sprint_dir(sprint_id)
+    except ValueError:
+        # Sprint dir might already be archived (idempotent retry)
+        done_dir = _sprints_dir() / "done"
+        sprint_dir_in_done = None
+        if done_dir.exists():
+            for d in sorted(done_dir.iterdir()):
+                if d.is_dir() and d.name.startswith(sprint_id):
+                    fm_check = read_frontmatter(d / "sprint.md") if (d / "sprint.md").exists() else {}
+                    if fm_check.get("id") == sprint_id:
+                        sprint_dir_in_done = d
+                        break
+        if sprint_dir_in_done is None:
+            return json.dumps({
+                "status": "error",
+                "error": {
+                    "step": "precondition",
+                    "message": f"Sprint '{sprint_id}' not found in active or done",
+                    "recovery": {"recorded": False, "allowed_paths": [], "instruction": "Create or restore the sprint directory."},
+                },
+                "completed_steps": [],
+                "remaining_steps": ["precondition", "tests", "archive", "db_update", "version_bump", "merge", "push_tags", "delete_branch"],
+            }, indent=2)
+
+    tickets_dir = sprint_dir / "tickets"
+    done_tickets_dir = tickets_dir / "done"
+    if tickets_dir.exists():
+        for ticket_file in sorted(tickets_dir.glob("*.md")):
+            if ticket_file.name == "done":
+                continue
+            t_fm = read_frontmatter(ticket_file)
+            if t_fm.get("status") == "done":
+                # Self-repair: move to done/
+                done_tickets_dir.mkdir(parents=True, exist_ok=True)
+                dest = done_tickets_dir / ticket_file.name
+                ticket_file.rename(dest)
+                # Also move plan file if exists
+                plan_file = ticket_file.with_suffix("").with_name(ticket_file.stem + "-plan.md")
+                if plan_file.exists():
+                    plan_file.rename(done_tickets_dir / plan_file.name)
+                repairs.append(f"moved ticket {t_fm.get('id', ticket_file.stem)} to done/")
+            elif t_fm.get("status") != "done":
+                # Ticket not done — unrepairable
+                error_msg = f"Ticket {t_fm.get('id', ticket_file.stem)} has status '{t_fm.get('status')}', not 'done'"
+                if db.exists():
+                    _write_recovery_state(
+                        db_str, sprint_id, "precondition",
+                        [str(ticket_file)], error_msg,
+                    )
+                return json.dumps({
+                    "status": "error",
+                    "error": {
+                        "step": "precondition",
+                        "message": error_msg,
+                        "recovery": {
+                            "recorded": db.exists(),
+                            "allowed_paths": [str(ticket_file)],
+                            "instruction": f"Complete ticket {t_fm.get('id', ticket_file.stem)} and set status to 'done', then call close_sprint again.",
+                        },
+                    },
+                    "completed_steps": [],
+                    "remaining_steps": ["precondition", "tests", "archive", "db_update", "version_bump", "merge", "push_tags", "delete_branch"],
+                }, indent=2)
+
+    # 1b. Check TODOs — in-progress TODOs for this sprint must be resolved
+    todo_directory = _todo_dir()
+    in_progress_todo_dir = todo_directory / "in-progress"
+    if in_progress_todo_dir.exists():
+        for todo_file in sorted(in_progress_todo_dir.glob("*.md")):
+            t_fm = read_frontmatter(todo_file)
+            if t_fm.get("sprint") == sprint_id:
+                if t_fm.get("status") in ("done", "complete", "completed"):
+                    # Self-repair: move to done/
+                    t_fm["status"] = "done"
+                    write_frontmatter(todo_file, t_fm)
+                    todo_done = todo_directory / "done"
+                    todo_done.mkdir(parents=True, exist_ok=True)
+                    todo_file.rename(todo_done / todo_file.name)
+                    repairs.append(f"moved TODO {todo_file.name} to done/")
+                else:
+                    # TODO still in-progress — unrepairable
+                    error_msg = f"TODO {todo_file.name} is still in-progress for sprint {sprint_id}"
+                    if db.exists():
+                        _write_recovery_state(
+                            db_str, sprint_id, "precondition",
+                            [str(todo_file)], error_msg,
+                        )
+                    return json.dumps({
+                        "status": "error",
+                        "error": {
+                            "step": "precondition",
+                            "message": error_msg,
+                            "recovery": {
+                                "recorded": db.exists(),
+                                "allowed_paths": [str(todo_file)],
+                                "instruction": f"Complete all tickets referencing {todo_file.name}, then call close_sprint again.",
+                            },
+                        },
+                        "completed_steps": [],
+                        "remaining_steps": ["precondition", "tests", "archive", "db_update", "version_bump", "merge", "push_tags", "delete_branch"],
+                    }, indent=2)
+    # Also check pending TODOs in todo/ that are tagged with this sprint (legacy)
+    if todo_directory.exists():
+        for todo_file in sorted(todo_directory.glob("*.md")):
+            t_fm = read_frontmatter(todo_file)
+            if t_fm.get("sprint") == sprint_id:
+                if t_fm.get("status") in ("done", "complete", "completed"):
+                    # Self-repair: move to done/
+                    t_fm["status"] = "done"
+                    write_frontmatter(todo_file, t_fm)
+                    todo_done = todo_directory / "done"
+                    todo_done.mkdir(parents=True, exist_ok=True)
+                    todo_file.rename(todo_done / todo_file.name)
+                    repairs.append(f"moved TODO {todo_file.name} to done/")
+
+    # 1c. Check state DB phase — self-repair: advance if behind
+    if db.exists():
+        try:
+            state = _get_sprint_state(db_str, sprint_id)
+            phase = state["phase"]
+            if phase != "done":
+                phase_idx = _PHASES.index(phase)
+                # We need to be at least in 'closing' before we proceed
+                closing_idx = _PHASES.index("closing")
+                while phase_idx < closing_idx:
+                    try:
+                        _advance_phase(db_str, sprint_id)
+                        phase_idx += 1
+                        repairs.append(f"advanced DB phase to '{_PHASES[phase_idx]}'")
+                    except ValueError:
+                        # Can't advance further (missing gate, etc.) — skip
+                        break
+        except ValueError:
+            pass  # Sprint not in DB — skip DB checks
+
+    # 1d. Check execution lock — self-repair: re-acquire if not held
+    if db.exists():
+        try:
+            state = _get_sprint_state(db_str, sprint_id)
+            if not state["lock"]:
+                try:
+                    _acquire_lock(db_str, sprint_id)
+                    repairs.append("re-acquired execution lock")
+                except ValueError:
+                    pass  # Another sprint holds it — continue anyway
+        except ValueError:
+            pass
+
+    completed_steps.append("precondition_verification")
+
+    # ── Step 2: Run tests ──
+    all_steps = ["precondition_verification", "tests", "archive", "db_update", "version_bump", "merge", "push_tags", "delete_branch"]
+
+    try:
+        test_result = subprocess.run(
+            ["uv", "run", "pytest"],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        if test_result.returncode != 0:
+            error_msg = f"Tests failed (exit code {test_result.returncode})"
+            test_output = test_result.stdout[-2000:] if test_result.stdout else ""
+            if test_result.stderr:
+                test_output += "\n" + test_result.stderr[-500:]
+            if db.exists():
+                _write_recovery_state(
+                    db_str, sprint_id, "tests", [], error_msg,
+                )
+            return json.dumps({
+                "status": "error",
+                "error": {
+                    "step": "tests",
+                    "message": error_msg,
+                    "output": test_output.strip(),
+                    "recovery": {
+                        "recorded": db.exists(),
+                        "allowed_paths": [],
+                        "instruction": "Fix failing tests, then call close_sprint again.",
+                    },
+                },
+                "completed_steps": completed_steps,
+                "remaining_steps": [s for s in all_steps if s not in completed_steps],
+            }, indent=2)
+    except FileNotFoundError:
+        # uv not available — skip tests
+        repairs.append("skipped tests (uv not found)")
+    except subprocess.TimeoutExpired:
+        error_msg = "Test suite timed out after 300 seconds"
+        if db.exists():
+            _write_recovery_state(db_str, sprint_id, "tests", [], error_msg)
+        return json.dumps({
+            "status": "error",
+            "error": {
+                "step": "tests",
+                "message": error_msg,
+                "recovery": {
+                    "recorded": db.exists(),
+                    "allowed_paths": [],
+                    "instruction": "Investigate slow tests, then call close_sprint again.",
+                },
+            },
+            "completed_steps": completed_steps,
+            "remaining_steps": [s for s in all_steps if s not in completed_steps],
+        }, indent=2)
+
+    completed_steps.append("tests")
+
+    # ── Step 3: Archive sprint directory ──
+    done_dir = _sprints_dir() / "done"
+    already_archived = False
+
+    # Check if already archived (idempotent)
+    if done_dir.exists():
+        for d in sorted(done_dir.iterdir()):
+            if d.is_dir() and d.name.startswith(sprint_id):
+                fm_check = read_frontmatter(d / "sprint.md") if (d / "sprint.md").exists() else {}
+                if fm_check.get("id") == sprint_id:
+                    already_archived = True
+                    new_path = d
+                    # sprint_dir might still point to active — update
+                    sprint_dir = d
+                    break
+
+    if not already_archived:
+        # Update sprint status to done
+        sprint_file = sprint_dir / "sprint.md"
+        fm = read_frontmatter(sprint_file)
+        fm["status"] = "done"
+        write_frontmatter(sprint_file, fm)
+
+        # NOTE: TODOs are not bulk-moved at sprint close.
+        # They are moved individually by move_ticket_to_done when all
+        # referencing tickets are done. The precondition check (step 1b)
+        # already verified that no in-progress TODOs remain for this sprint.
+
+        # Copy architecture-update
+        arch_update = sprint_dir / "architecture-update.md"
+        if arch_update.exists():
+            arch_dir = _plans_dir() / "architecture"
+            arch_dir.mkdir(parents=True, exist_ok=True)
+            dest = arch_dir / f"architecture-update-{sprint_id}.md"
+            shutil.copy2(str(arch_update), str(dest))
+
+        # Move to done directory
+        done_dir.mkdir(parents=True, exist_ok=True)
+        new_path = done_dir / sprint_dir.name
+
+        if new_path.exists():
+            raise ValueError(f"Destination already exists: {new_path}")
+
+        old_path_str = str(sprint_dir)
+        shutil.move(str(sprint_dir), str(new_path))
+    else:
+        old_path_str = str(new_path)
+
+    completed_steps.append("archive")
+
+    # ── Step 4: Update state DB ──
+    if db.exists():
+        try:
+            state = _get_sprint_state(db_str, sprint_id)
+            if state["phase"] != "done":
+                phase_idx = _PHASES.index(state["phase"])
+                done_idx = _PHASES.index("done")
+                while phase_idx < done_idx:
+                    try:
+                        _advance_phase(db_str, sprint_id)
+                    except ValueError:
+                        break
+                    phase_idx += 1
+            if state["lock"]:
+                try:
+                    _release_lock(db_str, sprint_id)
+                except ValueError:
+                    pass
+        except (ValueError, Exception):
+            pass
+
+    completed_steps.append("db_update")
+
+    # ── Step 5: Version bump ──
+    version = None
+    try:
+        from claude_agent_skills.versioning import (
+            compute_next_version,
+            create_version_tag,
+            detect_version_file,
+            load_version_trigger,
+            should_version,
+            update_version_file,
+        )
+        trigger = load_version_trigger()
+        if should_version(trigger, "sprint_close"):
+            version = compute_next_version()
+            detected = detect_version_file(Path.cwd())
+            if detected:
+                update_version_file(detected[0], detected[1], version)
+            create_version_tag(version)
+    except Exception as exc:
+        import sys
+        print(f"[CLASI] Versioning failed: {exc}", file=sys.stderr)
+
+    completed_steps.append("version_bump")
+
+    # ── Step 6: Git merge ──
+    merged = False
+    # Check if already merged (idempotent): branch doesn't exist or is ancestor of main
+    branch_exists = subprocess.run(
+        ["git", "rev-parse", "--verify", branch_name],
+        capture_output=True, text=True,
+    ).returncode == 0
+
+    if not branch_exists:
+        # Branch already deleted/merged — skip
+        merged = True
+    else:
+        # Check if branch is already merged into main
+        is_ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", branch_name, main_branch],
+            capture_output=True, text=True,
+        ).returncode == 0
+
+        if is_ancestor:
+            merged = True
+        else:
+            # Perform the merge
+            checkout = subprocess.run(
+                ["git", "checkout", main_branch],
+                capture_output=True, text=True,
+            )
+            if checkout.returncode != 0:
+                error_msg = f"Failed to checkout {main_branch}: {checkout.stderr.strip()}"
+                if db.exists():
+                    _write_recovery_state(db_str, sprint_id, "merge", [], error_msg)
+                return json.dumps({
+                    "status": "error",
+                    "error": {
+                        "step": "merge",
+                        "message": error_msg,
+                        "recovery": {
+                            "recorded": db.exists(),
+                            "allowed_paths": [],
+                            "instruction": f"Resolve checkout issues, then call close_sprint again.",
+                        },
+                    },
+                    "completed_steps": completed_steps,
+                    "remaining_steps": [s for s in all_steps if s not in completed_steps],
+                }, indent=2)
+
+            merge = subprocess.run(
+                ["git", "merge", "--no-ff", branch_name],
+                capture_output=True, text=True,
+            )
+            if merge.returncode != 0:
+                # Parse conflicted files
+                conflict_result = subprocess.run(
+                    ["git", "diff", "--name-only", "--diff-filter=U"],
+                    capture_output=True, text=True,
+                )
+                conflicted = [f.strip() for f in conflict_result.stdout.strip().split("\n") if f.strip()]
+                # Abort the failed merge
+                subprocess.run(["git", "merge", "--abort"], capture_output=True)
+                error_msg = f"Merge conflict: {merge.stderr.strip()}"
+                if db.exists():
+                    _write_recovery_state(db_str, sprint_id, "merge", conflicted, error_msg)
+                return json.dumps({
+                    "status": "error",
+                    "error": {
+                        "step": "merge",
+                        "message": error_msg,
+                        "recovery": {
+                            "recorded": db.exists(),
+                            "allowed_paths": conflicted,
+                            "instruction": "Resolve the merge conflicts in the listed files, then call close_sprint again.",
+                        },
+                    },
+                    "completed_steps": completed_steps,
+                    "remaining_steps": [s for s in all_steps if s not in completed_steps],
+                }, indent=2)
+            merged = True
+
+    completed_steps.append("merge")
+
+    # ── Step 7: Push tags ──
+    tags_pushed = False
+    if push_tags_flag and version:
+        tag_name = f"v{version}"
+        push_result = subprocess.run(
+            ["git", "push", "--tags"],
+            capture_output=True, text=True,
+        )
+        tags_pushed = push_result.returncode == 0
+
+    completed_steps.append("push_tags")
+
+    # ── Step 8: Delete branch ──
+    branch_deleted = False
+    if delete_branch_flag and branch_exists:
+        del_result = subprocess.run(
+            ["git", "branch", "-d", branch_name],
+            capture_output=True, text=True,
+        )
+        branch_deleted = del_result.returncode == 0
+
+    completed_steps.append("delete_branch")
+
+    # ── Step 9: Clear recovery state ──
+    if db.exists():
+        try:
+            _clear_recovery_state(db_str)
+        except Exception:
+            pass
+
+    # ── Step 10: Return structured result ──
+    result: dict = {
+        "status": "success",
+        "old_path": old_path_str,
+        "new_path": str(new_path),
+        "repairs": repairs,
+    }
+    if version:
+        result["version"] = version
+        result["tag"] = f"v{version}"
+    result["git"] = {
+        "merged": merged,
+        "merge_strategy": "--no-ff",
+        "merge_target": main_branch,
+        "tags_pushed": tags_pushed,
+        "branch_deleted": branch_deleted,
+        "branch_name": branch_name,
+    }
+
+    return json.dumps(result, indent=2)
+
+
+@server.tool()
+def clear_sprint_recovery(sprint_id: str) -> str:
+    """Clear the recovery state record for a sprint.
+
+    Use this after manually resolving a failure that was recorded
+    during close_sprint.
+
+    Args:
+        sprint_id: The sprint ID (for confirmation; currently unused
+            since recovery_state is a singleton)
+
+    Returns JSON with {cleared: true/false}.
+    """
+    db = _db_path()
+    if not db.exists():
+        return json.dumps({"cleared": False, "reason": "No state database found"}, indent=2)
+    result = _clear_recovery_state(str(db))
     return json.dumps(result, indent=2)
 
 
@@ -981,18 +1578,59 @@ def record_gate_result(
 
 @server.tool()
 def acquire_execution_lock(sprint_id: str) -> str:
-    """Acquire the execution lock for a sprint.
+    """Acquire the execution lock for a sprint and create the sprint branch.
 
     Only one sprint can hold the lock at a time. Prevents concurrent
     sprint execution in the same repository.
 
+    Late branching: the sprint branch (``sprint/NNN-slug``) is created
+    here, not during planning. All planning (roadmap and detail phases)
+    happens on main. The branch is only created when execution begins.
+
+    If the lock is re-entrant (already held by this sprint), the branch
+    is assumed to already exist and is not re-created.
+
     Args:
         sprint_id: The sprint ID
 
-    Returns JSON with {sprint_id, acquired_at, reentrant}.
+    Returns JSON with {sprint_id, acquired_at, reentrant, branch}.
     """
     try:
         lock = _acquire_lock(str(_db_path()), sprint_id)
+
+        # Late branching: create the sprint branch when acquiring
+        # the execution lock (not during planning).
+        if not lock.get("reentrant"):
+            state = _get_sprint_state(str(_db_path()), sprint_id)
+            slug = state.get("slug", "")
+            branch_name = f"sprint/{sprint_id}-{slug}" if slug else f"sprint/{sprint_id}"
+            branch_result = subprocess.run(
+                ["git", "checkout", "-b", branch_name],
+                capture_output=True,
+                text=True,
+            )
+            if branch_result.returncode != 0:
+                # Branch may already exist -- try checking it out
+                branch_result = subprocess.run(
+                    ["git", "checkout", branch_name],
+                    capture_output=True,
+                    text=True,
+                )
+                if branch_result.returncode != 0:
+                    return json.dumps({
+                        "error": (
+                            f"Failed to create/checkout branch "
+                            f"'{branch_name}': "
+                            f"{branch_result.stderr.strip()}"
+                        ),
+                        "lock": lock,
+                    }, indent=2)
+            lock["branch"] = branch_name
+        else:
+            # Re-entrant: look up existing branch
+            state = _get_sprint_state(str(_db_path()), sprint_id)
+            lock["branch"] = state.get("branch", "")
+
         return json.dumps(lock, indent=2)
     except ValueError as e:
         return json.dumps({"error": str(e)}, indent=2)
@@ -1026,15 +1664,19 @@ def _todo_dir() -> Path:
 def list_todos() -> str:
     """List all active TODO files with sprint/ticket linkage.
 
-    Scans docs/clasi/todo/*.md (excludes done/ subdirectory).
+    Scans docs/clasi/todo/*.md (pending) and docs/clasi/todo/in-progress/*.md.
+    Excludes the done/ subdirectory.
 
     Returns JSON array of {filename, title, status, sprint, tickets}.
     The sprint and tickets fields are present only for in-progress TODOs.
     """
     todo = _todo_dir()
     results = []
-    if todo.exists():
-        for f in sorted(todo.glob("*.md")):
+
+    def _scan_todo_files(directory: Path) -> None:
+        if not directory.exists():
+            return
+        for f in sorted(directory.glob("*.md")):
             title = f.stem
             # Extract title from first # heading
             for line in f.read_text(encoding="utf-8").splitlines():
@@ -1053,6 +1695,12 @@ def list_todos() -> str:
                 if tickets:
                     entry["tickets"] = tickets
             results.append(entry)
+
+    # Scan pending TODOs (top-level todo/)
+    _scan_todo_files(todo)
+    # Scan in-progress TODOs
+    _scan_todo_files(todo / "in-progress")
+
     return json.dumps(results, indent=2)
 
 
@@ -1073,8 +1721,13 @@ def move_todo_to_done(
     """
     todo = _todo_dir()
     src = todo / filename
+    # Also check in-progress/ directory
     if not src.exists():
-        raise ValueError(f"TODO not found: {filename}")
+        src_in_progress = todo / "in-progress" / filename
+        if src_in_progress.exists():
+            src = src_in_progress
+        else:
+            raise ValueError(f"TODO not found: {filename}")
 
     # Write traceability frontmatter before moving
     fm = read_frontmatter(src)
@@ -1924,260 +2577,3 @@ def review_sprint_post_close(sprint_id: str) -> str:
         "passed": not any(i["severity"] == "error" for i in issues),
         "issues": issues,
     }, indent=2)
-
-
-# --- Typed dispatch tools ---
-
-
-def _load_jinja2_template(agent_name: str) -> "jinja2.Template":
-    """Load the Jinja2 dispatch template for the named agent.
-
-    Searches for ``dispatch-template.md.j2`` in the agent's directory
-    under the content tree.
-
-    Raises:
-        ValueError: If no template is found for the agent.
-    """
-    from jinja2 import Template
-    from claude_agent_skills.mcp_server import content_path
-
-    agents_dir = content_path("agents")
-    for template_path in agents_dir.rglob("dispatch-template.md.j2"):
-        if template_path.parent.name == agent_name:
-            return Template(template_path.read_text(encoding="utf-8"))
-
-    raise ValueError(
-        f"No dispatch template found for agent '{agent_name}'. "
-        f"Only agents with a dispatch-template.md.j2 file in their directory have templates."
-    )
-
-
-@server.tool()
-def dispatch_to_sprint_planner(
-    sprint_id: str,
-    sprint_directory: str,
-    todo_ids: list[str],
-    goals: str,
-) -> str:
-    """Render the sprint-planner dispatch template, log the dispatch, and return the prompt.
-
-    Loads the Jinja2 template from the sprint-planner agent directory,
-    renders it with the provided parameters, logs the dispatch
-    automatically, and returns the rendered prompt with the log path.
-
-    Args:
-        sprint_id: The sprint ID (e.g., '024')
-        sprint_directory: Path to the sprint directory
-        todo_ids: List of TODO IDs to address
-        goals: High-level goals for the sprint
-    """
-    from claude_agent_skills.dispatch_log import log_dispatch
-
-    template = _load_jinja2_template("sprint-planner")
-    rendered = template.render(
-        sprint_id=sprint_id,
-        sprint_directory=sprint_directory,
-        todo_ids=todo_ids,
-        goals=goals,
-    )
-
-    # Extract sprint name from directory path (last component)
-    sprint_name = Path(sprint_directory).name
-
-    log_path = log_dispatch(
-        parent="team-lead",
-        child="sprint-planner",
-        scope=sprint_directory,
-        prompt=rendered,
-        sprint_name=sprint_name,
-        template_used="dispatch-template.md.j2",
-    )
-
-    return json.dumps({
-        "rendered_prompt": rendered,
-        "log_path": str(log_path),
-    }, indent=2)
-
-
-@server.tool()
-def dispatch_to_sprint_executor(
-    sprint_id: str,
-    sprint_directory: str,
-    branch_name: str,
-    tickets: list[str],
-) -> str:
-    """Render the sprint-executor dispatch template, log the dispatch, and return the prompt.
-
-    Loads the Jinja2 template from the sprint-executor agent directory,
-    renders it with the provided parameters, logs the dispatch
-    automatically, and returns the rendered prompt with the log path.
-
-    Args:
-        sprint_id: The sprint ID (e.g., '024')
-        sprint_directory: Path to the sprint directory
-        branch_name: Git branch name for the sprint
-        tickets: List of ticket references to execute
-    """
-    from claude_agent_skills.dispatch_log import log_dispatch
-
-    template = _load_jinja2_template("sprint-executor")
-    rendered = template.render(
-        sprint_id=sprint_id,
-        sprint_directory=sprint_directory,
-        branch_name=branch_name,
-        tickets=tickets,
-    )
-
-    sprint_name = Path(sprint_directory).name
-
-    log_path = log_dispatch(
-        parent="team-lead",
-        child="sprint-executor",
-        scope=sprint_directory,
-        prompt=rendered,
-        sprint_name=sprint_name,
-        template_used="dispatch-template.md.j2",
-    )
-
-    return json.dumps({
-        "rendered_prompt": rendered,
-        "log_path": str(log_path),
-    }, indent=2)
-
-
-@server.tool()
-def dispatch_to_code_monkey(
-    ticket_path: str,
-    ticket_plan_path: str,
-    scope_directory: str,
-    sprint_name: str,
-    ticket_id: str,
-) -> str:
-    """Render the code-monkey dispatch template, log the dispatch, and return the prompt.
-
-    Loads the Jinja2 template from the code-monkey agent directory,
-    renders it with the provided parameters, logs the dispatch
-    automatically, and returns the rendered prompt with the log path.
-
-    Args:
-        ticket_path: Path to the ticket file
-        ticket_plan_path: Path to the ticket plan file
-        scope_directory: Directory scope for the implementation
-        sprint_name: Sprint name (e.g., '024-e2e-guessing-game-test')
-        ticket_id: Ticket ID (e.g., '015')
-    """
-    from claude_agent_skills.dispatch_log import log_dispatch
-
-    template = _load_jinja2_template("code-monkey")
-    rendered = template.render(
-        ticket_path=ticket_path,
-        ticket_plan_path=ticket_plan_path,
-        scope_directory=scope_directory,
-        sprint_name=sprint_name,
-        ticket_id=ticket_id,
-    )
-
-    log_path = log_dispatch(
-        parent="sprint-executor",
-        child="code-monkey",
-        scope=scope_directory,
-        prompt=rendered,
-        sprint_name=sprint_name,
-        ticket_id=ticket_id,
-        template_used="dispatch-template.md.j2",
-    )
-
-    return json.dumps({
-        "rendered_prompt": rendered,
-        "log_path": str(log_path),
-    }, indent=2)
-
-
-# --- Dispatch logging tools ---
-
-
-@server.tool()
-def log_subagent_dispatch(
-    parent: str,
-    child: str,
-    scope: str,
-    prompt: str,
-    sprint_name: str | None = None,
-    ticket_id: str | None = None,
-    context_documents: list[str] | None = None,
-) -> str:
-    """Log a subagent dispatch with full prompt text.
-
-    Call this BEFORE dispatching a subagent. It records the complete
-    prompt that will be sent, with YAML frontmatter for structured
-    metadata.
-
-    For agents with dispatch templates (sprint-planner, sprint-executor,
-    code-monkey), use the typed dispatch tools instead:
-    ``dispatch_to_sprint_planner``, ``dispatch_to_sprint_executor``,
-    ``dispatch_to_code_monkey``. Those tools render the template and
-    log the dispatch automatically.
-
-    Routing:
-    - sprint_name + ticket_id -> log/sprints/<sprint>/ticket-<ticket>-NNN.md
-    - sprint_name only        -> log/sprints/<sprint>/<child>-NNN.md
-    - neither                 -> log/adhoc/NNN.md
-
-    Args:
-        parent: The dispatching agent name (e.g., 'team-lead')
-        child: The receiving agent name (e.g., 'sprint-planner')
-        scope: The directory scope for the subagent
-        prompt: The FULL prompt text being sent to the subagent
-        sprint_name: Optional sprint name for routing
-        ticket_id: Optional ticket ID for routing
-        context_documents: Optional list of planning document paths
-            relevant to this dispatch. When not provided and
-            sprint_name is given, auto-populated from the sprint
-            directory.
-
-    Returns JSON with {log_path}.
-    """
-    from claude_agent_skills.dispatch_log import log_dispatch
-
-    log_path = log_dispatch(
-        parent=parent,
-        child=child,
-        scope=scope,
-        prompt=prompt,
-        sprint_name=sprint_name,
-        ticket_id=ticket_id,
-        context_documents=context_documents,
-    )
-    return json.dumps({"log_path": str(log_path)}, indent=2)
-
-
-@server.tool()
-def update_dispatch_log(
-    log_path: str,
-    result: str,
-    files_modified: list[str] | None = None,
-    response: str | None = None,
-) -> str:
-    """Update a dispatch log with the result after the subagent returns.
-
-    Call this AFTER a subagent completes. It adds the result and list
-    of modified files to the log's YAML frontmatter. When *response* is
-    provided, the subagent's response text is appended to the log body.
-
-    Args:
-        log_path: Path to the log file (returned by log_subagent_dispatch)
-        result: Result summary (e.g., 'success', 'failed - test failures')
-        files_modified: List of file paths the subagent modified
-        response: Optional response text from the subagent
-
-    Returns JSON with {log_path, result}.
-    """
-    from claude_agent_skills.dispatch_log import update_dispatch_result
-
-    update_dispatch_result(
-        log_path=Path(log_path),
-        result=result,
-        files_modified=files_modified or [],
-        response=response,
-    )
-    return json.dumps({"log_path": log_path, "result": result}, indent=2)

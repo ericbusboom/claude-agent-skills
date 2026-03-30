@@ -85,20 +85,43 @@ After verifying MCP, assess where the project stands:
 
 The full sprint lifecycle from team-lead's perspective:
 
-1. **Plan**: Log the dispatch (`log_subagent_dispatch`, child:
-   "sprint-planner"). Dispatch sprint-planner with TODO IDs and goals.
-   Log the result (`update_dispatch_log`) on return.
-2. **Review plan**: Sprint-planner returns with completed plan.
+#### Two-Phase Planning
+
+Sprint planning uses a two-phase model:
+
+**Phase 1 -- Batch Roadmap Planning**: Plan multiple sprints in a single
+session using `dispatch_to_sprint_planner(mode="roadmap")`. Each roadmap
+sprint produces a lightweight `sprint.md` with goals, scope, and TODO
+references. No branches, no architecture documents, no tickets. This
+lets you lay out the project roadmap quickly.
+
+**Phase 2 -- Detailed Planning**: When a sprint is ready for execution,
+call `dispatch_to_sprint_planner(mode="detail")` for that one sprint.
+This fills in full artifacts (usecases.md, architecture-update.md,
+tickets), runs architecture review, and gets stakeholder approval.
+
+Branches are NOT created during planning. They are created by
+`acquire_execution_lock` when execution begins (late branching).
+
+#### Lifecycle Steps
+
+1. **Roadmap plan**: Call `dispatch_to_sprint_planner(mode="roadmap")`
+   with sprint ID, directory, TODO IDs, and goals. Repeat for multiple
+   sprints as needed to build the roadmap.
+2. **Detail plan**: When ready to execute, call
+   `dispatch_to_sprint_planner(mode="detail")` for the next sprint.
+   Sprint-planner fills in full artifacts and gets reviews.
+3. **Review plan**: Sprint-planner returns with completed plan.
    Present to stakeholder for approval.
-3. **Execute**: After approval, acquire execution lock
-   (`acquire_execution_lock`). Log the dispatch
-   (`log_subagent_dispatch`, child: "sprint-executor"). Dispatch
-   sprint-executor. Log the result (`update_dispatch_log`) on return.
-4. **Validate**: Sprint-executor returns with completed sprint. Log
-   the dispatch (`log_subagent_dispatch`, child: "sprint-reviewer").
-   Dispatch sprint-reviewer for post-sprint validation. Log the result
-   (`update_dispatch_log`) on return.
-5. **Close**: If sprint-reviewer passes, close the sprint:
+4. **Execute**: After approval, acquire execution lock
+   (`acquire_execution_lock`). This creates the sprint branch
+   (`sprint/NNN-slug`). Call `dispatch_to_sprint_executor` with
+   sprint ID, directory, branch name, and tickets. The tool handles
+   dispatch, execution, validation, and logging automatically.
+5. **Validate**: Sprint-executor returns with completed sprint. Call
+   `dispatch_to_sprint_reviewer` with sprint ID and directory. The tool
+   handles dispatch, execution, validation, and logging automatically.
+6. **Close**: If sprint-reviewer passes, close the sprint:
    - Merge sprint branch to main
    - Call `close_sprint` MCP tool (archives directory, copies
      architecture update, releases lock)
@@ -142,18 +165,22 @@ When a doteam lead returns, validate before proceeding:
 
 ## Typed Dispatch Tools
 
-For agents with dispatch templates, use the typed MCP dispatch tools.
-These tools render the Jinja2 template with the provided parameters,
-log the dispatch automatically, and return the rendered prompt ready
-to pass to the Agent tool.
+All subagent dispatches use typed MCP dispatch tools. Each tool renders
+the Jinja2 template, logs the dispatch, executes the subagent via the
+Agent SDK, validates the result against the agent contract, logs the
+outcome, and returns structured JSON.
 
 | Target agent | MCP tool |
 |-------------|----------|
-| sprint-planner | `dispatch_to_sprint_planner(sprint_id, sprint_directory, todo_ids, goals)` |
+| requirements-narrator | `dispatch_to_requirements_narrator(project_path)` |
+| todo-worker | `dispatch_to_todo_worker(todo_ids, action)` |
+| sprint-planner | `dispatch_to_sprint_planner(sprint_id, sprint_directory, todo_ids, goals, mode)` |
 | sprint-executor | `dispatch_to_sprint_executor(sprint_id, sprint_directory, branch_name, tickets)` |
+| ad-hoc-executor | `dispatch_to_ad_hoc_executor(task_description, scope_directory)` |
+| sprint-reviewer | `dispatch_to_sprint_reviewer(sprint_id, sprint_directory)` |
 
-For agents without dispatch templates (todo-worker, requirements-narrator,
-etc.), use `log_subagent_dispatch` to log the dispatch manually.
+Logging is automatic -- you do NOT need to call `log_subagent_dispatch`
+or `update_dispatch_log` when using these tools.
 
 ## Delegation Philosophy
 
@@ -217,8 +244,8 @@ create a knowledge file at `docs/clasi/knowledge/YYYY-MM-DD-slug.md`.
 - Present review gates to the stakeholder. Do not auto-approve.
 - If a doteam lead escalates a blocker, present it to the
   stakeholder with options and your recommendation.
-- **Always log every subagent dispatch.** Call `log_subagent_dispatch`
-  before dispatching any doteam lead and `update_dispatch_log` after
-  the doteam lead returns. This applies to all dispatches:
-  sprint-planner, sprint-executor, sprint-reviewer, ad-hoc-executor,
-  todo-worker, and requirements-narrator. No exceptions.
+- **Always use the typed dispatch tools** (`dispatch_to_*`) for all
+  subagent dispatches. These tools handle logging automatically.
+  This applies to all dispatches: sprint-planner, sprint-executor,
+  sprint-reviewer, ad-hoc-executor, todo-worker, and
+  requirements-narrator. No exceptions.

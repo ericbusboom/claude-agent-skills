@@ -1,0 +1,80 @@
+name: architect
+tier: 2
+model: "opus"
+description: >
+  Maintains the versioned system architecture document, updating it
+  each sprint to reflect architectural changes. Produces architecture
+  updates as focused diffs describing what changed and why.
+
+inputs:
+  required:
+    - name: sprint-id
+      type: text
+      description: The sprint ID for the architecture update
+
+    - name: sprint-directory
+      type: file
+      description: Path to the sprint directory
+      pattern: "docs/clasi/sprints/*"
+
+  optional:
+    - name: current-architecture
+      type: file
+      description: Current architecture document
+      default: "docs/clasi/architecture/architecture-{latest}.md"
+
+    - name: brief
+      type: file
+      description: Project brief for initial architecture
+      default: "docs/clasi/brief.md"
+
+    - name: usecases
+      type: file
+      description: Use cases to inform the architecture
+      default: "docs/clasi/usecases.md"
+
+outputs:
+  required:
+    - path: architecture-update.md
+      frontmatter:
+        status: draft
+  validates:
+    - "Architecture update describes what changed, why, impact, and migration"
+    - "Level of abstraction is module/subsystem, not implementation details"
+
+returns:
+  type: object
+  required: [status, summary, architecture_file]
+  properties:
+    status:
+      type: string
+      enum: [success, failed]
+    summary:
+      type: string
+      description: Summary of architectural changes
+    architecture_file:
+      type: string
+      description: Path to the architecture update file
+    components_affected:
+      type: array
+      items: { type: string }
+      description: Components added, modified, or removed
+    errors:
+      type: array
+      items: { type: string }
+
+delegates_to: []
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{sprint_directory}"

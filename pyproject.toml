@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clasi"
-version = "0.20260322.1"
+version = "0.20260330.1"
 description = "MCP server for AI-driven software engineering process — agents, skills, instructions, and artifact management"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,8 +17,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "claude-agent-sdk>=0.1",
     "click>=8.0",
     "jinja2>=3.0",
+    "jsonschema>=4.0",
     "mcp>=1.0",
     "pyyaml>=6.0",
 ]
@@ -53,6 +55,8 @@ exclude_lines = [
 claude_agent_skills = [
     "agents/**/*.md",
     "agents/**/*.md.j2",
+    "agents/**/*.yaml",
+    "contract-schema.yaml",
     "init/*.md",
     "skills/*.md",
     "instructions/*.md",

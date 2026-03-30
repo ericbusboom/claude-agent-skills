@@ -72,6 +72,7 @@ class TestToolRegistration:
         "move_ticket_to_done",
         "reopen_ticket",
         "close_sprint",
+        "clear_sprint_recovery",
         "get_sprint_phase",
         "advance_sprint_phase",
         "record_gate_result",
@@ -88,14 +89,23 @@ class TestToolRegistration:
         "review_sprint_pre_execution",
         "review_sprint_pre_close",
         "review_sprint_post_close",
-        "log_subagent_dispatch",
-        "update_dispatch_log",
-        "dispatch_to_sprint_planner",
-        "dispatch_to_sprint_executor",
-        "dispatch_to_code_monkey",
     }
 
-    EXPECTED_ALL = EXPECTED_PROCESS_TOOLS | EXPECTED_ARTIFACT_TOOLS
+    EXPECTED_DISPATCH_TOOLS = {
+        "dispatch_to_requirements_narrator",
+        "dispatch_to_todo_worker",
+        "dispatch_to_sprint_planner",
+        "dispatch_to_sprint_executor",
+        "dispatch_to_ad_hoc_executor",
+        "dispatch_to_sprint_reviewer",
+        "dispatch_to_architect",
+        "dispatch_to_architecture_reviewer",
+        "dispatch_to_technical_lead",
+        "dispatch_to_code_monkey",
+        "dispatch_to_code_reviewer",
+    }
+
+    EXPECTED_ALL = EXPECTED_PROCESS_TOOLS | EXPECTED_ARTIFACT_TOOLS | EXPECTED_DISPATCH_TOOLS
 
     def _registered_tool_names(self) -> set[str]:
         """Get the set of tool names registered on the server."""
@@ -115,7 +125,7 @@ class TestToolRegistration:
 
     def test_tool_count(self):
         registered = self._registered_tool_names()
-        assert len(registered) == 45
+        assert len(registered) == 52
 
     def test_process_tools_registered(self):
         registered = self._registered_tool_names()
