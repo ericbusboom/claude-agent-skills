@@ -1,0 +1,225 @@
+# JSON Schema for agent contract.yaml files.
+# Written in YAML because it's easier to read, but this IS
+# JSON Schema (draft 2020-12) — any JSON Schema validator
+# can consume it after yaml.safe_load().
+#
+# Validate in Python:
+#   import yaml, jsonschema
+#   schema = yaml.safe_load(open("contract-schema.yaml"))
+#   contract = yaml.safe_load(open("sprint-planner/contract.yaml"))
+#   jsonschema.validate(contract, schema)
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: CLASI Agent Contract
+description: >
+  Declares an agent's inputs, outputs, delegation edges, and
+  runtime configuration. Used by dispatch tools to configure
+  SDK query() calls and validate results.
+
+type: object
+required: [name, tier, description, inputs, outputs, returns, delegates_to, allowed_tools]
+additionalProperties: false
+
+properties:
+
+  name:
+    type: string
+    description: Agent identifier, matches the directory name.
+
+  tier:
+    type: integer
+    enum: [0, 1, 2]
+    description: >
+      0 = team-lead (dispatcher only),
+      1 = domain controller (doteam lead),
+      2 = task worker (leaf or near-leaf).
+
+  description:
+    type: string
+    description: One-paragraph summary of the agent's role.
+
+  inputs:
+    type: object
+    description: Documents and data the agent receives from its caller.
+    properties:
+      required:
+        type: array
+        items: { $ref: "#/$defs/input_spec" }
+      optional:
+        type: array
+        items: { $ref: "#/$defs/input_spec" }
+    additionalProperties: false
+
+  outputs:
+    description: >
+      Files the agent must produce as side effects. Can be a flat
+      object (single mode) or keyed by mode name (multi-mode agents).
+    oneOf:
+      - $ref: "#/$defs/output_set"
+      - type: object
+        description: >
+          Keyed by mode name. Each value is an output_set.
+        additionalProperties:
+          $ref: "#/$defs/output_set"
+
+  returns:
+    description: >
+      JSON Schema for the structured response the agent must include
+      in its final message. The dispatch tool extracts and validates
+      this JSON before passing the result to the caller. Can be a
+      flat schema (single mode) or keyed by mode name.
+    oneOf:
+      - $ref: "#/$defs/return_schema"
+      - type: object
+        description: >
+          Keyed by mode name. Each value is a JSON Schema for that
+          mode's return format.
+        additionalProperties:
+          $ref: "#/$defs/return_schema"
+
+  delegates_to:
+    type: array
+    description: >
+      Which agents this agent can dispatch to, and under what
+      conditions. Empty array for leaf agents.
+    items:
+      $ref: "#/$defs/delegation_edge"
+
+  allowed_tools:
+    type: array
+    description: >
+      Tools available to this agent's SDK session. Glob patterns
+      allowed (e.g., "mcp__clasi__*").
+    items:
+      type: string
+
+  mcp_servers:
+    type: array
+    description: MCP servers the agent connects to.
+    items:
+      type: string
+
+  cwd:
+    type: string
+    description: >
+      Working directory for the agent session. Supports template
+      variables like {sprint_directory}, {project_root}.
+
+
+$defs:
+
+  input_spec:
+    type: object
+    required: [name, type, description]
+    additionalProperties: false
+    properties:
+      name:
+        type: string
+        description: >
+          Reference name used in agent.md prose to refer to this
+          input (e.g., "todo-files", "ticket", "sprint-goals").
+      type:
+        type: string
+        enum: [file, file-list, text, interactive]
+        description: >
+          file: a single file path.
+          file-list: one or more file paths.
+          text: inline text (prompt content or short directive).
+          interactive: conversational input (team-lead only).
+      description:
+        type: string
+      pattern:
+        type: string
+        description: >
+          Glob pattern for where this input typically comes from.
+          Informational — helps the dispatch tool locate defaults.
+      default:
+        type: string
+        description: >
+          Default path or pattern if the caller doesn't provide
+          an explicit value. Supports {latest} and other template
+          variables.
+
+  output_spec:
+    type: object
+    required: [path]
+    additionalProperties: false
+    properties:
+      path:
+        type: string
+        description: >
+          Expected output file path, relative to the agent's cwd.
+          Glob patterns allowed for variable outputs (e.g.,
+          "tickets/*.md").
+      min_count:
+        type: integer
+        description: >
+          Minimum number of files matching the glob. Only
+          meaningful when path contains a glob.
+      frontmatter:
+        type: object
+        description: >
+          Expected YAML frontmatter fields and their constraints.
+          Keys are field names. Values are either a literal
+          (exact match) or an object with type/required.
+        additionalProperties: true
+      acceptance_criteria_checked:
+        type: boolean
+        description: >
+          If true, all acceptance criteria in the file must be
+          checked off (- [x]).
+
+  output_set:
+    type: object
+    properties:
+      required:
+        type: array
+        items: { $ref: "#/$defs/output_spec" }
+      validates:
+        type: array
+        description: >
+          Human-readable validation conditions checked by the
+          dispatch tool after the agent returns. These supplement
+          the structural checks on required output files.
+        items:
+          type: string
+    additionalProperties: false
+
+  return_schema:
+    type: object
+    description: >
+      A JSON Schema object describing the shape of the agent's
+      return value. The agent reads this to know what JSON to
+      produce. The dispatch tool validates the agent's response
+      against it. Must be a valid JSON Schema object (type,
+      required, properties, etc.).
+    properties:
+      type:
+        type: string
+      required:
+        type: array
+        items: { type: string }
+      properties:
+        type: object
+        additionalProperties: true
+    additionalProperties: true
+
+  delegation_edge:
+    type: object
+    required: [agent, when]
+    additionalProperties: false
+    properties:
+      agent:
+        type: string
+        description: Name of the target agent (must match a contract name).
+      mode:
+        type: string
+        description: >
+          If the target agent has multiple modes, which mode this
+          delegation uses.
+      when:
+        type: string
+        description: >
+          Human-readable description of when this delegation
+          happens. Not machine-evaluated — serves as process
+          documentation.

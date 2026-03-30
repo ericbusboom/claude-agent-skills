@@ -1,0 +1,133 @@
+# contract.yaml for sprint-planner
+# Lives alongside agent.md in the agent directory.
+# agent.md stays pure prose (role, instructions, examples).
+# contract.yaml is the machine-readable contract.
+
+name: sprint-planner
+tier: 1
+description: >
+  Creates sprint plans from TODO IDs and goals, producing sprint
+  docs, architecture, and tickets via delegation.
+
+inputs:
+  required:
+    - name: todo-files
+      type: file-list
+      description: TODO documents to address in this sprint
+      pattern: "docs/clasi/todo/*.md"
+
+    - name: sprint-goals
+      type: text
+      description: High-level goals for the sprint
+
+  optional:
+    - name: sprint-guidance
+      type: file
+      description: >
+        External document constraining how work should be structured.
+        Overrides planner's default decomposition when present.
+
+    - name: prior-architecture
+      type: file
+      description: Current architecture document for context
+      default: "docs/clasi/architecture/architecture-{latest}.md"
+
+    - name: supplementary-context
+      type: file-list
+      description: >
+        Additional documents the stakeholder wants considered.
+        Design sketches, external specs, meeting notes, etc.
+
+outputs:
+  roadmap:
+    required:
+      - path: sprint.md
+        frontmatter:
+          status: roadmap
+          title: { type: string, required: true }
+          goals: { type: string, required: true }
+          todos: { type: list, required: true }
+
+  detail:
+    required:
+      - path: sprint.md
+        frontmatter:
+          status: planning_docs
+      - path: usecases.md
+      - path: architecture.md
+        frontmatter:
+          status: draft
+      - path: "tickets/*.md"
+        min_count: 1
+        frontmatter:
+          status: pending
+          id: { type: string, required: true }
+
+returns:
+  roadmap:
+    type: object
+    required: [status, summary, sprint_file]
+    properties:
+      status:
+        type: string
+        enum: [success, failed]
+      summary:
+        type: string
+        description: Brief description of what was planned
+      sprint_file:
+        type: string
+        description: Path to the created sprint.md
+
+  detail:
+    type: object
+    required: [status, summary, files_created, ticket_ids]
+    properties:
+      status:
+        type: string
+        enum: [success, partial, failed]
+      summary:
+        type: string
+        description: Brief description of the sprint plan
+      files_created:
+        type: array
+        items: { type: string }
+        description: Paths to all created planning artifacts
+      ticket_ids:
+        type: array
+        items: { type: string }
+        description: IDs of created tickets (e.g., ["025-001", "025-002"])
+      architecture_review:
+        type: string
+        enum: [passed, failed, skipped]
+        description: Result of architecture review gate
+      errors:
+        type: array
+        items: { type: string }
+
+delegates_to:
+  - agent: architect
+    when: >
+      After use cases are written, to produce the architecture
+      update for this sprint.
+
+  - agent: architecture-reviewer
+    when: >
+      After architect produces architecture.md, to validate
+      consistency and quality before proceeding to tickets.
+
+  - agent: technical-lead
+    when: >
+      After architecture is reviewed and approved, to decompose
+      the sprint scope into sequenced implementation tickets.
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - "mcp__clasi__*"
+
+mcp_servers:
+  - clasi
+
+cwd: "{sprint_directory}"
