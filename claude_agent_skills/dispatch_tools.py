@@ -17,8 +17,11 @@ Each dispatch tool follows the 7-step pattern:
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger("clasi.dispatch")
 
 from claude_agent_skills.mcp_server import server, content_path
 
@@ -147,6 +150,10 @@ async def _dispatch(
     env = {k: v for k, v in os.environ.items()}
     env.pop("CLAUDECODE", None)
 
+    # Capture stderr to a buffer for error diagnostics
+    import io
+    stderr_buf = io.StringIO()
+
     options = ClaudeAgentOptions(
         system_prompt=_load_agent_system_prompt(child),
         cwd=work_dir,
@@ -155,6 +162,7 @@ async def _dispatch(
         model=contract.get("model", "sonnet"),
         env=env,
         permission_mode="bypassPermissions",
+        debug_stderr=stderr_buf,
     )
 
     # 4. EXECUTE
@@ -164,15 +172,26 @@ async def _dispatch(
             if isinstance(message, ResultMessage):
                 result_text = message.result
     except Exception as e:
+        # Extract detailed error info if available
+        error_msg = str(e)
+        stderr_output = getattr(e, "stderr", None) or stderr_buf.getvalue() or ""
+        exit_code = getattr(e, "exit_code", None)
+        detail = error_msg
+        if stderr_output:
+            detail = f"{error_msg}\nSTDERR: {stderr_output}"
+        logger.error("dispatch %s -> %s FAILED: %s", parent, child, detail)
+
         update_dispatch_result(
             log_path,
             result="error",
             files_modified=[],
-            response=str(e),
+            response=detail,
         )
         return json.dumps({
             "status": "error",
-            "message": str(e),
+            "message": error_msg,
+            "stderr": stderr_output,
+            "exit_code": exit_code,
             "log_path": str(log_path),
         }, indent=2)
 
