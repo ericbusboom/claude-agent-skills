@@ -17,6 +17,7 @@ Each dispatch tool follows the 7-step pattern:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from claude_agent_skills.mcp_server import server, content_path
@@ -142,12 +143,18 @@ async def _dispatch(
         }, indent=2)
 
     # Build options from contract
+    # Unset CLAUDECODE to allow nested sessions from claude -p
+    env = {k: v for k, v in os.environ.items()}
+    env.pop("CLAUDECODE", None)
+
     options = ClaudeAgentOptions(
         system_prompt=_load_agent_system_prompt(child),
         cwd=work_dir,
         allowed_tools=contract.get("allowed_tools", []),
         mcp_servers=contract.get("mcp_servers", []),
         model=contract.get("model", "sonnet"),
+        env=env,
+        permission_mode="bypassPermissions",
     )
 
     # 4. EXECUTE
