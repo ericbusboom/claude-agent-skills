@@ -137,6 +137,7 @@ def _dispatch_subagent(project_dir: Path, spec_path: Path) -> bool:
         "claude",
         "-p", prompt,
         "--allowedTools", "Bash,Read,Write,Edit,Glob,Grep,Agent,mcp__clasi__*",
+        "--mcp-config", str(project_dir / ".mcp.json"),
     ]
     print(f"  $ {' '.join(cmd[:3])} ...")
 
