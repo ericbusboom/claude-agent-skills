@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from claude_agent_skills.agent import Agent
     from claude_agent_skills.sprint import Sprint
     from claude_agent_skills.state_db_class import StateDB
     from claude_agent_skills.todo import Todo
@@ -155,6 +156,89 @@ class Project:
                     except (ValueError, TypeError):
                         pass
         return f"{max_id + 1:03d}"
+
+    # --- Agent management ---
+
+    @property
+    def _agents_dir(self) -> Path:
+        """Path to the agents directory inside the package."""
+        return Path(__file__).parent.resolve() / "agents"
+
+    def get_agent(self, name: str) -> Agent:
+        """Find agent by name, return appropriate subclass based on directory location.
+
+        Searches main-controller/, domain-controllers/, task-workers/ for a
+        subdirectory matching the agent name.
+
+        Raises:
+            ValueError: If no agent with the given name is found.
+        """
+        from claude_agent_skills.agent import (
+            Agent,
+            DomainController,
+            MainController,
+            TaskWorker,
+        )
+
+        tier_classes = {
+            "main-controller": MainController,
+            "domain-controllers": DomainController,
+            "task-workers": TaskWorker,
+        }
+
+        agents_dir = self._agents_dir
+        if not agents_dir.exists():
+            raise ValueError(f"Agents directory not found: {agents_dir}")
+
+        for tier_dir in agents_dir.iterdir():
+            if not tier_dir.is_dir():
+                continue
+            agent_dir = tier_dir / name
+            if agent_dir.is_dir():
+                cls = tier_classes.get(tier_dir.name, Agent)
+                return cls(agent_dir, self)
+
+        # Build available list for error message
+        available = sorted(
+            d.name
+            for tier_dir in agents_dir.iterdir()
+            if tier_dir.is_dir()
+            for d in tier_dir.iterdir()
+            if d.is_dir()
+        )
+        raise ValueError(
+            f"No agent found with name '{name}'. "
+            f"Available: {', '.join(available)}"
+        )
+
+    def list_agents(self) -> list[Agent]:
+        """List all agents across all tiers."""
+        from claude_agent_skills.agent import (
+            Agent,
+            DomainController,
+            MainController,
+            TaskWorker,
+        )
+
+        tier_classes = {
+            "main-controller": MainController,
+            "domain-controllers": DomainController,
+            "task-workers": TaskWorker,
+        }
+
+        agents_dir = self._agents_dir
+        if not agents_dir.exists():
+            return []
+
+        results: list[Agent] = []
+        for tier_dir in sorted(agents_dir.iterdir()):
+            if not tier_dir.is_dir():
+                continue
+            cls = tier_classes.get(tier_dir.name, Agent)
+            for agent_dir in sorted(tier_dir.iterdir()):
+                if agent_dir.is_dir():
+                    results.append(cls(agent_dir, self))
+        return results
 
     # --- Todo management ---
 
