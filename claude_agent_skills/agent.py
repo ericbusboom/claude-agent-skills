@@ -204,16 +204,14 @@ class Agent:
             template_used="dispatch-template.md.j2",
         )
 
-        # 2. Resolve working directory from contract
-        work_dir = cwd
-        contract_cwd = contract.get("cwd", "")
-        if contract_cwd:
-            # Substitute template variables -- but only if the caller
-            # didn't provide an explicit cwd that differs from scope
-            resolved_cwd = contract_cwd
-            # We don't have template_params here, so leave as-is
-            if "{" not in resolved_cwd:
-                work_dir = resolved_cwd
+        # 2. Resolve working directory
+        # ALWAYS use the project root as cwd for subagents. The sprint
+        # directory or other scope is passed as a parameter in the prompt.
+        # Using the sprint directory as cwd causes the MCP server inside
+        # the subagent to create nested docs/clasi/ directories (the
+        # path nesting bug). The project root ensures all MCP tool calls
+        # resolve paths correctly.
+        work_dir = str(self._project.root)
 
         # 3. Try to import the SDK
         try:
