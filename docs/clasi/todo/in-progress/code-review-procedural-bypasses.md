@@ -1,5 +1,6 @@
 ---
-status: pending
+status: in-progress
+sprint: "026"
 ---
 
 # Code Review: Procedural Code Bypassing Domain Objects
