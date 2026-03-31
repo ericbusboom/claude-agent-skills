@@ -1,7 +1,7 @@
 ---
 id: '003'
 title: Add PreToolUse warning hook for Agent tool usage
-status: todo
+status: done
 use-cases: []
 depends-on: []
 github-issue: ''
@@ -37,11 +37,11 @@ targeting the `Agent` tool name.
 
 ## Acceptance Criteria
 
-- [ ] `.claude/settings.json` contains a PreToolUse hook matching the `Agent` tool
-- [ ] The hook prints the warning message to stderr or stdout
-- [ ] The hook does NOT block the `Agent` tool call (decision: allow)
-- [ ] The warning message mentions `dispatch_to_*` MCP tools
-- [ ] `uv run pytest` passes with no failures
+- [x] `.claude/settings.json` contains a PreToolUse hook matching the `Agent` tool
+- [x] The hook prints the warning message to stderr or stdout
+- [x] The hook does NOT block the `Agent` tool call (decision: allow)
+- [x] The warning message mentions `dispatch_to_*` MCP tools
+- [x] `uv run pytest` passes with no failures
 
 ## Testing
 
