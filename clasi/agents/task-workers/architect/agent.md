@@ -41,10 +41,25 @@ function signatures, database column types, or internal algorithms.
 
 ### Mode 1: Initial Architecture (Stage 1b)
 
+Design the system architecture from scratch, producing the first architecture
+document that establishes the module structure, data model, and dependencies.
+
+**Do this process when:** The project has a `brief.md` and `usecases.md` but no
+architecture document exists yet in `docs/clasi/architecture/`. This is the very
+first sprint of a new project.
+
 Given `docs/clasi/brief.md` and `docs/clasi/usecases.md`, produce the first
 architecture document. Follow steps 1–7 below.
 
 ### Mode 2: Sprint Architecture Update
+
+Write a focused architecture diff describing what changed in this sprint and why.
+This is an incremental update, not a rewrite of the full architecture.
+
+**Do this process when:** An architecture document already exists in
+`docs/clasi/architecture/` and a new sprint is being planned. You are given the
+sprint plan and goals and need to describe the architectural changes this sprint
+introduces.
 
 Given a sprint plan and the current architecture (read from
 `docs/clasi/architecture/`), write the sprint's `architecture-update.md`

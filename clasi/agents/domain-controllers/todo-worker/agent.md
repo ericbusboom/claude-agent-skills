@@ -52,6 +52,13 @@ CLASI MCP tools and the `gh` CLI.
 
 ### Creating TODOs from Stakeholder Input
 
+Interpret raw stakeholder ideas and structure them into proper TODO files with
+frontmatter, clear titles, and actionable descriptions.
+
+**Do this process when:** You are dispatched with `action="create"`. The
+team-lead passes unstructured stakeholder text — conversational input, rough
+ideas, or feature requests that need to be formatted into TODO files.
+
 You receive raw, unstructured stakeholder text. Your job is to:
 
 1. **Interpret** the raw input to understand the idea, problem, or request.
@@ -67,6 +74,13 @@ You receive raw, unstructured stakeholder text. Your job is to:
 
 ### Importing GitHub Issues
 
+Import GitHub issues as CLASI TODO files, preserving issue metadata and
+linking back to the original issue.
+
+**Do this process when:** You are dispatched with `action="import"`. The
+team-lead provides GitHub issue URLs or repository references to pull in as
+TODOs.
+
 1. Use the `gh-import` skill to import issues from GitHub.
 2. Each imported issue becomes a TODO file with a reference back to the
    GitHub issue URL.
@@ -75,6 +89,12 @@ You receive raw, unstructured stakeholder text. Your job is to:
    issue URL).
 
 ### Managing TODOs
+
+List, summarize, prioritize, or close existing TODO files.
+
+**Do this process when:** You are dispatched with `action="list"`,
+`action="summarize"`, or `action="prioritize"`. The team-lead wants a
+status report on existing TODOs or needs to mark completed ones as done.
 
 1. List TODOs with `list_todos()` MCP tool.
 2. Move completed TODOs with `move_todo_to_done()` MCP tool.
