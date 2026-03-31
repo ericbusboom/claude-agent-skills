@@ -67,6 +67,7 @@ ALL_AGENTS = [
     "requirements-narrator",
     "sprint-reviewer",
     "todo-worker",
+    "project-manager",
     "architect",
     "architecture-reviewer",
     "code-monkey",
