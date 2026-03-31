@@ -115,9 +115,9 @@ def run_server() -> None:
     logger.info("  log_file: %s", project.log_dir / "mcp-server.log")
 
     # Import tool modules to register their tools with the server
-    import claude_agent_skills.process_tools  # noqa: F401
-    import claude_agent_skills.artifact_tools  # noqa: F401
-    import claude_agent_skills.dispatch_tools  # noqa: F401
+    import claude_agent_skills.tools.process_tools  # noqa: F401
+    import claude_agent_skills.tools.artifact_tools  # noqa: F401
+    import claude_agent_skills.tools.dispatch_tools  # noqa: F401
 
     tool_names = sorted(server._tool_manager._tools.keys())
     logger.info("  tools registered: %d", len(tool_names))

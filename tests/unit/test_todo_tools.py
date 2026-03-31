@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from claude_agent_skills.artifact_tools import (
+from claude_agent_skills.tools.artifact_tools import (
     close_sprint,
     create_sprint,
     create_ticket,
@@ -261,7 +261,7 @@ class TestCloseSprintTodoHandling:
 
     def test_close_succeeds_when_todos_already_done(self, work_dir):
         """TODOs moved to done/ by ticket completion don't block close."""
-        from claude_agent_skills.artifact_tools import move_ticket_to_done
+        from claude_agent_skills.tools.artifact_tools import move_ticket_to_done
 
         create_sprint("Sprint")
         _advance_to_ticketing(work_dir, "001")
@@ -309,7 +309,7 @@ class TestCloseSprintTodoHandling:
 
     def test_unlinked_todos_not_affected(self, work_dir):
         """TODOs not linked to the sprint are not touched."""
-        from claude_agent_skills.artifact_tools import move_ticket_to_done
+        from claude_agent_skills.tools.artifact_tools import move_ticket_to_done
 
         create_sprint("Sprint")
         _advance_to_ticketing(work_dir, "001")

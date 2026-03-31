@@ -577,7 +577,7 @@ class TestTypedDispatchToolsMigrated:
     """Verify old typed dispatch tools moved to dispatch_tools module."""
 
     def test_old_dispatch_tools_removed_from_artifact_tools(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_sprint_planner")
         assert not hasattr(artifact_tools, "dispatch_to_sprint_executor")
         assert not hasattr(artifact_tools, "dispatch_to_code_monkey")
@@ -592,7 +592,7 @@ class TestTypedDispatchToolsMigrated:
 
     def test_new_dispatch_tools_exist(self):
         """New dispatch tools are importable from dispatch_tools."""
-        from claude_agent_skills.dispatch_tools import (
+        from claude_agent_skills.tools.dispatch_tools import (
             dispatch_to_sprint_planner,
             dispatch_to_sprint_executor,
             dispatch_to_code_monkey,

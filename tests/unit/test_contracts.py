@@ -377,7 +377,7 @@ class TestGetAgentDefinitionIncludesContract:
     """Tests that get_agent_definition returns contract content."""
 
     def test_includes_contract_yaml(self):
-        from claude_agent_skills.process_tools import get_agent_definition
+        from claude_agent_skills.tools.process_tools import get_agent_definition
 
         result = get_agent_definition("code-monkey")
         assert "## Contract" in result
@@ -386,7 +386,7 @@ class TestGetAgentDefinitionIncludesContract:
         assert "allowed_tools:" in result
 
     def test_includes_agent_md_content(self):
-        from claude_agent_skills.process_tools import get_agent_definition
+        from claude_agent_skills.tools.process_tools import get_agent_definition
 
         result = get_agent_definition("code-monkey")
         assert "Code Monkey Agent" in result
