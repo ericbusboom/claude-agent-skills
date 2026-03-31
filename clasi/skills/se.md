@@ -19,7 +19,6 @@ to the user and stop — do not execute any skill.
 | `/se todo <text>` | Create a TODO file from the description | `get_skill_definition("todo")` |
 | `/se init` | Start a new project with a guided interview | `get_skill_definition("project-initiation")` |
 | `/se report` | Report a bug with the CLASI tools | `get_skill_definition("report")` |
-| `/se ghtodo <text>` | Create a GitHub issue from the description | `get_skill_definition("ghtodo")` |
 | `/se gh-import [repo] [--labels L]` | Import GitHub issues as TODOs | `get_skill_definition("gh-import")` |
 | `/se knowledge <description>` | Capture hard-won technical understanding | `get_skill_definition("project-knowledge")` |
 
