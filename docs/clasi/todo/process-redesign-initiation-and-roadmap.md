@@ -27,16 +27,21 @@ sprints:
    there's no baseline architecture before the first sprint. The
    project-manager needs an architecture to plan the roadmap.
 
-## Two Entry Paths
+## Two Phases
 
-### Path 1: Receive a written spec
-Requirements-narrator reads the spec, extracts project documents,
-preserves the full spec as specification.md. No stakeholder interview
-— the spec is the input. (Stakeholder interviews happen outside CLASI,
-in the Claude project or conversation that produces the spec.)
+### Phase 1: Project elicitation (done once)
 
-### Path 2: Existing project, new TODOs
-Spec and architecture already exist. Skip to roadmap planning.
+The stakeholder provides a written specification. The project-manager
+reads it and produces the project documents: overview.md,
+specification.md, usecases.md. The architect produces the initial
+architecture.md. This happens once at the start of a project.
+
+### Phase 2: TODO-driven work (ongoing)
+
+Everything after elicitation runs off TODOs. The stakeholder creates
+TODOs, the project-architect assesses them, the project-manager plans
+them into sprints, and sprints execute. New features, bugs, refactors
+— they all enter as TODOs.
 
 ## Document Hierarchy
 
@@ -49,7 +54,9 @@ Before sprint planning begins, these documents should exist:
 | usecases.md | medium | Numbered UC-NNN scenarios | sprint-planner, technical-lead |
 | architecture.md | medium | Baseline architecture | project-architect, sprint architect |
 
-## Process Flow (Path 1 — new project with spec)
+## Process Flow
+
+### Project elicitation (once)
 
 ```
 1. Stakeholder provides a written specification
@@ -61,29 +68,22 @@ Before sprint planning begins, these documents should exist:
        │
 3. architect produces:
        └── architecture.md (initial baseline)
-       │
-4. project-architect assesses each TODO/feature:
-       └── assessment per TODO (difficulty, scope, dependencies)
-       │
-5. project-manager plans roadmap:
-       ├── reads specification.md + architecture.md + assessments
-       └── produces roadmap sprint.md files (one per sprint)
-       │
-6. Sprint-by-sprint execution:
-       └── sprint-planner → architect → reviewer → technical-lead
-           → sprint-executor → code-monkey
 ```
 
-## Process Flow (Path 3 — new TODOs on existing project)
+### TODO-driven work (repeating)
 
 ```
-1. Stakeholder provides TODOs
+1. Stakeholder creates TODOs
        │
 2. project-architect assesses each TODO
        │
-3. project-manager plans roadmap from assessments
+3. project-manager plans roadmap:
+       ├── reads specification.md + architecture.md + assessments
+       └── produces roadmap sprint.md files
        │
-4. Sprint-by-sprint execution
+4. Sprint-by-sprint execution:
+       └── sprint-planner → architect → reviewer → technical-lead
+           → sprint-executor → code-monkey
 ```
 
 ## New Agents
