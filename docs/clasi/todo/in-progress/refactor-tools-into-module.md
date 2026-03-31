@@ -1,6 +1,8 @@
 ---
 status: in-progress
-sprint: "026"
+sprint: '026'
+tickets:
+- 026-002
 ---
 
 # Refactor MCP Tool Files into a tools/ Module

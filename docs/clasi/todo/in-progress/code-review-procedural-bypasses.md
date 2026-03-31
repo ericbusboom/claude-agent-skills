@@ -1,6 +1,8 @@
 ---
 status: in-progress
-sprint: "026"
+sprint: '026'
+tickets:
+- 026-001
 ---
 
 # Code Review: Procedural Code Bypassing Domain Objects
