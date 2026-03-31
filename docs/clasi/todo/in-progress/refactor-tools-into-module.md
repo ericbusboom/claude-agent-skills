@@ -1,5 +1,6 @@
 ---
-status: pending
+status: in-progress
+sprint: "026"
 ---
 
 # Refactor MCP Tool Files into a tools/ Module
