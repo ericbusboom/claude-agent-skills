@@ -22,9 +22,38 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 logger = logging.getLogger("clasi.dispatch")
+
+
+def _check_delegation_edge(
+    tool_name: str,
+    allowed_callers: frozenset[str],
+) -> None:
+    """Warn if the calling agent is not an allowed caller for this dispatch tool.
+
+    Reads ``CLASI_AGENT_NAME`` from the environment (set by Agent.dispatch()).
+    If the environment variable is not set, defaults to ``"team-lead"`` because
+    interactive sessions run as the team-lead without an explicit env var.
+
+    Emits a WARNING log on violation — does not block the call. Blocking would
+    break interactive sessions where the team-lead doesn't have
+    ``CLASI_AGENT_NAME`` set correctly.
+
+    Args:
+        tool_name: The name of the dispatch tool being called (for logging).
+        allowed_callers: Set of agent names permitted to call this tool.
+    """
+    caller = os.environ.get("CLASI_AGENT_NAME", "team-lead")
+    if caller not in allowed_callers:
+        logger.warning(
+            "DELEGATION VIOLATION: %s called %s (expected one of: %s)",
+            caller,
+            tool_name,
+            sorted(allowed_callers),
+        )
 
 from clasi.mcp_server import server, content_path, get_project
 
@@ -344,6 +373,7 @@ async def dispatch_to_architect(
         sprint_id: The sprint ID for the architecture update
         sprint_directory: Path to the sprint directory
     """
+    _check_delegation_edge("dispatch_to_architect", frozenset({"sprint-planner"}))
     agent = get_project().get_agent("architect")
     prompt = agent.render_prompt(
         sprint_id=sprint_id,
@@ -374,6 +404,9 @@ async def dispatch_to_architecture_reviewer(
         sprint_id: The sprint ID whose architecture to review
         sprint_directory: Path to the sprint directory
     """
+    _check_delegation_edge(
+        "dispatch_to_architecture_reviewer", frozenset({"sprint-planner"})
+    )
     agent = get_project().get_agent("architecture-reviewer")
     prompt = agent.render_prompt(
         sprint_id=sprint_id,
@@ -404,6 +437,7 @@ async def dispatch_to_technical_lead(
         sprint_id: The sprint ID to create tickets for
         sprint_directory: Path to the sprint directory
     """
+    _check_delegation_edge("dispatch_to_technical_lead", frozenset({"sprint-planner"}))
     agent = get_project().get_agent("technical-lead")
     prompt = agent.render_prompt(
         sprint_id=sprint_id,
@@ -440,6 +474,9 @@ async def dispatch_to_code_monkey(
         sprint_name: Sprint name (e.g., '001-feature-name')
         ticket_id: Ticket ID (e.g., '001')
     """
+    _check_delegation_edge(
+        "dispatch_to_code_monkey", frozenset({"sprint-executor", "ad-hoc-executor"})
+    )
     agent = get_project().get_agent("code-monkey")
     prompt = agent.render_prompt(
         ticket_path=ticket_path,
@@ -473,6 +510,7 @@ async def dispatch_to_code_reviewer(
         file_paths: List of file paths to review
         review_scope: Description of what to review and the acceptance criteria
     """
+    _check_delegation_edge("dispatch_to_code_reviewer", frozenset({"ad-hoc-executor"}))
     agent = get_project().get_agent("code-reviewer")
     prompt = agent.render_prompt(
         file_paths=file_paths,
