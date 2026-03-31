@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from claude_agent_skills.artifact_tools import (
+from claude_agent_skills.tools.artifact_tools import (
     read_artifact_frontmatter,
     write_artifact_frontmatter,
 )

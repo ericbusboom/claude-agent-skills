@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.dispatch_tools module."""
+"""Tests for claude_agent_skills.tools.dispatch_tools module."""
 
 import asyncio
 import json
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.dispatch_tools import (
+from claude_agent_skills.tools.dispatch_tools import (
     _dispatch,
     _load_agent_system_prompt,
     _load_jinja2_template,
@@ -130,7 +130,7 @@ def _default_template_patch():
     mock_template = MagicMock()
     mock_template.render.return_value = "test prompt"
     return patch(
-        "claude_agent_skills.dispatch_tools._load_jinja2_template",
+        "claude_agent_skills.tools.dispatch_tools._load_jinja2_template",
         return_value=mock_template,
     )
 
@@ -331,27 +331,27 @@ class TestOldDispatchFunctionsRemoved:
     """Verify old dispatch functions no longer exist in artifact_tools."""
 
     def test_no_dispatch_to_sprint_planner(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_sprint_planner")
 
     def test_no_dispatch_to_sprint_executor(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_sprint_executor")
 
     def test_no_dispatch_to_code_monkey(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_code_monkey")
 
     def test_no_log_subagent_dispatch(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "log_subagent_dispatch")
 
     def test_no_update_dispatch_log(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "update_dispatch_log")
 
     def test_no_load_jinja2_template(self):
-        from claude_agent_skills import artifact_tools
+        from claude_agent_skills.tools import artifact_tools
         assert not hasattr(artifact_tools, "_load_jinja2_template")
 
 

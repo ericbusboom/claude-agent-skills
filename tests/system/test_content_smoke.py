@@ -7,7 +7,7 @@ accessible through the MCP tool functions and content_path resolver.
 import json
 
 from claude_agent_skills.mcp_server import content_path
-from claude_agent_skills.process_tools import (
+from claude_agent_skills.tools.process_tools import (
     list_agents,
     list_skills,
     list_instructions,

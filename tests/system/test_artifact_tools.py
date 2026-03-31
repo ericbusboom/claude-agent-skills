@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.artifact_tools module."""
+"""Tests for claude_agent_skills.tools.artifact_tools module."""
 
 import json
 import os
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.artifact_tools import (
+from claude_agent_skills.tools.artifact_tools import (
     close_sprint,
     create_sprint,
     create_ticket,
@@ -404,7 +404,7 @@ class TestInsertSprint:
 
 class TestCreateOverview:
     def test_creates_overview(self, work_dir):
-        from claude_agent_skills.artifact_tools import create_overview
+        from claude_agent_skills.tools.artifact_tools import create_overview
         result = json.loads(create_overview())
         path = work_dir / "docs" / "clasi" / "overview.md"
         assert path.exists()
@@ -414,7 +414,7 @@ class TestCreateOverview:
         assert "## Sprint Roadmap" in content
 
     def test_rejects_duplicate(self, work_dir):
-        from claude_agent_skills.artifact_tools import create_overview
+        from claude_agent_skills.tools.artifact_tools import create_overview
         create_overview()
         with pytest.raises(ValueError, match="already exists"):
             create_overview()

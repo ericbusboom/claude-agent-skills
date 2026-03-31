@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.artifact_tools import (
+from claude_agent_skills.tools.artifact_tools import (
     _create_github_issue_api,
     _get_github_repo,
     _get_github_token,
@@ -100,7 +100,7 @@ class TestGetGitHubRepo:
         monkeypatch.setenv("GITHUB_REPOSITORY", "  owner/repo  ")
         assert _get_github_repo() == "owner/repo"
 
-    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
     def test_parses_https_remote(self, mock_run, monkeypatch):
         monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
         mock_run.return_value = subprocess.CompletedProcess(
@@ -109,7 +109,7 @@ class TestGetGitHubRepo:
         )
         assert _get_github_repo() == "owner/repo"
 
-    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
     def test_parses_ssh_remote(self, mock_run, monkeypatch):
         monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
         mock_run.return_value = subprocess.CompletedProcess(
@@ -118,7 +118,7 @@ class TestGetGitHubRepo:
         )
         assert _get_github_repo() == "owner/repo"
 
-    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
     def test_returns_none_for_non_github_remote(self, mock_run, monkeypatch):
         monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
         mock_run.return_value = subprocess.CompletedProcess(
@@ -127,13 +127,13 @@ class TestGetGitHubRepo:
         )
         assert _get_github_repo() is None
 
-    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
     def test_returns_none_on_git_failure(self, mock_run, monkeypatch):
         monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
         mock_run.side_effect = subprocess.CalledProcessError(1, "git")
         assert _get_github_repo() is None
 
-    @patch("claude_agent_skills.artifact_tools.subprocess.run")
+    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
     def test_returns_none_on_empty_remote(self, mock_run, monkeypatch):
         monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
         mock_run.return_value = subprocess.CompletedProcess(
@@ -143,7 +143,7 @@ class TestGetGitHubRepo:
 
 
 class TestCreateGitHubIssueApi:
-    @patch("claude_agent_skills.artifact_tools.urllib.request.urlopen")
+    @patch("claude_agent_skills.tools.artifact_tools.urllib.request.urlopen")
     def test_success_returns_parsed_json(self, mock_urlopen):
         response_body = json.dumps({
             "number": 42,
@@ -166,7 +166,7 @@ class TestCreateGitHubIssueApi:
         assert result["number"] == 42
         assert result["title"] == "Test issue"
 
-    @patch("claude_agent_skills.artifact_tools.urllib.request.urlopen")
+    @patch("claude_agent_skills.tools.artifact_tools.urllib.request.urlopen")
     def test_http_error_raises_runtime_error(self, mock_urlopen):
         error = urllib.error.HTTPError(
             url="https://api.github.com/repos/owner/repo/issues",
@@ -186,7 +186,7 @@ class TestCreateGitHubIssueApi:
                 token="ghp_bad",
             )
 
-    @patch("claude_agent_skills.artifact_tools.urllib.request.urlopen")
+    @patch("claude_agent_skills.tools.artifact_tools.urllib.request.urlopen")
     def test_sends_correct_headers(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = b'{"number": 1}'
@@ -207,7 +207,7 @@ class TestCreateGitHubIssueApi:
         assert request.get_header("Accept") == "application/vnd.github+json"
         assert request.get_header("Content-type") == "application/json"
 
-    @patch("claude_agent_skills.artifact_tools.urllib.request.urlopen")
+    @patch("claude_agent_skills.tools.artifact_tools.urllib.request.urlopen")
     def test_includes_labels_in_payload(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = b'{"number": 1}'
@@ -227,7 +227,7 @@ class TestCreateGitHubIssueApi:
         payload = json.loads(request.data)
         assert payload["labels"] == ["bug", "p1"]
 
-    @patch("claude_agent_skills.artifact_tools.urllib.request.urlopen")
+    @patch("claude_agent_skills.tools.artifact_tools.urllib.request.urlopen")
     def test_omits_labels_when_empty(self, mock_urlopen):
         mock_response = MagicMock()
         mock_response.read.return_value = b'{"number": 1}'

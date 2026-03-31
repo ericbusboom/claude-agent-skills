@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from claude_agent_skills.artifact_tools import (
+from claude_agent_skills.tools.artifact_tools import (
     close_sprint,
     create_sprint,
     create_ticket,
