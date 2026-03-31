@@ -29,7 +29,7 @@ def _load_schema() -> dict:
 def _find_contract_path(agent_name: str) -> Path:
     """Find the contract.yaml for a named agent in the agent directory tree.
 
-    Searches the three-tier agent hierarchy under claude_agent_skills/agents/
+    Searches the three-tier agent hierarchy under clasi/agents/
     for a directory matching the agent name containing a contract.yaml file.
 
     Args:

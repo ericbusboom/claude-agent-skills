@@ -14,7 +14,7 @@ Each dispatch tool follows the 7-step pattern:
 7. RETURN   -- structured JSON to caller
 
 All dispatch is now handled by ``Agent.dispatch()`` in
-``claude_agent_skills.agent``. The dispatch tool functions are thin
+``clasi.agent``. The dispatch tool functions are thin
 wrappers that look up the agent, render the prompt, and call dispatch.
 """
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 logger = logging.getLogger("clasi.dispatch")
 
-from claude_agent_skills.mcp_server import server, content_path, get_project
+from clasi.mcp_server import server, content_path, get_project
 
 
 # ---------------------------------------------------------------------------

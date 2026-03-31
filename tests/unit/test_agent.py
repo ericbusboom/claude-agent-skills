@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.agent module."""
+"""Tests for clasi.agent module."""
 
 import asyncio
 import json
@@ -8,15 +8,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.agent import Agent, DomainController, MainController, TaskWorker
-from claude_agent_skills.project import Project
+from clasi.agent import Agent, DomainController, MainController, TaskWorker
+from clasi.project import Project
 
 
 @pytest.fixture(autouse=True)
 def _setup_project(tmp_path, monkeypatch):
     """Set up a Project pointing to tmp_path for each test."""
     monkeypatch.chdir(tmp_path)
-    from claude_agent_skills.mcp_server import set_project
+    from clasi.mcp_server import set_project
     set_project(tmp_path)
 
 
@@ -283,7 +283,7 @@ class TestAgentDispatch:
         log_written = False
         query_called = False
 
-        from claude_agent_skills.dispatch_log import log_dispatch as _orig_log
+        from clasi.dispatch_log import log_dispatch as _orig_log
 
         def tracking_log_dispatch(**kwargs):
             nonlocal log_written
@@ -303,7 +303,7 @@ class TestAgentDispatch:
 
         with patch.dict(sys.modules, {"claude_agent_sdk": mock_sdk}):
             with patch(
-                "claude_agent_skills.dispatch_log.log_dispatch",
+                "clasi.dispatch_log.log_dispatch",
                 side_effect=tracking_log_dispatch,
             ):
                 asyncio.run(agent.dispatch(
@@ -461,7 +461,7 @@ class TestAgentDispatch:
         agent = project.get_agent("code-monkey")
 
         post_log_called = False
-        from claude_agent_skills.dispatch_log import update_dispatch_result as _orig
+        from clasi.dispatch_log import update_dispatch_result as _orig
 
         def tracking_update(log_path, result, files_modified=None, response=None):
             nonlocal post_log_called
@@ -477,7 +477,7 @@ class TestAgentDispatch:
 
         with patch.dict(sys.modules, {"claude_agent_sdk": mock_sdk}):
             with patch(
-                "claude_agent_skills.dispatch_log.update_dispatch_result",
+                "clasi.dispatch_log.update_dispatch_result",
                 side_effect=tracking_update,
             ):
                 asyncio.run(agent.dispatch(

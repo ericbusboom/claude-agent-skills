@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-from claude_agent_skills.artifact import Artifact
+from clasi.artifact import Artifact
 
 if TYPE_CHECKING:
-    from claude_agent_skills.project import Project
+    from clasi.project import Project
 
 
 class Todo:

@@ -46,7 +46,7 @@ def main() -> None:
     db_path = Path("docs/clasi/.clasi.db")
     if db_path.exists():
         try:
-            from claude_agent_skills.state_db import get_recovery_state
+            from clasi.state_db import get_recovery_state
 
             recovery = get_recovery_state(str(db_path))
             if recovery and file_path in recovery["allowed_paths"]:

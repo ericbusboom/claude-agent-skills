@@ -1,4 +1,4 @@
-"""Unit tests for claude_agent_skills.versioning module."""
+"""Unit tests for clasi.versioning module."""
 
 import json
 from datetime import date
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.versioning import (
+from clasi.versioning import (
     DEFAULT_FORMAT,
     DEFAULT_TRIGGER,
     VERSION_PATTERN,
@@ -217,50 +217,50 @@ class TestLoadVersionFormat:
 
 
 class TestComputeNextVersion:
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
-    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
+    @patch("clasi.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
+    @patch("clasi.versioning._get_existing_tags")
+    @patch("clasi.versioning.date", _mock_today(2026, 2, 10))
     def test_first_version_of_day(self, mock_tags, _mock_fmt):
         mock_tags.return_value = []
         assert compute_next_version() == "0.20260210.1"
 
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
-    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
+    @patch("clasi.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
+    @patch("clasi.versioning._get_existing_tags")
+    @patch("clasi.versioning.date", _mock_today(2026, 2, 10))
     def test_increments_build(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260210.1", "v0.20260210.2"]
         assert compute_next_version() == "0.20260210.3"
 
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
-    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 11))
+    @patch("clasi.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
+    @patch("clasi.versioning._get_existing_tags")
+    @patch("clasi.versioning.date", _mock_today(2026, 2, 11))
     def test_resets_on_new_date(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260210.5"]
         assert compute_next_version() == "0.20260211.1"
 
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
-    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
+    @patch("clasi.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
+    @patch("clasi.versioning._get_existing_tags")
+    @patch("clasi.versioning.date", _mock_today(2026, 2, 10))
     def test_respects_major(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260210.3", "v1.20260210.1"]
         assert compute_next_version(major=1) == "1.20260210.2"
 
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
-    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 2, 10))
+    @patch("clasi.versioning.load_version_format", return_value="X+.YYYYMMDD.R+")
+    @patch("clasi.versioning._get_existing_tags")
+    @patch("clasi.versioning.date", _mock_today(2026, 2, 10))
     def test_ignores_non_matching_tags(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["release-1.0", "v0.2.0", "v0.20260210.1"]
         assert compute_next_version() == "0.20260210.2"
 
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.YYYYMMDD.0RRR")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
-    @patch("claude_agent_skills.versioning.date", _mock_today(2026, 3, 19))
+    @patch("clasi.versioning.load_version_format", return_value="X+.YYYYMMDD.0RRR")
+    @patch("clasi.versioning._get_existing_tags")
+    @patch("clasi.versioning.date", _mock_today(2026, 3, 19))
     def test_zero_padded_rev(self, mock_tags, _mock_fmt):
         mock_tags.return_value = ["v0.20260319.002"]
         assert compute_next_version() == "0.20260319.003"
 
-    @patch("claude_agent_skills.versioning.load_version_format", return_value="X+.X+.X+")
-    @patch("claude_agent_skills.versioning._get_existing_tags")
+    @patch("clasi.versioning.load_version_format", return_value="X+.X+.X+")
+    @patch("clasi.versioning._get_existing_tags")
     def test_fully_manual_format(self, mock_tags, _mock_fmt):
         mock_tags.return_value = []
         result = compute_next_version(major=1)
@@ -364,7 +364,7 @@ class TestUpdateVersionFile:
 
 
 class TestCreateVersionTag:
-    @patch("claude_agent_skills.versioning.subprocess")
+    @patch("clasi.versioning.subprocess")
     def test_creates_tag(self, mock_subprocess):
         mock_subprocess.run.return_value.returncode = 0
 
@@ -377,7 +377,7 @@ class TestCreateVersionTag:
             check=False,
         )
 
-    @patch("claude_agent_skills.versioning.subprocess")
+    @patch("clasi.versioning.subprocess")
     def test_raises_on_failure(self, mock_subprocess):
         mock_subprocess.run.return_value.returncode = 1
         mock_subprocess.run.return_value.stderr = "tag already exists"

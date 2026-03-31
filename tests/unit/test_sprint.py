@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from claude_agent_skills.artifact import Artifact
-from claude_agent_skills.project import Project
-from claude_agent_skills.sprint import Sprint
+from clasi.artifact import Artifact
+from clasi.project import Project
+from clasi.sprint import Sprint
 
 
 def _make_sprint_dir(tmp_path, sprint_id="001", title="Test Sprint", slug="test-sprint"):

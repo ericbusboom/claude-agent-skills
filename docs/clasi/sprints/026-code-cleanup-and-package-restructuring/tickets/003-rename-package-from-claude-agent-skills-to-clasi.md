@@ -1,7 +1,7 @@
 ---
 id: '003'
 title: Rename package from claude_agent_skills to clasi
-status: todo
+status: in-progress
 use-cases: []
 depends-on: []
 github-issue: ''

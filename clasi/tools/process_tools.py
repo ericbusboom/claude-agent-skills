@@ -7,9 +7,9 @@ from the installed package.
 import json
 from pathlib import Path
 
-from claude_agent_skills import __version__
-from claude_agent_skills.frontmatter import read_document
-from claude_agent_skills.mcp_server import server, content_path, get_project
+from clasi import __version__
+from clasi.frontmatter import read_document
+from clasi.mcp_server import server, content_path, get_project
 
 
 def _list_definitions(directory: Path) -> list[dict[str, str]]:
@@ -128,7 +128,7 @@ def _get_definition(directory: Path, name: str) -> str:
     )
 
 
-_SE_OVERVIEW_TEMPLATE_PATH = Path(__file__).parent / "se-overview-template.md"
+_SE_OVERVIEW_TEMPLATE_PATH = Path(__file__).parent.parent / "se-overview-template.md"
 
 
 @server.tool()
@@ -461,7 +461,7 @@ def get_use_case_coverage() -> str:
             if not sprint_file.exists():
                 continue
 
-            from claude_agent_skills.frontmatter import read_frontmatter
+            from clasi.frontmatter import read_frontmatter
             sprint_fm = read_frontmatter(sprint_file)
             sprint_id = sprint_fm.get("id", "")
             sprint_status = sprint_fm.get("status", "unknown")

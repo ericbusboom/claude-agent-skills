@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from claude_agent_skills.frontmatter import (
+from clasi.frontmatter import (
     read_document as _read_document,
     read_frontmatter as _read_frontmatter,
     write_frontmatter as _write_frontmatter,

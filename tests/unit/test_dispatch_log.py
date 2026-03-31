@@ -1,17 +1,17 @@
-"""Tests for claude_agent_skills.dispatch_log module."""
+"""Tests for clasi.dispatch_log module."""
 
 import pytest
 from pathlib import Path
 
-from claude_agent_skills.dispatch_log import (
+from clasi.dispatch_log import (
     _auto_context_documents,
     _log_dir,
     _next_sequence,
     log_dispatch,
     update_dispatch_result,
 )
-from claude_agent_skills.frontmatter import read_document
-from claude_agent_skills.mcp_server import set_project
+from clasi.frontmatter import read_document
+from clasi.mcp_server import set_project
 
 
 @pytest.fixture(autouse=True)
@@ -63,7 +63,7 @@ class TestLogDispatch:
         path = log_dispatch(
             parent="sprint-executor",
             child="code-monkey",
-            scope="claude_agent_skills/",
+            scope="clasi/",
             prompt="Implement the widget.",
             sprint_name="001-my-sprint",
             ticket_id="001",
@@ -73,7 +73,7 @@ class TestLogDispatch:
         fm, body = read_document(path)
         assert fm["parent"] == "sprint-executor"
         assert fm["child"] == "code-monkey"
-        assert fm["scope"] == "claude_agent_skills/"
+        assert fm["scope"] == "clasi/"
         assert fm["sprint"] == "001-my-sprint"
         assert fm["ticket"] == "001"
         assert "timestamp" in fm
@@ -556,7 +556,7 @@ class TestTemplateEnforcementRemoved:
 
     def test_templated_agents_constant_removed(self):
         """TEMPLATED_AGENTS set no longer exists in dispatch_log module."""
-        import claude_agent_skills.dispatch_log as dl
+        import clasi.dispatch_log as dl
         assert not hasattr(dl, "TEMPLATED_AGENTS")
 
     def test_dispatch_to_non_templated_agent_without_template_succeeds(self, tmp_path):
@@ -577,7 +577,7 @@ class TestTypedDispatchToolsMigrated:
     """Verify old typed dispatch tools moved to dispatch_tools module."""
 
     def test_old_dispatch_tools_removed_from_artifact_tools(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_sprint_planner")
         assert not hasattr(artifact_tools, "dispatch_to_sprint_executor")
         assert not hasattr(artifact_tools, "dispatch_to_code_monkey")
@@ -586,13 +586,13 @@ class TestTypedDispatchToolsMigrated:
 
     def test_get_dispatch_template_tool_removed(self):
         """The old get_dispatch_template tool no longer exists."""
-        from claude_agent_skills.mcp_server import server
+        from clasi.mcp_server import server
         tools = server._tool_manager._tools
         assert "get_dispatch_template" not in tools
 
     def test_new_dispatch_tools_exist(self):
         """New dispatch tools are importable from dispatch_tools."""
-        from claude_agent_skills.tools.dispatch_tools import (
+        from clasi.tools.dispatch_tools import (
             dispatch_to_sprint_planner,
             dispatch_to_sprint_executor,
             dispatch_to_code_monkey,

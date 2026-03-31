@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.hooks.role_guard module."""
+"""Tests for clasi.hooks.role_guard module."""
 
 import json
 import os
@@ -9,11 +9,11 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from claude_agent_skills.hooks.role_guard import main, SAFE_PREFIXES
+from clasi.hooks.role_guard import main, SAFE_PREFIXES
 
 _ROLE_GUARD_SCRIPT = str(
     Path(__file__).resolve().parents[2]
-    / "claude_agent_skills"
+    / "clasi"
     / "hooks"
     / "role_guard.py"
 )
@@ -52,7 +52,7 @@ class TestRoleGuardBlocking:
 
     def test_blocks_write_to_source_code(self, tmp_path):
         result = _run_role_guard(
-            {"file_path": "claude_agent_skills/foo.py"},
+            {"file_path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 1
@@ -113,14 +113,14 @@ class TestRoleGuardOOPBypass:
     def test_allows_write_when_oop_flag_exists(self, tmp_path):
         (tmp_path / ".clasi-oop").touch()
         result = _run_role_guard(
-            {"file_path": "claude_agent_skills/foo.py"},
+            {"file_path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 0
 
     def test_blocks_write_when_oop_flag_absent(self, tmp_path):
         result = _run_role_guard(
-            {"file_path": "claude_agent_skills/foo.py"},
+            {"file_path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 1
@@ -135,7 +135,7 @@ class TestRoleGuardRecoveryState:
         db_dir.mkdir(parents=True)
         db_path = db_dir / ".clasi.db"
 
-        from claude_agent_skills.state_db import write_recovery_state
+        from clasi.state_db import write_recovery_state
 
         write_recovery_state(
             db_path=str(db_path),
@@ -156,7 +156,7 @@ class TestRoleGuardRecoveryState:
         db_dir.mkdir(parents=True)
         db_path = db_dir / ".clasi.db"
 
-        from claude_agent_skills.state_db import write_recovery_state
+        from clasi.state_db import write_recovery_state
 
         write_recovery_state(
             db_path=str(db_path),
@@ -167,7 +167,7 @@ class TestRoleGuardRecoveryState:
         )
 
         result = _run_role_guard(
-            {"file_path": "claude_agent_skills/foo.py"},
+            {"file_path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 1
@@ -175,7 +175,7 @@ class TestRoleGuardRecoveryState:
     def test_handles_missing_state_db_gracefully(self, tmp_path):
         # No DB exists -- should still block non-safe paths without crashing
         result = _run_role_guard(
-            {"file_path": "claude_agent_skills/foo.py"},
+            {"file_path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 1
@@ -194,14 +194,14 @@ class TestRoleGuardEdgeCases:
 
     def test_extracts_path_from_path_key(self, tmp_path):
         result = _run_role_guard(
-            {"path": "claude_agent_skills/foo.py"},
+            {"path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 1
 
     def test_extracts_path_from_new_path_key(self, tmp_path):
         result = _run_role_guard(
-            {"new_path": "claude_agent_skills/foo.py"},
+            {"new_path": "clasi/foo.py"},
             cwd=str(tmp_path),
         )
         assert result.returncode == 1

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_agent_skills.tools.artifact_tools import (
+from clasi.tools.artifact_tools import (
     create_sprint,
     create_ticket,
     move_ticket_to_done,
@@ -16,9 +16,9 @@ from claude_agent_skills.tools.artifact_tools import (
     review_sprint_pre_execution,
     update_ticket_status,
 )
-from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
-from claude_agent_skills.mcp_server import set_project
-from claude_agent_skills.state_db import (
+from clasi.frontmatter import read_frontmatter, write_frontmatter
+from clasi.mcp_server import set_project
+from clasi.state_db import (
     acquire_lock,
     advance_phase,
     record_gate,
@@ -167,7 +167,7 @@ class TestReviewSprintPreExecution:
                          if "ticket" in i["check"]]
         assert len(ticket_issues) >= 1
 
-    @patch("claude_agent_skills.tools.artifact_tools._check_git_branch")
+    @patch("clasi.tools.artifact_tools._check_git_branch")
     def test_wrong_branch_detected(self, mock_branch, work_dir):
         """Being on the wrong branch is flagged."""
         mock_branch.return_value = "master"
@@ -260,7 +260,7 @@ class TestReviewSprintPostClose:
         """Sprint still in active directory is flagged."""
         _make_sprint_ready_for_execution(work_dir)
 
-        with patch("claude_agent_skills.tools.artifact_tools._check_git_branch",
+        with patch("clasi.tools.artifact_tools._check_git_branch",
                     return_value="master"):
             result = json.loads(review_sprint_post_close("001"))
 
@@ -269,7 +269,7 @@ class TestReviewSprintPostClose:
                           if i["check"] == "sprint_archived"]
         assert len(archive_issues) == 1
 
-    @patch("claude_agent_skills.tools.artifact_tools._check_git_branch")
+    @patch("clasi.tools.artifact_tools._check_git_branch")
     def test_wrong_branch_detected(self, mock_branch, work_dir):
         """Not being on master/main is flagged."""
         mock_branch.return_value = "sprint/001-test"
@@ -281,7 +281,7 @@ class TestReviewSprintPostClose:
                          if i["check"] == "on_main_branch"]
         assert len(branch_issues) == 1
 
-    @patch("claude_agent_skills.tools.artifact_tools._check_git_branch")
+    @patch("clasi.tools.artifact_tools._check_git_branch")
     def test_happy_path_archived_sprint(self, mock_branch, work_dir):
         """A properly archived sprint passes post-close review."""
         mock_branch.return_value = "master"
@@ -308,7 +308,7 @@ class TestReviewSprintPostClose:
         """Sprint not found anywhere is flagged."""
         (work_dir / "docs" / "clasi" / "sprints").mkdir(parents=True)
 
-        with patch("claude_agent_skills.tools.artifact_tools._check_git_branch",
+        with patch("clasi.tools.artifact_tools._check_git_branch",
                     return_value="master"):
             result = json.loads(review_sprint_post_close("999"))
 
@@ -321,8 +321,8 @@ class TestTemplatePlaceholderDetection:
 
     def test_template_content_detected(self, work_dir):
         """File with template content is detected as placeholder."""
-        from claude_agent_skills.tools.artifact_tools import _is_template_placeholder
-        from claude_agent_skills.templates import SPRINT_TEMPLATE
+        from clasi.tools.artifact_tools import _is_template_placeholder
+        from clasi.templates import SPRINT_TEMPLATE
 
         create_sprint("Test Sprint")
         sprint_dir = work_dir / "docs" / "clasi" / "sprints" / "001-test-sprint"
@@ -332,8 +332,8 @@ class TestTemplatePlaceholderDetection:
 
     def test_real_content_not_detected(self, work_dir):
         """File with real content is not detected as placeholder."""
-        from claude_agent_skills.tools.artifact_tools import _is_template_placeholder
-        from claude_agent_skills.templates import SPRINT_TEMPLATE
+        from clasi.tools.artifact_tools import _is_template_placeholder
+        from clasi.templates import SPRINT_TEMPLATE
 
         # Create a file with real content
         f = work_dir / "test.md"

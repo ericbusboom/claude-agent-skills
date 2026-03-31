@@ -1,10 +1,10 @@
-"""Tests for claude_agent_skills.init_command module."""
+"""Tests for clasi.init_command module."""
 
 import json
 
 import pytest
 
-from claude_agent_skills.init_command import (
+from clasi.init_command import (
     run_init,
     MCP_CONFIG,
     HOOKS_CONFIG,

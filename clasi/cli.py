@@ -29,7 +29,7 @@ def init(target):
     Writes instruction files and configures the MCP server in the target
     directory (defaults to current directory).
     """
-    from claude_agent_skills.init_command import run_init
+    from clasi.init_command import run_init
 
     run_init(target)
 
@@ -44,7 +44,7 @@ def todo_split(todo_dir):
     """
     from pathlib import Path
 
-    from claude_agent_skills.todo_split import split_todo_files
+    from clasi.todo_split import split_todo_files
 
     actions = split_todo_files(Path(todo_dir))
     if actions:
@@ -63,7 +63,7 @@ def version(ctx):
     With no subcommand, shows the current version.
     """
     if ctx.invoked_subcommand is None:
-        from claude_agent_skills.versioning import read_current_version
+        from clasi.versioning import read_current_version
 
         ver = read_current_version()
         if ver:
@@ -82,7 +82,7 @@ def version_bump(major, no_tag):
     Reads version_format from settings to determine the format.
     Updates the source file and all sync files, then creates a git tag.
     """
-    from claude_agent_skills.versioning import bump_version
+    from clasi.versioning import bump_version
 
     result = bump_version(major=major, tag=not no_tag)
     click.echo(f"Version: {result['version']}")
@@ -97,6 +97,6 @@ def version_bump(major, no_tag):
 @cli.command()
 def mcp():
     """Run the CLASI MCP server (stdio transport)."""
-    from claude_agent_skills.mcp_server import run_server
+    from clasi.mcp_server import run_server
 
     run_server()

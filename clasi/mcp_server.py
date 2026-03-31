@@ -13,7 +13,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from claude_agent_skills.project import Project
+from clasi.project import Project
 
 # ---------------------------------------------------------------------------
 # Project singleton — all path resolution flows through here
@@ -95,9 +95,9 @@ def content_path(*parts: str) -> Path:
     """Resolve a relative content path to an absolute path inside the package.
 
     Examples:
-        content_path("agents")                       → .../claude_agent_skills/agents/
-        content_path("agents", "technical-lead.md")   → .../claude_agent_skills/agents/technical-lead.md
-        content_path("instructions", "languages")     → .../claude_agent_skills/instructions/languages/
+        content_path("agents")                       → .../clasi/agents/
+        content_path("agents", "technical-lead.md")   → .../clasi/agents/technical-lead.md
+        content_path("instructions", "languages")     → .../clasi/instructions/languages/
     """
     return _CONTENT_ROOT.joinpath(*parts)
 
@@ -115,9 +115,9 @@ def run_server() -> None:
     logger.info("  log_file: %s", project.log_dir / "mcp-server.log")
 
     # Import tool modules to register their tools with the server
-    import claude_agent_skills.tools.process_tools  # noqa: F401
-    import claude_agent_skills.tools.artifact_tools  # noqa: F401
-    import claude_agent_skills.tools.dispatch_tools  # noqa: F401
+    import clasi.tools.process_tools  # noqa: F401
+    import clasi.tools.artifact_tools  # noqa: F401
+    import clasi.tools.dispatch_tools  # noqa: F401
 
     tool_names = sorted(server._tool_manager._tools.keys())
     logger.info("  tools registered: %d", len(tool_names))

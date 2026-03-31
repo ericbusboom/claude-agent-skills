@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_agent_skills.tools.artifact_tools import (
+from clasi.tools.artifact_tools import (
     _check_gh_access,
     close_github_issue,
     list_github_issues,
@@ -16,7 +16,7 @@ from claude_agent_skills.tools.artifact_tools import (
 class TestCheckGhAccess:
     """Tests for _check_gh_access helper."""
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
     def test_success_returns_true_and_repo(self, mock_run):
         mock_run.return_value = subprocess.CompletedProcess(
             args=[], returncode=0, stdout='[{"number":1}]',
@@ -32,7 +32,7 @@ class TestCheckGhAccess:
             check=True,
         )
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
     def test_auth_failure_returns_false(self, mock_run):
         mock_run.side_effect = subprocess.CalledProcessError(
             1, "gh", stderr="auth required",
@@ -42,7 +42,7 @@ class TestCheckGhAccess:
         assert "Cannot access issues for owner/repo" in result
         assert "gh auth login" in result
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
     def test_missing_gh_binary_returns_false(self, mock_run):
         mock_run.side_effect = FileNotFoundError("No such file or directory: 'gh'")
         ok, result = _check_gh_access("owner/repo")
@@ -50,15 +50,15 @@ class TestCheckGhAccess:
         assert "gh CLI not found" in result
         assert "https://cli.github.com/" in result
 
-    @patch("claude_agent_skills.tools.artifact_tools._get_github_repo")
+    @patch("clasi.tools.artifact_tools._get_github_repo")
     def test_no_repo_returns_false(self, mock_get_repo):
         mock_get_repo.return_value = None
         ok, result = _check_gh_access(None)
         assert ok is False
         assert "Could not determine repository" in result
 
-    @patch("claude_agent_skills.tools.artifact_tools._get_github_repo")
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._get_github_repo")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
     def test_resolves_repo_when_none(self, mock_run, mock_get_repo):
         mock_get_repo.return_value = "auto/detected"
         mock_run.return_value = subprocess.CompletedProcess(
@@ -73,8 +73,8 @@ class TestCheckGhAccess:
 class TestListGithubIssues:
     """Tests for list_github_issues MCP tool."""
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_success_returns_json(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")
@@ -93,8 +93,8 @@ class TestListGithubIssues:
         assert result[0]["number"] == 1
         assert result[1]["title"] == "Feature"
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_with_labels_adds_flag(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")
@@ -107,7 +107,7 @@ class TestListGithubIssues:
         label_idx = cmd.index("--label")
         assert cmd[label_idx + 1] == "bug,enhancement"
 
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_access_failure_returns_error(self, mock_check, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (False, "Cannot access issues for owner/repo. Run `gh auth login` or check `gh auth status`.")
@@ -120,8 +120,8 @@ class TestListGithubIssues:
         result = json.loads(list_github_issues(repo="owner/repo"))
         assert result == []
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_without_labels_omits_flag(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")
@@ -132,8 +132,8 @@ class TestListGithubIssues:
         cmd = mock_run.call_args[0][0]
         assert "--label" not in cmd
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_custom_state_and_limit(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")
@@ -149,8 +149,8 @@ class TestListGithubIssues:
         limit_idx = cmd.index("--limit")
         assert cmd[limit_idx + 1] == "10"
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_subprocess_failure_returns_error(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")
@@ -165,8 +165,8 @@ class TestListGithubIssues:
 class TestCloseGithubIssue:
     """Tests for close_github_issue MCP tool."""
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_close_success(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")
@@ -195,7 +195,7 @@ class TestCloseGithubIssue:
         assert result["closed"] is False
         assert "positive integer" in result["error"]
 
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_close_access_failure(self, mock_check, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (False, "Cannot access issues for owner/repo. Run `gh auth login` or check `gh auth status`.")
@@ -203,8 +203,8 @@ class TestCloseGithubIssue:
         assert result["closed"] is False
         assert "Cannot access issues" in result["error"]
 
-    @patch("claude_agent_skills.tools.artifact_tools.subprocess.run")
-    @patch("claude_agent_skills.tools.artifact_tools._check_gh_access")
+    @patch("clasi.tools.artifact_tools.subprocess.run")
+    @patch("clasi.tools.artifact_tools._check_gh_access")
     def test_close_subprocess_failure(self, mock_check, mock_run, monkeypatch):
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
         mock_check.return_value = (True, "owner/repo")

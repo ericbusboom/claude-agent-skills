@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.tools.dispatch_tools module."""
+"""Tests for clasi.tools.dispatch_tools module."""
 
 import asyncio
 import json
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.tools.dispatch_tools import (
+from clasi.tools.dispatch_tools import (
     _dispatch,
     _load_agent_system_prompt,
     _load_jinja2_template,
@@ -112,7 +112,7 @@ class TestLoadAgentSystemPrompt:
 def _chdir_to_tmp(tmp_path, monkeypatch):
     """Ensure every test runs with cwd set to tmp_path."""
     monkeypatch.chdir(tmp_path)
-    from claude_agent_skills.mcp_server import set_project
+    from clasi.mcp_server import set_project
     set_project(tmp_path)
 
 
@@ -130,7 +130,7 @@ def _default_template_patch():
     mock_template = MagicMock()
     mock_template.render.return_value = "test prompt"
     return patch(
-        "claude_agent_skills.tools.dispatch_tools._load_jinja2_template",
+        "clasi.tools.dispatch_tools._load_jinja2_template",
         return_value=mock_template,
     )
 
@@ -167,7 +167,7 @@ class TestDispatchHelper:
         query_called = False
 
         original_log_dispatch = None
-        from claude_agent_skills.dispatch_log import log_dispatch as _orig_log
+        from clasi.dispatch_log import log_dispatch as _orig_log
 
         def tracking_log_dispatch(**kwargs):
             nonlocal log_written
@@ -188,7 +188,7 @@ class TestDispatchHelper:
         with patch.dict(sys.modules, {"claude_agent_sdk": mock_sdk}):
             with _default_template_patch():
                 with patch(
-                    "claude_agent_skills.dispatch_log.log_dispatch",
+                    "clasi.dispatch_log.log_dispatch",
                     side_effect=tracking_log_dispatch,
                 ):
                     result = asyncio.run(_dispatch(
@@ -206,7 +206,7 @@ class TestDispatchHelper:
     def test_contract_loaded_for_correct_agent(self, tmp_path):
         """Verify the contract is loaded for the target agent."""
         loaded_agent = None
-        from claude_agent_skills.contracts import load_contract as _orig_load
+        from clasi.contracts import load_contract as _orig_load
 
         def tracking_load_contract(agent_name):
             nonlocal loaded_agent
@@ -218,7 +218,7 @@ class TestDispatchHelper:
         with patch.dict(sys.modules, {"claude_agent_sdk": mock_sdk}):
             with _default_template_patch():
                 with patch(
-                    "claude_agent_skills.contracts.load_contract",
+                    "clasi.contracts.load_contract",
                     side_effect=tracking_load_contract,
                 ):
                     asyncio.run(_dispatch(
@@ -297,7 +297,7 @@ class TestDispatchHelper:
     def test_post_log_written_after_query(self, tmp_path):
         """Verify post-execution log is written after query() completes."""
         post_log_called = False
-        from claude_agent_skills.dispatch_log import update_dispatch_result as _orig_update
+        from clasi.dispatch_log import update_dispatch_result as _orig_update
 
         def tracking_update(log_path, result, files_modified=None, response=None):
             nonlocal post_log_called
@@ -314,7 +314,7 @@ class TestDispatchHelper:
         with patch.dict(sys.modules, {"claude_agent_sdk": mock_sdk}):
             with _default_template_patch():
                 with patch(
-                    "claude_agent_skills.dispatch_log.update_dispatch_result",
+                    "clasi.dispatch_log.update_dispatch_result",
                     side_effect=tracking_update,
                 ):
                     asyncio.run(_dispatch(
@@ -331,27 +331,27 @@ class TestOldDispatchFunctionsRemoved:
     """Verify old dispatch functions no longer exist in artifact_tools."""
 
     def test_no_dispatch_to_sprint_planner(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_sprint_planner")
 
     def test_no_dispatch_to_sprint_executor(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_sprint_executor")
 
     def test_no_dispatch_to_code_monkey(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "dispatch_to_code_monkey")
 
     def test_no_log_subagent_dispatch(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "log_subagent_dispatch")
 
     def test_no_update_dispatch_log(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "update_dispatch_log")
 
     def test_no_load_jinja2_template(self):
-        from claude_agent_skills.tools import artifact_tools
+        from clasi.tools import artifact_tools
         assert not hasattr(artifact_tools, "_load_jinja2_template")
 
 
@@ -436,14 +436,14 @@ class TestSprintPlannerContractModes:
     """Tests for mode-specific outputs and returns in the sprint-planner contract."""
 
     def test_contract_has_mode_specific_outputs(self):
-        from claude_agent_skills.contracts import load_contract
+        from clasi.contracts import load_contract
         contract = load_contract("sprint-planner")
         outputs = contract["outputs"]
         assert "roadmap" in outputs, "Contract should have roadmap outputs"
         assert "detail" in outputs, "Contract should have detail outputs"
 
     def test_roadmap_outputs_only_sprint_md(self):
-        from claude_agent_skills.contracts import load_contract
+        from clasi.contracts import load_contract
         contract = load_contract("sprint-planner")
         roadmap_required = contract["outputs"]["roadmap"]["required"]
         paths = [o["path"] for o in roadmap_required]
@@ -451,7 +451,7 @@ class TestSprintPlannerContractModes:
         assert len(paths) == 1, "Roadmap should only require sprint.md"
 
     def test_detail_outputs_include_full_artifacts(self):
-        from claude_agent_skills.contracts import load_contract
+        from clasi.contracts import load_contract
         contract = load_contract("sprint-planner")
         detail_required = contract["outputs"]["detail"]["required"]
         paths = [o["path"] for o in detail_required]
@@ -461,21 +461,21 @@ class TestSprintPlannerContractModes:
         assert "tickets/*.md" in paths
 
     def test_contract_has_mode_specific_returns(self):
-        from claude_agent_skills.contracts import load_contract
+        from clasi.contracts import load_contract
         contract = load_contract("sprint-planner")
         returns = contract["returns"]
         assert "roadmap" in returns, "Contract should have roadmap return schema"
         assert "detail" in returns, "Contract should have detail return schema"
 
     def test_roadmap_return_schema(self):
-        from claude_agent_skills.contracts import load_contract
+        from clasi.contracts import load_contract
         contract = load_contract("sprint-planner")
         roadmap_returns = contract["returns"]["roadmap"]
         assert "sprint_file" in roadmap_returns["required"]
         assert "status" in roadmap_returns["required"]
 
     def test_detail_return_schema(self):
-        from claude_agent_skills.contracts import load_contract
+        from clasi.contracts import load_contract
         contract = load_contract("sprint-planner")
         detail_returns = contract["returns"]["detail"]
         assert "files_created" in detail_returns["required"]
@@ -483,7 +483,7 @@ class TestSprintPlannerContractModes:
 
     def test_validate_return_uses_roadmap_schema(self, tmp_path):
         """validate_return with mode='roadmap' uses roadmap return schema."""
-        from claude_agent_skills.contracts import load_contract, validate_return
+        from clasi.contracts import load_contract, validate_return
         contract = load_contract("sprint-planner")
 
         # Create sprint.md in tmp_path
@@ -499,7 +499,7 @@ class TestSprintPlannerContractModes:
 
     def test_validate_return_uses_detail_schema(self, tmp_path):
         """validate_return with mode='detail' uses detail return schema."""
-        from claude_agent_skills.contracts import load_contract, validate_return
+        from clasi.contracts import load_contract, validate_return
         contract = load_contract("sprint-planner")
 
         # Create required files
@@ -526,7 +526,7 @@ class TestSprintPlannerContractModes:
 
     def test_validate_return_roadmap_rejects_missing_field(self, tmp_path):
         """validate_return with mode='roadmap' rejects result missing sprint_file."""
-        from claude_agent_skills.contracts import load_contract, validate_return
+        from clasi.contracts import load_contract, validate_return
         contract = load_contract("sprint-planner")
 
         (tmp_path / "sprint.md").write_text("---\nstatus: roadmap\n---\n# Test")
@@ -542,7 +542,7 @@ class TestSprintPlannerContractModes:
 
     def test_validate_return_detail_reports_missing_files(self, tmp_path):
         """validate_return with mode='detail' reports missing output files."""
-        from claude_agent_skills.contracts import load_contract, validate_return
+        from clasi.contracts import load_contract, validate_return
         contract = load_contract("sprint-planner")
 
         # Only create sprint.md, not the others
