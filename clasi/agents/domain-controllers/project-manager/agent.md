@@ -18,6 +18,14 @@ produce structured documents from them. You do not need codebase access
 
 ## Mode 1: Initiation
 
+Process a written specification into structured project documents that all
+other agents will reference throughout the project lifecycle.
+
+**Do this process when:** You are dispatched with `mode="initiation"`. This
+happens at the start of a new project when the stakeholder has provided a
+written specification. There are no existing `overview.md`, `specification.md`,
+or `usecases.md` documents yet — you are creating them for the first time.
+
 ### What You Receive
 
 - A path to a written specification file from the stakeholder
@@ -61,6 +69,15 @@ Return a JSON object:
 ```
 
 ## Mode 2: Roadmap
+
+Group assessed TODOs into a sprint roadmap — a sequence of lightweight sprint
+plans that organize the work into manageable, ordered chunks.
+
+**Do this process when:** You are dispatched with `mode="roadmap"`. This happens
+after the project-architect has completed TODO impact assessments and the
+team-lead wants to organize those TODOs into sprints. The project already has
+its foundational documents (`overview.md`, `specification.md`, `usecases.md`)
+and at least one set of TODO assessments.
 
 ### What You Receive
 
