@@ -155,3 +155,27 @@ with string-converted paths.
 6. **Issues 14, 15, 16, 20, 21** (direct reads) — Sprint/Ticket objects
    should be constructed once and queried
 7. **Issues 5, 6, 17, 22** — lower risk cleanup
+
+## Inline Review Comments (#REVIEW)
+
+**Issue 25: `project.py` line 125 — sprint directory creation not idempotent**
+- Comment: "create an idempotent mkdir called to create these dirs"
+- `create_sprint` creates sprint_dir, tickets/, tickets/done/ with
+  separate mkdir calls. Should be a single idempotent helper.
+
+**Issue 26: `agent.py` line 374 — tier should be a class variable**
+- Comment: "How about class variables instead?"
+- MainController, DomainController, TaskWorker each have a `@property`
+  for `tier` that returns a constant. Should be `tier = 0`, `tier = 1`,
+  `tier = 2` as class variables.
+
+**Issue 27: `versioning.py` lines 27–28 — file too large and incohesive**
+- Comment: "This file seems too large and incohesive. Are there
+  functions here that should be somewhere else?"
+- versioning.py is 500+ lines. May contain logic that belongs in
+  other modules.
+
+**Issue 28: `frontmatter.py` line 18 — should use python-frontmatter**
+- Comment: "this should be using the python frontmatter module"
+- Hand-rolled YAML frontmatter parsing instead of using the
+  `python-frontmatter` package which handles edge cases.
