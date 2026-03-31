@@ -24,6 +24,7 @@ Fully manual formats (no R or date tokens) produce X.X.X style versions
 that are not auto-computed.
 """
 
+
 import json
 import re
 import subprocess
