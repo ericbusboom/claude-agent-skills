@@ -2,7 +2,7 @@
 
 import pytest
 
-from claude_agent_skills.todo_split import split_todo_files, _parse_sections
+from clasi.todo_split import split_todo_files, _parse_sections
 
 
 class TestParseSections:

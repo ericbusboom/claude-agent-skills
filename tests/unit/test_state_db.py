@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.state_db module."""
+"""Tests for clasi.state_db module."""
 
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from claude_agent_skills.state_db import (
+from clasi.state_db import (
     PHASES,
     init_db,
     register_sprint,

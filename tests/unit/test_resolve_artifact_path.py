@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from claude_agent_skills.tools.artifact_tools import resolve_artifact_path
+from clasi.tools.artifact_tools import resolve_artifact_path
 
 
 class TestResolveArtifactPath:

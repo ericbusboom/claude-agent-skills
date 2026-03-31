@@ -7,7 +7,7 @@ headings into individual files, one per heading.
 import re
 from pathlib import Path
 
-from claude_agent_skills.templates import slugify
+from clasi.templates import slugify
 
 
 def _parse_sections(content: str) -> list[tuple[str, str]]:

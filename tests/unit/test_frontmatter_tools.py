@@ -4,11 +4,11 @@ import json
 
 import pytest
 
-from claude_agent_skills.tools.artifact_tools import (
+from clasi.tools.artifact_tools import (
     read_artifact_frontmatter,
     write_artifact_frontmatter,
 )
-from claude_agent_skills.mcp_server import set_project
+from clasi.mcp_server import set_project
 
 
 @pytest.fixture

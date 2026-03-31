@@ -1,10 +1,10 @@
-"""Tests for claude_agent_skills.tools.process_tools module."""
+"""Tests for clasi.tools.process_tools module."""
 
 import json
 
 import pytest
 
-from claude_agent_skills.tools.process_tools import (
+from clasi.tools.process_tools import (
     _list_definitions,
     _get_definition,
     _parse_parent_refs,
@@ -22,12 +22,12 @@ from claude_agent_skills.tools.process_tools import (
     get_language_instruction,
     ACTIVITY_GUIDES,
 )
-from claude_agent_skills.mcp_server import content_path, set_project
+from clasi.mcp_server import content_path, set_project
 
 
 class TestListDefinitions:
     def test_lists_agents(self):
-        from claude_agent_skills.tools.process_tools import _list_agents_recursive
+        from clasi.tools.process_tools import _list_agents_recursive
         results = _list_agents_recursive(content_path("agents"))
         names = [r["name"] for r in results]
         # New hierarchy names
@@ -245,20 +245,20 @@ class TestSeOverviewTemplate:
     """Tests for the SE overview template extraction (ticket 016)."""
 
     def test_template_file_exists_and_non_empty(self):
-        from claude_agent_skills.tools.process_tools import _SE_OVERVIEW_TEMPLATE_PATH
+        from clasi.tools.process_tools import _SE_OVERVIEW_TEMPLATE_PATH
         assert _SE_OVERVIEW_TEMPLATE_PATH.exists(), "SE overview template file must exist"
         content = _SE_OVERVIEW_TEMPLATE_PATH.read_text(encoding="utf-8")
         assert len(content) > 0, "SE overview template file must not be empty"
 
     def test_template_contains_placeholders(self):
-        from claude_agent_skills.tools.process_tools import _SE_OVERVIEW_TEMPLATE_PATH
+        from clasi.tools.process_tools import _SE_OVERVIEW_TEMPLATE_PATH
         content = _SE_OVERVIEW_TEMPLATE_PATH.read_text(encoding="utf-8")
         assert "{agent_lines}" in content
         assert "{skill_lines}" in content
         assert "{instruction_lines}" in content
 
     def test_template_contains_static_sections(self):
-        from claude_agent_skills.tools.process_tools import _SE_OVERVIEW_TEMPLATE_PATH
+        from clasi.tools.process_tools import _SE_OVERVIEW_TEMPLATE_PATH
         content = _SE_OVERVIEW_TEMPLATE_PATH.read_text(encoding="utf-8")
         assert "## Process Stages" in content
         assert "## MCP Tools Quick Reference" in content
@@ -283,7 +283,7 @@ class TestSeOverviewTemplate:
 
     def test_missing_template_raises_clear_error(self, tmp_path, monkeypatch):
         """get_se_overview raises FileNotFoundError if template is missing."""
-        import claude_agent_skills.tools.process_tools as pt
+        import clasi.tools.process_tools as pt
         original = pt._SE_OVERVIEW_TEMPLATE_PATH
         monkeypatch.setattr(pt, "_SE_OVERVIEW_TEMPLATE_PATH", tmp_path / "nonexistent.md")
         with pytest.raises(FileNotFoundError, match="SE overview template not found"):

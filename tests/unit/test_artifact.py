@@ -2,7 +2,7 @@
 
 import pytest
 
-from claude_agent_skills.artifact import Artifact
+from clasi.artifact import Artifact
 
 
 class TestArtifact:

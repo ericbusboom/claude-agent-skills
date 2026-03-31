@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from claude_agent_skills.agent import Agent
-    from claude_agent_skills.sprint import Sprint
-    from claude_agent_skills.state_db_class import StateDB
-    from claude_agent_skills.todo import Todo
+    from clasi.agent import Agent
+    from clasi.sprint import Sprint
+    from clasi.state_db_class import StateDB
+    from clasi.todo import Todo
 
 
 class Project:
@@ -57,7 +57,7 @@ class Project:
     def db(self) -> StateDB:
         """Lazily-initialized StateDB instance."""
         if self._db is None:
-            from claude_agent_skills.state_db_class import StateDB
+            from clasi.state_db_class import StateDB
 
             self._db = StateDB(self.clasi_dir / ".clasi.db")
         return self._db
@@ -66,8 +66,8 @@ class Project:
 
     def get_sprint(self, sprint_id: str) -> Sprint:
         """Find a sprint by its ID (checks active and done directories)."""
-        from claude_agent_skills.sprint import Sprint
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.sprint import Sprint
+        from clasi.frontmatter import read_frontmatter
 
         for location in [self.sprints_dir, self.sprints_dir / "done"]:
             if not location.exists():
@@ -85,8 +85,8 @@ class Project:
 
     def list_sprints(self, status: str | None = None) -> list[Sprint]:
         """List all sprints, optionally filtered by status."""
-        from claude_agent_skills.sprint import Sprint
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.sprint import Sprint
+        from clasi.frontmatter import read_frontmatter
 
         results: list[Sprint] = []
         for location in [self.sprints_dir, self.sprints_dir / "done"]:
@@ -107,8 +107,8 @@ class Project:
 
     def create_sprint(self, title: str) -> Sprint:
         """Create a new sprint directory with template planning documents."""
-        from claude_agent_skills.sprint import Sprint
-        from claude_agent_skills.templates import (
+        from clasi.sprint import Sprint
+        from clasi.templates import (
             SPRINT_TEMPLATE,
             SPRINT_USECASES_TEMPLATE,
             SPRINT_ARCHITECTURE_UPDATE_TEMPLATE,
@@ -141,7 +141,7 @@ class Project:
 
     def _next_sprint_id(self) -> str:
         """Determine the next sprint number (NNN format)."""
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.frontmatter import read_frontmatter
 
         max_id = 0
         for location in [self.sprints_dir, self.sprints_dir / "done"]:
@@ -173,7 +173,7 @@ class Project:
         Raises:
             ValueError: If no agent with the given name is found.
         """
-        from claude_agent_skills.agent import (
+        from clasi.agent import (
             Agent,
             DomainController,
             MainController,
@@ -213,7 +213,7 @@ class Project:
 
     def list_agents(self) -> list[Agent]:
         """List all agents across all tiers."""
-        from claude_agent_skills.agent import (
+        from clasi.agent import (
             Agent,
             DomainController,
             MainController,
@@ -244,7 +244,7 @@ class Project:
 
     def get_todo(self, filename: str) -> Todo:
         """Get a TODO by its filename."""
-        from claude_agent_skills.todo import Todo
+        from clasi.todo import Todo
 
         # Check pending (top-level), in-progress, and done
         for subdir in [self.todo_dir, self.todo_dir / "in-progress", self.todo_dir / "done"]:
@@ -255,7 +255,7 @@ class Project:
 
     def list_todos(self) -> list[Todo]:
         """List all active TODOs (pending and in-progress, not done)."""
-        from claude_agent_skills.todo import Todo
+        from clasi.todo import Todo
 
         results: list[Todo] = []
         for subdir in [self.todo_dir, self.todo_dir / "in-progress"]:

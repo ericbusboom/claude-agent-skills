@@ -113,7 +113,7 @@ You are modifying CLASI planning artifacts. Before making changes:
     "source-code.md": """\
 ---
 paths:
-  - claude_agent_skills/**
+  - clasi/**
   - tests/**
 ---
 

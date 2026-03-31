@@ -1,7 +1,7 @@
 ---
 id: '002'
 title: Move tool files into tools/ subpackage
-status: todo
+status: in-progress
 use-cases: []
 depends-on: []
 github-issue: ''

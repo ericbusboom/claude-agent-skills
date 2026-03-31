@@ -15,15 +15,15 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
-from claude_agent_skills.frontmatter import read_document, read_frontmatter
-from claude_agent_skills.mcp_server import server, get_project
+from clasi.frontmatter import read_document, read_frontmatter
+from clasi.mcp_server import server, get_project
 
 logger = logging.getLogger("clasi.artifact")
-from claude_agent_skills.state_db import (
+from clasi.state_db import (
     PHASES as _PHASES,
     rename_sprint as _rename_sprint,
 )
-from claude_agent_skills.templates import (
+from clasi.templates import (
     slugify,
     SPRINT_TEMPLATE,
     SPRINT_USECASES_TEMPLATE,
@@ -196,7 +196,7 @@ def _renumber_sprint_dir(sprint_dir: Path, old_id: str, new_id: str) -> Path:
 
     Returns the new directory path.
     """
-    from claude_agent_skills.artifact import Artifact
+    from clasi.artifact import Artifact
 
     # Rename directory
     slug = sprint_dir.name[len(old_id) + 1:] if sprint_dir.name.startswith(old_id) else sprint_dir.name
@@ -557,7 +557,7 @@ def update_ticket_status(path: str, status: str) -> str:
 
     Returns JSON with {path, old_status, new_status}.
     """
-    from claude_agent_skills.artifact import Artifact
+    from clasi.artifact import Artifact
 
     valid_statuses = {"todo", "in-progress", "done"}
     if status not in valid_statuses:
@@ -588,8 +588,8 @@ def move_ticket_to_done(path: str) -> str:
 
     Returns JSON with {old_path, new_path}.
     """
-    from claude_agent_skills.ticket import Ticket
-    from claude_agent_skills.sprint import Sprint
+    from clasi.ticket import Ticket
+    from clasi.sprint import Sprint
 
     try:
         ticket_path = resolve_artifact_path(path)
@@ -670,7 +670,7 @@ def reopen_ticket(path: str) -> str:
 
     Returns JSON with {old_path, new_path, old_status, new_status}.
     """
-    from claude_agent_skills.artifact import Artifact
+    from clasi.artifact import Artifact
 
     try:
         ticket_path = resolve_artifact_path(path)
@@ -748,7 +748,7 @@ def close_sprint(
 
 def _close_sprint_legacy(sprint_id: str) -> str:
     """Original close_sprint behavior: archive + state, no git."""
-    from claude_agent_skills.todo import Todo
+    from clasi.todo import Todo
 
     project = get_project()
     sprint = project.get_sprint(sprint_id)
@@ -804,7 +804,7 @@ def _close_sprint_legacy(sprint_id: str) -> str:
     if db.path.exists():
         try:
             state = db.get_sprint_state(sprint_id)
-            from claude_agent_skills.state_db import PHASES
+            from clasi.state_db import PHASES
             phase_idx = PHASES.index(state["phase"])
             done_idx = PHASES.index("done")
             while phase_idx < done_idx:
@@ -818,7 +818,7 @@ def _close_sprint_legacy(sprint_id: str) -> str:
     # Auto-version after archiving (respects version_trigger setting)
     version = None
     try:
-        from claude_agent_skills.versioning import (
+        from clasi.versioning import (
             compute_next_version,
             create_version_tag,
             detect_version_file,
@@ -860,9 +860,9 @@ def _close_sprint_full(
     delete_branch_flag: bool,
 ) -> str:
     """Full lifecycle close: preconditions, tests, archive, git ops."""
-    from claude_agent_skills.sprint import Sprint
-    from claude_agent_skills.ticket import Ticket
-    from claude_agent_skills.todo import Todo
+    from clasi.sprint import Sprint
+    from clasi.ticket import Ticket
+    from clasi.todo import Todo
 
     project = get_project()
     db = project.db
@@ -1125,7 +1125,7 @@ def _close_sprint_full(
     # ── Step 5: Version bump ──
     version = None
     try:
-        from claude_agent_skills.versioning import (
+        from clasi.versioning import (
             compute_next_version,
             create_version_tag,
             detect_version_file,
@@ -1816,7 +1816,7 @@ def read_artifact_frontmatter(path: str) -> str:
 
     Returns JSON dict of frontmatter fields.
     """
-    from claude_agent_skills.artifact import Artifact
+    from clasi.artifact import Artifact
 
     try:
         resolved = resolve_artifact_path(path)
@@ -1840,7 +1840,7 @@ def write_artifact_frontmatter(path: str, updates: str) -> str:
 
     Returns JSON with {path, updated_fields}.
     """
-    from claude_agent_skills.artifact import Artifact
+    from clasi.artifact import Artifact
 
     try:
         resolved = resolve_artifact_path(path)
@@ -1875,7 +1875,7 @@ def tag_version(major: int = 0) -> str:
 
     Returns JSON with {version, tag}.
     """
-    from claude_agent_skills.versioning import (
+    from clasi.versioning import (
         compute_next_version,
         create_version_tag,
         detect_version_file,
@@ -1961,7 +1961,7 @@ def _check_git_branch() -> str:
 
 def _collect_tickets(sprint_dir: Path) -> list:
     """Collect all tickets from a sprint directory with their metadata."""
-    from claude_agent_skills.sprint import Sprint
+    from clasi.sprint import Sprint
 
     sprint = Sprint(sprint_dir, get_project())
     tickets = []

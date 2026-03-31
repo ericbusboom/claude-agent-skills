@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.tools.artifact_tools module."""
+"""Tests for clasi.tools.artifact_tools module."""
 
 import json
 import os
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_agent_skills.tools.artifact_tools import (
+from clasi.tools.artifact_tools import (
     close_sprint,
     create_sprint,
     create_ticket,
@@ -20,9 +20,9 @@ from claude_agent_skills.tools.artifact_tools import (
     reopen_ticket,
     update_ticket_status,
 )
-from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
-from claude_agent_skills.mcp_server import set_project
-from claude_agent_skills.state_db import (
+from clasi.frontmatter import read_frontmatter, write_frontmatter
+from clasi.mcp_server import set_project
+from clasi.state_db import (
     acquire_lock,
     advance_phase,
     get_recovery_state,
@@ -404,7 +404,7 @@ class TestInsertSprint:
 
 class TestCreateOverview:
     def test_creates_overview(self, work_dir):
-        from claude_agent_skills.tools.artifact_tools import create_overview
+        from clasi.tools.artifact_tools import create_overview
         result = json.loads(create_overview())
         path = work_dir / "docs" / "clasi" / "overview.md"
         assert path.exists()
@@ -414,7 +414,7 @@ class TestCreateOverview:
         assert "## Sprint Roadmap" in content
 
     def test_rejects_duplicate(self, work_dir):
-        from claude_agent_skills.tools.artifact_tools import create_overview
+        from clasi.tools.artifact_tools import create_overview
         create_overview()
         with pytest.raises(ValueError, match="already exists"):
             create_overview()
@@ -454,8 +454,8 @@ class TestCloseSprintEdgeCases:
         state = get_sprint_state(str(db_path), "001")
         assert state["lock"] is None
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260214.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260214.1")
     def test_close_includes_version(self, mock_version, mock_tag, work_dir):
         # Create a pyproject.toml so versioning can find it
         (work_dir / "pyproject.toml").write_text(
@@ -652,8 +652,8 @@ class TestCloseSprintFull:
         assert "done" in result["new_path"]
         assert "status" not in result
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260329.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260329.1")
     @patch("subprocess.run")
     def test_full_lifecycle_success(self, mock_run, mock_ver, mock_tag, work_dir):
         """Full lifecycle returns structured success JSON."""
@@ -706,8 +706,8 @@ class TestCloseSprintFull:
         assert "tests" not in result["completed_steps"]
         assert result["error"]["recovery"]["instruction"] is not None
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260329.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260329.1")
     @patch("subprocess.run")
     def test_merge_conflict_returns_error(self, mock_run, mock_ver, mock_tag, work_dir):
         """When merge has conflicts, return structured error."""
@@ -742,8 +742,8 @@ class TestCloseSprintFull:
         assert recovery is not None
         assert recovery["step"] == "merge"
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260329.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260329.1")
     @patch("subprocess.run")
     def test_already_merged_branch_is_idempotent(self, mock_run, mock_ver, mock_tag, work_dir):
         """If branch doesn't exist, merge step is skipped."""
@@ -779,8 +779,8 @@ class TestCloseSprintFull:
         assert result["error"]["step"] == "precondition"
         assert "in-progress" in result["error"]["message"]
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260329.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260329.1")
     @patch("subprocess.run")
     def test_self_repair_moves_done_ticket(self, mock_run, mock_ver, mock_tag, work_dir):
         """Ticket with done status but in tickets/ (not done/) gets moved."""
@@ -803,8 +803,8 @@ class TestCloseSprintFull:
         assert result["status"] == "success"
         assert any("moved ticket" in r for r in result["repairs"])
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260329.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260329.1")
     @patch("subprocess.run")
     def test_structured_result_format(self, mock_run, mock_ver, mock_tag, work_dir):
         """Verify all expected fields in success result."""
@@ -836,8 +836,8 @@ class TestCloseSprintFull:
         assert "branch_deleted" in result["git"]
         assert "branch_name" in result["git"]
 
-    @patch("claude_agent_skills.versioning.create_version_tag")
-    @patch("claude_agent_skills.versioning.compute_next_version", return_value="0.20260329.1")
+    @patch("clasi.versioning.create_version_tag")
+    @patch("clasi.versioning.compute_next_version", return_value="0.20260329.1")
     @patch("subprocess.run")
     def test_recovery_state_cleared_on_success(self, mock_run, mock_ver, mock_tag, work_dir):
         """Recovery state is cleared after successful close."""

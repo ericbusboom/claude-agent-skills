@@ -1,4 +1,4 @@
-"""Tests for claude_agent_skills.contracts module."""
+"""Tests for clasi.contracts module."""
 
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from claude_agent_skills.contracts import (
+from clasi.contracts import (
     _extract_json_from_text,
     _find_contract_path,
     _load_schema,
@@ -14,7 +14,7 @@ from claude_agent_skills.contracts import (
     validate_contract,
     validate_return,
 )
-from claude_agent_skills.mcp_server import content_path
+from clasi.mcp_server import content_path
 
 
 class TestContractSchema:
@@ -377,7 +377,7 @@ class TestGetAgentDefinitionIncludesContract:
     """Tests that get_agent_definition returns contract content."""
 
     def test_includes_contract_yaml(self):
-        from claude_agent_skills.tools.process_tools import get_agent_definition
+        from clasi.tools.process_tools import get_agent_definition
 
         result = get_agent_definition("code-monkey")
         assert "## Contract" in result
@@ -386,7 +386,7 @@ class TestGetAgentDefinitionIncludesContract:
         assert "allowed_tools:" in result
 
     def test_includes_agent_md_content(self):
-        from claude_agent_skills.tools.process_tools import get_agent_definition
+        from clasi.tools.process_tools import get_agent_definition
 
         result = get_agent_definition("code-monkey")
         assert "Code Monkey Agent" in result

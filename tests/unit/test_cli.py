@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from claude_agent_skills.cli import cli
+from clasi.cli import cli
 
 
 class TestCliGroup:
@@ -85,7 +85,7 @@ class TestTodoSplitCommand:
 class TestMcpCommand:
     def test_mcp_calls_run_server(self):
         with patch(
-            "claude_agent_skills.mcp_server.run_server",
+            "clasi.mcp_server.run_server",
         ) as mock_run_server:
             runner = CliRunner()
             result = runner.invoke(cli, ["mcp"])

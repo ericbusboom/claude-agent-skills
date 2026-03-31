@@ -8,16 +8,16 @@ import json
 
 import pytest
 
-from claude_agent_skills.tools.artifact_tools import (
+from clasi.tools.artifact_tools import (
     close_sprint,
     create_sprint,
     create_ticket,
     list_todos,
     move_ticket_to_done,
 )
-from claude_agent_skills.frontmatter import read_frontmatter, write_frontmatter
-from claude_agent_skills.mcp_server import set_project
-from claude_agent_skills.state_db import (
+from clasi.frontmatter import read_frontmatter, write_frontmatter
+from clasi.mcp_server import set_project
+from clasi.state_db import (
     acquire_lock,
     advance_phase,
     record_gate,

@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from claude_agent_skills.project import Project
-from claude_agent_skills.sprint import Sprint
-from claude_agent_skills.ticket import Ticket
+from clasi.project import Project
+from clasi.sprint import Sprint
+from clasi.ticket import Ticket
 
 
 def _setup(tmp_path, ticket_id="001", title="Fix Bug", status="todo",

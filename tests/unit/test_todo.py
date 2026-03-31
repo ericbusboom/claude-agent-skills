@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from claude_agent_skills.project import Project
-from claude_agent_skills.todo import Todo
+from clasi.project import Project
+from clasi.todo import Todo
 
 
 def _make_todo(tmp_path, filename="my-idea.md", title="My Idea",

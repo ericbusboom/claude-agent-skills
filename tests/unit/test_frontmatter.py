@@ -1,9 +1,9 @@
-"""Tests for claude_agent_skills.frontmatter module."""
+"""Tests for clasi.frontmatter module."""
 
 import pytest
 from pathlib import Path
 
-from claude_agent_skills.frontmatter import read_document, read_frontmatter, write_frontmatter
+from clasi.frontmatter import read_document, read_frontmatter, write_frontmatter
 
 
 @pytest.fixture

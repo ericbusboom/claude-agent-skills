@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from claude_agent_skills.project import Project
+from clasi.project import Project
 
 
 class TestProject:
@@ -49,7 +49,7 @@ class TestProject:
         # Ensure the clasi dir exists so db can initialize
         proj.clasi_dir.mkdir(parents=True, exist_ok=True)
         db = proj.db
-        from claude_agent_skills.state_db_class import StateDB
+        from clasi.state_db_class import StateDB
         assert isinstance(db, StateDB)
         assert db.path == proj.clasi_dir / ".clasi.db"
 

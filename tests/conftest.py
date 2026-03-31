@@ -2,7 +2,7 @@
 
 import pytest
 
-from claude_agent_skills.mcp_server import reset_project
+from clasi.mcp_server import reset_project
 
 
 @pytest.fixture(autouse=True)

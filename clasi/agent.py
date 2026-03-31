@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from claude_agent_skills.project import Project
+    from clasi.project import Project
 
 logger = logging.getLogger("clasi.dispatch")
 
@@ -68,7 +68,7 @@ class Agent:
     def contract(self) -> dict:
         """Parsed and validated contract.yaml (lazy-loaded)."""
         if self._contract is None:
-            from claude_agent_skills.contracts import load_contract
+            from clasi.contracts import load_contract
 
             self._contract = load_contract(self.name)
         return self._contract
@@ -184,11 +184,11 @@ class Agent:
         Returns:
             A dict with status, result, log_path, and validations.
         """
-        from claude_agent_skills.dispatch_log import (
+        from clasi.dispatch_log import (
             log_dispatch,
             update_dispatch_result,
         )
-        from claude_agent_skills.contracts import validate_return
+        from clasi.contracts import validate_return
 
         child = self.name
         contract = self.contract

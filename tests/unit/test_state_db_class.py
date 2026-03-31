@@ -2,8 +2,8 @@
 
 import pytest
 
-from claude_agent_skills.state_db_class import StateDB
-from claude_agent_skills.project import Project
+from clasi.state_db_class import StateDB
+from clasi.project import Project
 
 
 class TestStateDB:

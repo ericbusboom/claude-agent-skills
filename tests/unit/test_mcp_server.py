@@ -1,12 +1,12 @@
-"""Tests for claude_agent_skills.mcp_server module."""
+"""Tests for clasi.mcp_server module."""
 
 from mcp.server.fastmcp import FastMCP
 
-from claude_agent_skills.mcp_server import server, content_path
+from clasi.mcp_server import server, content_path
 
 # Trigger lazy tool registration (normally done by run_server)
-import claude_agent_skills.tools.process_tools  # noqa: F401
-import claude_agent_skills.tools.artifact_tools  # noqa: F401
+import clasi.tools.process_tools  # noqa: F401
+import clasi.tools.artifact_tools  # noqa: F401
 
 
 class TestContentPath:

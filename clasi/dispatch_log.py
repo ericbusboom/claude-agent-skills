@@ -10,8 +10,8 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from claude_agent_skills.frontmatter import read_document, write_frontmatter
-from claude_agent_skills.mcp_server import get_project
+from clasi.frontmatter import read_document, write_frontmatter
+from clasi.mcp_server import get_project
 
 
 def _log_dir() -> Path:

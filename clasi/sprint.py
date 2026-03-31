@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from claude_agent_skills.artifact import Artifact
-from claude_agent_skills.templates import (
+from clasi.artifact import Artifact
+from clasi.templates import (
     SPRINT_TEMPLATE,
     SPRINT_USECASES_TEMPLATE,
     SPRINT_ARCHITECTURE_UPDATE_TEMPLATE,
@@ -15,8 +15,8 @@ from claude_agent_skills.templates import (
 )
 
 if TYPE_CHECKING:
-    from claude_agent_skills.project import Project
-    from claude_agent_skills.ticket import Ticket
+    from clasi.project import Project
+    from clasi.ticket import Ticket
 
 
 class Sprint:
@@ -104,8 +104,8 @@ class Sprint:
 
     def list_tickets(self, status: str | None = None) -> list[Ticket]:
         """List tickets in this sprint, optionally filtered by status."""
-        from claude_agent_skills.ticket import Ticket
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.ticket import Ticket
+        from clasi.frontmatter import read_frontmatter
 
         tickets_dir = self._path / "tickets"
         results: list[Ticket] = []
@@ -123,8 +123,8 @@ class Sprint:
 
     def get_ticket(self, ticket_id: str) -> Ticket:
         """Get a ticket by its ID."""
-        from claude_agent_skills.ticket import Ticket
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.ticket import Ticket
+        from clasi.frontmatter import read_frontmatter
 
         tickets_dir = self._path / "tickets"
         for location in [tickets_dir, tickets_dir / "done"]:
@@ -138,8 +138,8 @@ class Sprint:
 
     def create_ticket(self, title: str, todo: str | None = None) -> Ticket:
         """Create a new ticket in this sprint's tickets/ directory."""
-        from claude_agent_skills.ticket import Ticket
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.ticket import Ticket
+        from clasi.frontmatter import read_frontmatter
 
         tickets_dir = self._path / "tickets"
         tickets_dir.mkdir(parents=True, exist_ok=True)
@@ -161,7 +161,7 @@ class Sprint:
 
     def _next_ticket_id(self) -> str:
         """Determine the next ticket number within this sprint."""
-        from claude_agent_skills.frontmatter import read_frontmatter
+        from clasi.frontmatter import read_frontmatter
 
         tickets_dir = self._path / "tickets"
         max_id = 0
