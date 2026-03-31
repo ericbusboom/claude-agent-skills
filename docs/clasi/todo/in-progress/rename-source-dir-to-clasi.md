@@ -1,6 +1,8 @@
 ---
 status: in-progress
-sprint: "026"
+sprint: '026'
+tickets:
+- 026-003
 ---
 
 # Rename Source Directory and Code References to "clasi"
