@@ -2,6 +2,8 @@
 
 import asyncio
 import json
+import logging
+import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -9,6 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from clasi.tools.dispatch_tools import (
+    _check_delegation_edge,
     _dispatch,
     _load_agent_system_prompt,
     _load_jinja2_template,
