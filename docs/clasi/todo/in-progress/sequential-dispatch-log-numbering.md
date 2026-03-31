@@ -1,5 +1,8 @@
 ---
-status: pending
+status: in-progress
+sprint: '027'
+tickets:
+- 027-002
 ---
 
 # Sequential Dispatch Log Numbering

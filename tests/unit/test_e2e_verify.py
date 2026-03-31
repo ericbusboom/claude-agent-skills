@@ -22,16 +22,16 @@ def _make_log(directory: Path, name: str, content: str = "---\nchild: x\n---\nbo
 class TestCheckDispatchLogs:
     def test_passes_when_ticket_and_planner_logs_present(self, project):
         sprint_dir = project / "docs" / "clasi" / "log" / "sprints" / "001-sprint"
-        _make_log(sprint_dir, "ticket-001-001.md")
-        _make_log(sprint_dir, "architect-001.md")
+        _make_log(sprint_dir, "001-ticket-001.md")
+        _make_log(sprint_dir, "002-architect.md")
         result = _check_dispatch_logs(project)
         assert result.passed, result.detail
 
     def test_fails_when_no_ticket_logs(self, project):
         sprint_dir = project / "docs" / "clasi" / "log" / "sprints" / "001-sprint"
         # Only planner-level logs, no ticket-* files
-        _make_log(sprint_dir, "sprint-planner-001.md")
-        _make_log(sprint_dir, "architect-001.md")
+        _make_log(sprint_dir, "001-sprint-planner.md")
+        _make_log(sprint_dir, "002-architect.md")
         result = _check_dispatch_logs(project)
         assert not result.passed
         assert "no ticket-* log files" in result.detail
@@ -39,8 +39,8 @@ class TestCheckDispatchLogs:
     def test_fails_when_no_planner_sub_dispatch_logs(self, project):
         sprint_dir = project / "docs" / "clasi" / "log" / "sprints" / "001-sprint"
         # Has ticket logs and sprint-planner logs, but no architect/reviewer logs
-        _make_log(sprint_dir, "ticket-001-001.md")
-        _make_log(sprint_dir, "sprint-planner-001.md")
+        _make_log(sprint_dir, "001-ticket-001.md")
+        _make_log(sprint_dir, "002-sprint-planner.md")
         result = _check_dispatch_logs(project)
         assert not result.passed
         assert "no planner sub-dispatch logs" in result.detail
@@ -59,15 +59,15 @@ class TestCheckDispatchLogs:
     def test_passes_with_multiple_sprints(self, project):
         for sprint_name in ["001-first", "002-second"]:
             sprint_dir = project / "docs" / "clasi" / "log" / "sprints" / sprint_name
-            _make_log(sprint_dir, "ticket-001-001.md")
-            _make_log(sprint_dir, "architect-001.md")
+            _make_log(sprint_dir, "001-ticket-001.md")
+            _make_log(sprint_dir, "002-architect.md")
         result = _check_dispatch_logs(project)
         assert result.passed, result.detail
 
     def test_fails_when_empty_log_files(self, project):
         sprint_dir = project / "docs" / "clasi" / "log" / "sprints" / "001-sprint"
-        _make_log(sprint_dir, "ticket-001-001.md", content="tiny")
-        _make_log(sprint_dir, "architect-001.md", content="")
+        _make_log(sprint_dir, "001-ticket-001.md", content="tiny")
+        _make_log(sprint_dir, "002-architect.md", content="")
         result = _check_dispatch_logs(project)
         assert not result.passed
         assert "empty logs" in result.detail

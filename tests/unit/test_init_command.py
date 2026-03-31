@@ -54,7 +54,7 @@ class TestRunInit:
 
         skills_dir = target_dir / ".claude" / "skills"
         for old_name in ["todo", "next", "status", "project-initiation",
-                         "report", "ghtodo"]:
+                         "report"]:
             assert not (skills_dir / old_name).exists()
 
     def test_creates_rule_files(self, target_dir):

@@ -200,16 +200,21 @@ def _check_dispatch_logs(project_dir: Path) -> CheckResult:
             sprint_files = list(sprint_dir.glob("*.md"))
 
             # Check for ticket-level logs (sprint-executor -> code-monkey)
-            ticket_logs = [f for f in sprint_files if f.name.startswith("ticket-")]
+            # Supports both old format (ticket-NNN-NNN.md) and new format (NNN-ticket-NNN.md)
+            ticket_logs = [
+                f for f in sprint_files
+                if "ticket-" in f.name
+            ]
             if not ticket_logs:
                 issues.append(f"{sprint_dir.name}: no ticket-* log files")
 
             # Check for planner sub-dispatch logs (architect, reviewer, etc.)
             # These are files NOT matching ticket-* or sprint-planner-* patterns
+            # Supports both old format (agent-NNN.md) and new format (NNN-agent.md)
             planner_sub_logs = [
                 f for f in sprint_files
-                if not f.name.startswith("ticket-")
-                and not f.name.startswith("sprint-planner-")
+                if "ticket-" not in f.name
+                and "sprint-planner" not in f.name
             ]
             if not planner_sub_logs:
                 issues.append(

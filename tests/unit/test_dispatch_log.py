@@ -29,33 +29,33 @@ class TestLogDir:
 
 class TestNextSequence:
     def test_returns_1_when_directory_missing(self, tmp_path):
-        assert _next_sequence(tmp_path / "nonexistent", "ticket-001") == 1
+        assert _next_sequence(tmp_path / "nonexistent") == 1
 
     def test_returns_1_when_directory_empty(self, tmp_path):
         d = tmp_path / "logs"
         d.mkdir()
-        assert _next_sequence(d, "sprint-planner") == 1
+        assert _next_sequence(d) == 1
 
     def test_returns_next_after_existing(self, tmp_path):
         d = tmp_path / "logs"
         d.mkdir()
-        (d / "sprint-planner-001.md").write_text("x")
-        (d / "sprint-planner-002.md").write_text("x")
-        assert _next_sequence(d, "sprint-planner") == 3
+        (d / "001-sprint-planner.md").write_text("x")
+        (d / "002-sprint-planner.md").write_text("x")
+        assert _next_sequence(d) == 3
 
-    def test_ignores_non_matching_files(self, tmp_path):
+    def test_counts_all_md_files(self, tmp_path):
         d = tmp_path / "logs"
         d.mkdir()
-        (d / "ticket-001-005.md").write_text("x")
-        (d / "sprint-planner-001.md").write_text("x")
-        assert _next_sequence(d, "sprint-planner") == 2
+        (d / "001-ticket-001.md").write_text("x")
+        (d / "002-sprint-planner.md").write_text("x")
+        assert _next_sequence(d) == 3
 
     def test_handles_gaps(self, tmp_path):
         d = tmp_path / "logs"
         d.mkdir()
-        (d / "sprint-planner-001.md").write_text("x")
-        (d / "sprint-planner-005.md").write_text("x")
-        assert _next_sequence(d, "sprint-planner") == 6
+        (d / "001-sprint-planner.md").write_text("x")
+        (d / "005-architect.md").write_text("x")
+        assert _next_sequence(d) == 6
 
 
 class TestLogDispatch:
@@ -90,7 +90,7 @@ class TestLogDispatch:
         )
         expected_dir = tmp_path / "docs" / "clasi" / "log" / "sprints" / "001-my-sprint"
         assert path.parent == expected_dir
-        assert path.name == "ticket-003-001.md"
+        assert path.name == "001-ticket-003.md"
 
     def test_sprint_without_ticket_routing(self, tmp_path):
         """Sprint-level dispatch uses child agent name as prefix."""
@@ -103,7 +103,7 @@ class TestLogDispatch:
         )
         expected_dir = tmp_path / "docs" / "clasi" / "log" / "sprints" / "002-next-sprint"
         assert path.parent == expected_dir
-        assert path.name == "sp-001.md"
+        assert path.name == "001-sp.md"
 
     def test_sprint_without_ticket_uses_child_name(self, tmp_path):
         """Different child agents produce distinctly named log files."""
@@ -128,9 +128,9 @@ class TestLogDispatch:
             prompt="Create tickets.",
             sprint_name="003-sprint",
         )
-        assert p1.name == "architect-001.md"
-        assert p2.name == "architecture-reviewer-001.md"
-        assert p3.name == "technical-lead-001.md"
+        assert p1.name == "001-architect.md"
+        assert p2.name == "002-architecture-reviewer.md"
+        assert p3.name == "003-technical-lead.md"
 
     def test_adhoc_routing(self, tmp_path):
         path = log_dispatch(
@@ -160,8 +160,8 @@ class TestLogDispatch:
             sprint_name="001-my-sprint",
             ticket_id="001",
         )
-        assert p1.name == "ticket-001-001.md"
-        assert p2.name == "ticket-001-002.md"
+        assert p1.name == "001-ticket-001.md"
+        assert p2.name == "002-ticket-001.md"
 
     def test_adhoc_sequence_numbering(self, tmp_path):
         p1 = log_dispatch(parent="mc", child="ah", scope=".", prompt="First.")

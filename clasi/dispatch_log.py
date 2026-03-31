@@ -19,25 +19,24 @@ def _log_dir() -> Path:
     return get_project().log_dir
 
 
-def _next_sequence(directory: Path, prefix: str) -> int:
-    """Scan *directory* for files matching ``<prefix>-NNN.md`` and return the next number.
+def _next_sequence(directory: Path) -> int:
+    """Count all ``.md`` files in *directory* and return the next sequence number.
 
-    When *prefix* is empty, matches bare ``NNN.md`` filenames instead.
-    Returns 1 if no matching files exist.
+    Uses a single sequential counter across all files in the directory,
+    regardless of agent name prefix.  Returns 1 if the directory is empty
+    or does not exist.
     """
     if not directory.is_dir():
         return 1
 
-    if prefix:
-        pattern = re.compile(rf"^{re.escape(prefix)}-(\d+)\.md$")
-    else:
-        pattern = re.compile(r"^(\d+)\.md$")
+    pattern = re.compile(r"^(\d+)")
 
     max_seq = 0
     for entry in directory.iterdir():
-        m = pattern.match(entry.name)
-        if m:
-            max_seq = max(max_seq, int(m.group(1)))
+        if entry.suffix == ".md":
+            m = pattern.match(entry.name)
+            if m:
+                max_seq = max(max_seq, int(m.group(1)))
     return max_seq + 1
 
 
@@ -89,19 +88,19 @@ def log_dispatch(
 
     if sprint_name and ticket_id:
         directory = base / "sprints" / sprint_name
-        prefix = f"ticket-{ticket_id}"
+        suffix = f"ticket-{ticket_id}"
     elif sprint_name:
         directory = base / "sprints" / sprint_name
-        prefix = child
+        suffix = child
     else:
         directory = base / "adhoc"
-        prefix = ""
+        suffix = ""
 
     directory.mkdir(parents=True, exist_ok=True)
-    seq = _next_sequence(directory, prefix)
+    seq = _next_sequence(directory)
 
-    if prefix:
-        filename = f"{prefix}-{seq:03d}.md"
+    if suffix:
+        filename = f"{seq:03d}-{suffix}.md"
     else:
         filename = f"{seq:03d}.md"
 
