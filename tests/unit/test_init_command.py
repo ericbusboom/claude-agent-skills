@@ -37,7 +37,6 @@ class TestRunInit:
     def test_se_skill_references_mcp(self):
         source = _SE_SKILL_PATH.read_text(encoding="utf-8")
         assert "get_skill_definition" in source
-        assert "get_se_overview" in source
 
     def test_se_skill_idempotent(self, target_dir):
         target_dir.mkdir()

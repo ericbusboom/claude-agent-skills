@@ -24,7 +24,6 @@ SE process:
 
 | Tool | Description |
 |------|-------------|
-| `get_se_overview` | High-level SE process description |
 | `get_activity_guide(activity)` | Tailored guidance for an activity |
 | `list_agents` | List available agent definitions |
 | `list_skills` | List available skill definitions |
@@ -49,6 +48,5 @@ SE process:
 
 ## Getting Started
 
-1. Use `get_se_overview` to understand the full process
-2. Use `get_activity_guide("requirements")` when starting a new project
+1. Use `get_activity_guide("requirements")` when starting a new project
 3. Use `create_sprint(title)` to begin a new sprint

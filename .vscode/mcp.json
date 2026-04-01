@@ -1,14 +1,14 @@
 {
-	"servers": {
-		"clasi": {
-			"type": "stdio",
-			"command": "/usr/local/bin/uv",
-			"args": [
-				"run",
-				"clasi",
-				"mcp"
-			]
-		}
-	},
-	"inputs": []
+  "servers": {
+    "clasi": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "clasi",
+        "mcp"
+      ]
+    }
+  },
+  "inputs": []
 }

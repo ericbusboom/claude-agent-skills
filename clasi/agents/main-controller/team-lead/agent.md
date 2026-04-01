@@ -81,10 +81,10 @@ project — the project has not been initiated yet.
 Take one or more TODOs or issues through the full SE lifecycle — plan a sprint,
 create tickets, execute them, and close the sprint.
 
-**Do this process when:** The stakeholder provides one or more TODOs, issues,
-or small tasks and wants them executed through the SE process. They say
-things like "run these TODOs", "execute these issues", or "let's do a
-sprint for these."
+**Do this process when:** The stakeholder provides one or more TODOs, issues, or
+small tasks and wants them executed through the SE process, and 
+**there is no open sprint.** They say things like "run these TODOs", 
+"execute these issues", or "let's. do a sprint for these."
 
 **Steps:**
 
@@ -93,7 +93,7 @@ sprint for these."
    `dispatch_to_todo_worker(todo_ids=[<ids>], action="create")` or
    `action="import"` for GitHub issues.
    - **Completion check**: Return JSON lists the created TODO file paths.
-     Verify the files exist in `docs/clasi/todo/`.
+     Verify the files exist in `docs/clasi/todo/`.rm CL
 
 2. **Create the sprint.** Call `create_sprint(title=<title>)` to register
    the sprint and get back a `sprint_id` and `sprint_directory`.
@@ -140,6 +140,38 @@ sprint for these."
    `close_sprint(sprint_id=<id>, branch_name=<branch>)`.
    This merges the branch into main, archives the sprint directory,
    bumps the version, pushes tags, and deletes the sprint branch.
+
+### Implement new TODO in an existing sprint
+
+Add a new TODO to an existing open sprint and execute it through the process.
+
+**Do this process when:** There is an open sprint and the stakeholder wants to
+add a new TODO to it. They say things like "add this TODO to the sprint" or 
+"we forgot this TODO, add it to the current sprint."
+
+**Steps:**
+
+1. **Identify the open sprint.** Call `list_sprints()` and
+   `get_sprint_status(sprint_id)` to find the currently executing sprint,
+   its `sprint_id`, `sprint_directory`, and `branch_name`.
+
+2. **Plan the new ticket.** Dispatch:
+   `dispatch_to_sprint_planner(sprint_id=<id>, sprint_directory=<dir>, todo_ids=[<todo_paths>], mode="add_to_sprint")`.
+   - Tell the sprint planner that the sprint is already open and executing,
+     and that you are adding a new TODO to it.
+   - The sprint planner creates new ticket file(s) in the sprint directory
+     consistent with the existing tickets.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     lists the created ticket files. Verify the ticket files exist in the
+     sprint directory.
+
+3. **Execute.** Dispatch:
+   `dispatch_to_sprint_executor(sprint_id=<id>, sprint_directory=<dir>, branch_name=<branch>, tickets=[<new_ticket_paths>])`.
+   - Pass only the newly created ticket(s), not the entire ticket list.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     the new ticket statuses are `done`.
+
+4. Report the result to the stakeholder.
 
 ### Out-of-Process Change
 
@@ -222,3 +254,4 @@ phase with all tickets in `done` status.
    - If closure fails, read the error, address the issue, and retry.
 
 3. Report the result to the stakeholder.
+<!-- CLASI:END -->

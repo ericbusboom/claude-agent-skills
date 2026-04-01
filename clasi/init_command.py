@@ -32,20 +32,6 @@ MCP_CONFIG = {
 }
 
 HOOKS_CONFIG = {
-    "UserPromptSubmit": [
-        {
-            "matcher": "",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": (
-                        "echo 'CLASI: Call get_se_overview() to load the"
-                        " SE process before doing any work.'"
-                    ),
-                }
-            ],
-        }
-    ],
     "PreToolUse": [
         {
             "matcher": "Edit|Write|MultiEdit",

@@ -26,4 +26,4 @@ Pass any remaining text after the subcommand as the argument to the
 skill (e.g., `/se todo fix the login bug` passes "fix the login bug"
 to the todo skill).
 
-For general SE process guidance, call `get_se_overview()`.
+For general SE process guidance, read the team-lead agent definition.
