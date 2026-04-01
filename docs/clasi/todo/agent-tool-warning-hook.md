@@ -1,5 +1,8 @@
 ---
-status: pending
+status: in-progress
+sprint: '030'
+tickets:
+- 030-003
 ---
 
 # Add PreToolUse Warning Hook for Agent Tool Usage
