@@ -556,6 +556,11 @@ def run_init(target: str, plugin_mode: bool = False) -> None:
         # Project-local mode: copy plugin content to .claude/
         _install_plugin_content(target_path)
 
+    # Create or update CLAUDE.md with inline CLASI section
+    click.echo("CLAUDE.md:")
+    _update_claude_md(target_path)
+    click.echo()
+
     # Configure MCP server in .mcp.json at project root
     click.echo("MCP server configuration:")
     _update_mcp_json(target_path / ".mcp.json", target_path)
