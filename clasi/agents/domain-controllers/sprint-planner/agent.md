@@ -61,9 +61,14 @@ To team-lead:
 
 ## Workflow
 
+
+If the sprint is not already created, follow these steps to create and plan the sprint:
 1. Create the sprint directory and branch using CLASI MCP tools
    (`create_sprint`).
 2. Write `sprint.md` with goals, scope, and relevant TODO references.
+
+After the sprint directory is created and `sprint.md` is populated, follow these steps to complete the sprint planning:
+
 3. Call `dispatch_to_architect(sprint_id, sprint_directory)` to write
    the architecture update for this sprint's goals. The tool handles
    template rendering, dispatch logging, execution, validation, and

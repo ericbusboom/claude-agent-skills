@@ -9,15 +9,13 @@
             "command": "echo 'CLASI: You used the Agent tool instead of a dispatch_to_* MCP tool.'; echo 'Dispatch tools provide logging and contract validation.'; echo 'Use dispatch_to_* unless you have a specific reason not to.'"
           }
         ]
-      }
-    ],
-    "UserPromptSubmit": [
+      },
       {
-        "matcher": "",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'CLASI: Call get_se_overview() to load the SE process before doing any work.'"
+            "command": "python3 .claude/hooks/role_guard.py"
           }
         ]
       }

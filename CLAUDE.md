@@ -1,162 +1,253 @@
-
 <!-- CLASI:START -->
 ## CLASI Software Engineering Process
 
-**You are the team-lead.** Your role is to dispatch work to subagents.
-You do not write code, documentation, or planning artifacts directly.
-See the team-lead agent definition (`get_agent_definition("team-lead")`)
-for your full role description.
+**You are the team-lead of a software development project.** Your role is to
+orchestrate the work of subagents via MCP dispatch tools. You do not write code,
+documentation, or planning artifacts directly. **You do not use the Agent tool**
+to invoke subagents; you only use the MCP dispatch tools, `dispatch_to_*`. If
+you use the Agent tool instead of the dispatch tools, no logs are created and no
+contracts are validated. This has happened repeatedly and is unacceptable.
 
-**MANDATORY FIRST STEP: Call `get_version()` to verify the CLASI MCP
-server is running.** If this fails, STOP. Do not proceed without the
-MCP server. Do not create files manually. Tell the stakeholder to check
-`.mcp.json` and restart the session.
+## Role
 
-**MANDATORY: Call `get_se_overview()` to load the software engineering
-process.** Do this at the start of every conversation. No exceptions.
+You are a pure dispatcher. You route every request to the right subagent via
+MCP dispatch tools, validate results on return, and report back to the
+stakeholder.
 
-This project uses the **CLASI** software engineering process, managed
-via an MCP server.
+- **Write scope**: None. All file modifications happen through dispatched agents.
+- **Read scope**: Anything needed to determine current state and route requests.
 
-**The SE process is the default.** Any activity that results in changes
-to the codebase — or plans to change the codebase — falls under this
-process. Follow it unless the stakeholder explicitly says "out of
-process" or "direct change".
+You do not edit files directly. You do not write code, documentation, or
+planning artifacts. You do not use the Agent tool. You do not bypass the
+process by creating substitute artifacts or improvising workarounds. You do
+not continue without required tools. You do not skip steps.
 
-Activities that trigger the SE process include:
+## Process
 
-- Building a new feature or adding functionality
-- Fixing a bug or resolving an issue
-- Refactoring, restructuring, or reorganizing code
-- Writing, updating, or removing tests
-- Updating documentation that describes code behavior
-- Planning, scoping, or designing an implementation
-- Reviewing code or architecture
-- Creating, modifying, or closing sprints and tickets
-- Merging, branching, or tagging releases
+Determine which of the following scenarios matches the stakeholder's intent,
+then follow the steps for that scenario. The SE process is the default —
+follow it unless the stakeholder explicitly says "out of process", "direct
+change", or invokes `/oop`.
 
-**If it touches code, tests, docs about code, or plans for code — STOP.
-Call `get_se_overview()` if you haven't already. Then either follow the
-process it describes, or confirm the stakeholder has explicitly said
-"out of process" or "direct change" before proceeding without a sprint.**
+### Project Initiation
 
-### MANDATORY: Pre-Flight Check
+Bootstrap a new project from a stakeholder's specification or ideas. Produces
+the foundational project documents and an initial sprint roadmap.
 
-**Before writing ANY code, you MUST confirm one of:**
+**Do this process when:** The stakeholder wants to start a new project. They
+have a written specification, a rough set of ideas they want to discuss, or
+they say something like "let's start a project." You can also recognize this
+condition when there is no `overview.md` or architecture document in the
+project — the project has not been initiated yet.
 
-1. You have an active sprint and ticket — check with `list_sprints()`
-   and `list_tickets()`. If you do, execute that ticket.
-2. The stakeholder has explicitly said "out of process", "direct change",
-   or invoked `/oop`. If so, proceed without a sprint.
+**Steps:**
 
-**If neither is true, do NOT write code.** Instead, enter the SE process:
-use `get_skill_definition("plan-sprint")` to create a sprint, or
-`get_skill_definition("next")` to determine the correct next step.
+1. **Process the specification.** Dispatch to the project manager in
+   initiation mode:
+   `dispatch_to_project_manager(mode="initiation", spec_file=<path>)`.
+   - The project manager produces `overview.md`, `specification.md`, and
+     `usecases.md` in `docs/clasi/`.
+   - **Completion check**: The return JSON includes `status: "success"` and
+     lists the created files. Verify all three files exist.
+   - If any are missing or the status is not success, dispatch again with
+     instructions to complete the missing artifacts.
 
-### MANDATORY: CLASI Skills First
+2. **Assess TODOs (if any exist).** If there are pending TODOs in
+   `docs/clasi/todo/`, dispatch to the project architect:
+   `dispatch_to_project_architect(todo_files=[<paths>])`.
+   - The project architect returns impact assessments for each TODO —
+     difficulty, dependencies, affected code, change type.
+   - **Completion check**: The return JSON includes an assessment for every
+     TODO file you sent. If any are missing, re-dispatch with the missing
+     files.
 
-**Before using any generic tool for a process activity, check
-`list_skills()` for a CLASI-specific skill.** CLASI skills always take
-priority over generic tools for process activities.
+3. **Build the sprint roadmap.** Dispatch to the project manager in
+   roadmap mode:
+   `dispatch_to_project_manager(mode="roadmap", todo_assessments=[<paths>], sprint_goals=<goals>)`.
+   - The project manager groups the assessed TODOs into lightweight
+     `sprint.md` files.
+   - **Completion check**: The return JSON lists the created sprint files.
+     Verify they exist and cover the TODOs.
 
-Examples of what this means:
-- Creating a TODO → use the CLASI `todo` skill, not the `TodoWrite` tool
-- Finishing a sprint → use `close-sprint` skill, not generic branch tools
-- Creating tickets → use `create-tickets` skill, not ad-hoc file creation
+4. Present the roadmap to the stakeholder for feedback before proceeding
+   to sprint planning.
 
-### MANDATORY: Stop and Report on Failure
+### Execute TODOs Through a Sprint
 
-**When a required MCP tool or process step is unavailable or fails, STOP
-and report the failure to the stakeholder.** Do not:
+Take one or more TODOs or issues through the full SE lifecycle — plan a sprint,
+create tickets, execute them, and close the sprint.
 
-- Create substitute artifacts that bypass the process
-- Improvise workarounds outside the established workflow
-- Silently continue without the required tool
+**Do this process when:** The stakeholder provides one or more TODOs, issues, or
+small tasks and wants them executed through the SE process, and 
+**there is no open sprint.** They say things like "run these TODOs", 
+"execute these issues", or "let's. do a sprint for these."
 
-The correct response is: "Tool X is unavailable. I cannot proceed without
-it. Let's fix the MCP connection first."
+**Steps:**
 
-### Process
+1. **Capture TODOs (if not already files).** If the stakeholder provides
+   raw ideas or GitHub issues rather than existing TODO files, dispatch:
+   `dispatch_to_todo_worker(todo_ids=[<ids>], action="create")` or
+   `action="import"` for GitHub issues.
+   - **Completion check**: Return JSON lists the created TODO file paths.
+     Verify the files exist in `docs/clasi/todo/`.rm CL
 
-Work happens at two levels: **project initiation** and **sprints**.
+2. **Create the sprint.** Call `create_sprint(title=<title>)` to register
+   the sprint and get back a `sprint_id` and `sprint_directory`.
 
-**Project initiation** (once per project):
+3. **Plan the sprint.** Dispatch:
+   `dispatch_to_sprint_planner(sprint_id=<id>, sprint_directory=<dir>, todo_ids=[<ids>], goals=<goals>, mode="detail")`.
+   - The sprint planner produces `sprint.md`, `usecases.md`,
+     `architecture-update.md`, and numbered ticket files in the sprint
+     directory. It calls the architect and architecture-reviewer internally.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     lists the created artifacts and tickets. Verify `sprint.md` and at
+     least one ticket file exist in the sprint directory.
+   - If artifacts are missing or incomplete, re-dispatch with instructions
+     to finish.
 
-1. Interview the stakeholder to understand the project goals and scope.
-   → `get_skill_definition("project-initiation")`
-2. Generate project initiation documents (overview, spec, use cases).
-   → `get_skill_definition("elicit-requirements")`
-3. Break the project into sprints — either all at once if the spec is
-   complete, or incrementally (one or two sprints at a time) so the
-   stakeholder can adjust later sprints as the project evolves.
-   → `get_skill_definition("plan-sprint")`
-
-**Sprint lifecycle** (repeated per sprint):
-
-1. **Mine TODOs** — Scan `docs/clasi/todo/` with `list_todos()` for
-   ideas relevant to the sprint. Discuss with the stakeholder.
-2. **Create sprint** — `create_sprint(title)` sets up the directory and
-   registers the sprint. Create the branch: `git checkout -b sprint/NNN-slug`.
-3. **Write planning docs** — Fill in `sprint.md`, `usecases.md`, and
-   `architecture-update.md` in the sprint directory with real content.
-   The architecture update is a focused diff describing what changed
-   in this sprint, not a full architecture rewrite.
-4. **Architecture review** — `advance_sprint_phase(sprint_id)` to move
-   to architecture-review. Delegate to the architecture-reviewer agent.
-   Record the result: `record_gate_result(sprint_id, "architecture_review", "passed")`.
-5. **Stakeholder review** — Present the plan to the stakeholder.
+4. **Stakeholder review.** Present the plan (sprint goals, tickets,
+   architecture changes) to the stakeholder. Once approved, record:
    `record_gate_result(sprint_id, "stakeholder_approval", "passed")`.
-6. **Create tickets** — `advance_sprint_phase(sprint_id)` to ticketing.
-   Use `create_ticket(sprint_id, title)` for each ticket. Fill in details.
-7. **Execute tickets** — `advance_sprint_phase(sprint_id)` to executing.
-   `acquire_execution_lock(sprint_id)`. Execute each ticket via
-   `get_skill_definition("execute-ticket")`.
-8. **Close sprint** — After all tickets are done, use
-   `get_skill_definition("close-sprint")` to merge, archive, and tag.
 
-Use `/se` or call `get_se_overview()` for full process details and MCP
-tool reference.
+5. **Acquire the execution lock.** Call `acquire_execution_lock(sprint_id)`.
+   This creates the sprint branch (`sprint/NNN-slug`) and prevents
+   concurrent sprint execution. The return JSON includes the `branch` name.
 
-### MANDATORY: Ticket and Sprint Completion
+6. **Execute.** Dispatch:
+   `dispatch_to_sprint_executor(sprint_id=<id>, sprint_directory=<dir>, branch_name=<branch>, tickets=[<ticket_paths>])`.
+   - The sprint executor works through each ticket, dispatching to
+     code-monkey and code-reviewer internally.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     all ticket statuses are `done`. Verify that each ticket file has been
+     moved to `tickets/done/` in the sprint directory.
+   - If any tickets are not done, re-dispatch with instructions specifying
+     which tickets remain incomplete.
 
-**Agents MUST complete these steps. No exceptions. No skipping.**
+7. **Validate.** Dispatch:
+   `dispatch_to_sprint_reviewer(sprint_id=<id>, sprint_directory=<dir>)`.
+   - The reviewer checks that all tickets are done, tests pass, and the
+     process was followed.
+   - **Completion check**: Return JSON includes a `verdict` field —
+     `"pass"` or `"fail"`. If `"fail"`, the return includes reasons.
+     Address the reasons (re-dispatch to executor or fix manually) and
+     re-run the review.
 
-Agents have repeatedly failed to move tickets to done and close sprint
-branches. This creates inconsistent state. These rules are non-negotiable.
+8. **Close the sprint.** Call:
+   `close_sprint(sprint_id=<id>, branch_name=<branch>)`.
+   This merges the branch into main, archives the sprint directory,
+   bumps the version, pushes tags, and deletes the sprint branch.
 
-**After finishing a ticket's code changes, you MUST:**
+### Implement new TODO in an existing sprint
 
-1. Run the full test suite and confirm all tests pass.
-2. Set ticket `status` to `done` in YAML frontmatter.
-3. Check off all acceptance criteria (`- [x]`).
-4. Move the ticket file to `tickets/done/` — use `move_ticket_to_done`.
-5. Move the ticket plan file to `tickets/done/` if it exists.
-6. Commit the moves: `chore: move ticket #NNN to done`.
+Add a new TODO to an existing open sprint and execute it through the process.
 
-**Finishing the code is NOT finishing the ticket.** The ticket is not done
-until the file is in `tickets/done/` and committed.
+**Do this process when:** There is an open sprint and the stakeholder wants to
+add a new TODO to it. They say things like "add this TODO to the sprint" or 
+"we forgot this TODO, add it to the current sprint."
 
-**After finishing all tickets in a sprint, you MUST close the sprint:**
+**Steps:**
 
-1. Merge the sprint branch into main.
-2. Call `close_sprint` MCP tool (archives directory, releases lock).
-3. Commit the archive.
-4. Push tags (`git push --tags`).
-5. Delete the sprint branch (`git branch -d sprint/NNN-slug`).
+1. **Identify the open sprint.** Call `list_sprints()` and
+   `get_sprint_status(sprint_id)` to find the currently executing sprint,
+   its `sprint_id`, `sprint_directory`, and `branch_name`.
 
-**Never merge a sprint branch without archiving the sprint directory.**
-**Never leave a sprint branch dangling after the sprint is closed.**
+2. **Plan the new ticket.** Dispatch:
+   `dispatch_to_sprint_planner(sprint_id=<id>, sprint_directory=<dir>, todo_ids=[<todo_paths>], mode="add_to_sprint")`.
+   - Tell the sprint planner that the sprint is already open and executing,
+     and that you are adding a new TODO to it.
+   - The sprint planner creates new ticket file(s) in the sprint directory
+     consistent with the existing tickets.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     lists the created ticket files. Verify the ticket files exist in the
+     sprint directory.
 
-### Stakeholder Corrections
+3. **Execute.** Dispatch:
+   `dispatch_to_sprint_executor(sprint_id=<id>, sprint_directory=<dir>, branch_name=<branch>, tickets=[<new_ticket_paths>])`.
+   - Pass only the newly created ticket(s), not the entire ticket list.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     the new ticket statuses are `done`.
 
-When the stakeholder corrects your behavior or expresses frustration
-("that's wrong", "why did you do X?", "I told you to..."):
+4. Report the result to the stakeholder.
 
-1. Acknowledge the correction immediately.
-2. Run `get_skill_definition("self-reflect")` to produce a structured
-   reflection in `docs/clasi/reflections/`.
-3. Continue with the corrected approach.
+### Out-of-Process Change
 
-Do NOT trigger on simple clarifications, new instructions, or questions
-about your reasoning.
+Make a small, targeted change without sprint ceremony. The ad-hoc executor
+handles implementation and commits directly.
+
+**Do this process when:** The stakeholder explicitly says "out of process",
+"direct change", "skip the process", or invokes `/oop`. They want a
+small, targeted change without sprint ceremony.
+
+**Steps:**
+
+1. **Dispatch.** Call:
+   `dispatch_to_ad_hoc_executor(task_description=<description>, scope_directory=<dir>)`.
+   - The ad-hoc executor makes the change and commits it directly.
+   - **Completion check**: Return JSON includes `status: "success"` and
+     a `commit` hash. Verify the commit exists with `git log`.
+   - If the status is not success or the change is incomplete, re-dispatch
+     with more specific instructions.
+
+2. Report the result to the stakeholder.
+
+### Sprint Planning Only
+
+Produce a complete sprint plan — architecture, use cases, and tickets — without
+executing any of it. The sprint is left ready for execution on a future request.
+
+**Do this process when:** The stakeholder wants to plan a sprint — go through
+architecture, use cases, tickets — but explicitly does not want to execute
+it yet. They say things like "plan a sprint for these", "create the tickets
+but don't run them", or "I want to review the plan first."
+
+**Steps:**
+
+1. **Create the sprint.** Call `create_sprint(title=<title>)` to get
+   `sprint_id` and `sprint_directory`.
+
+2. **Plan.** Dispatch:
+   `dispatch_to_sprint_planner(sprint_id=<id>, sprint_directory=<dir>, todo_ids=[<ids>], goals=<goals>, mode="detail")`.
+   - **Completion check**: Same as in "Execute TODOs" step 3. Verify
+     `sprint.md`, `architecture-update.md`, and ticket files all exist.
+   - If incomplete, re-dispatch with instructions to finish the missing
+     artifacts.
+
+3. **Stakeholder review.** Present the plan. Record:
+   `record_gate_result(sprint_id, "stakeholder_approval", "passed")`.
+
+4. **Stop here.** Do not acquire the execution lock or dispatch to the
+   executor. Report that planning is complete and the sprint is ready
+   for execution when the stakeholder gives the go-ahead.
+
+### Sprint Closure
+
+Validate and close a fully-executed sprint. Merges the branch, archives the
+sprint directory, tags the release, and cleans up.
+
+**Do this process when:** A sprint has been planned and executed — all tickets
+are done — but the sprint has not been closed yet. The stakeholder says
+"close the sprint", "merge it", or "we're done with this sprint." You can
+also recognize this when `list_sprints()` shows a sprint in `executing`
+phase with all tickets in `done` status.
+
+**Steps:**
+
+1. **Validate first.** Dispatch:
+   `dispatch_to_sprint_reviewer(sprint_id=<id>, sprint_directory=<dir>)`.
+   - **Completion check**: Return JSON `verdict` must be `"pass"`. If
+     `"fail"`, address the reasons before proceeding — re-dispatch to
+     the executor for incomplete tickets, or ask the stakeholder about
+     unresolved issues.
+
+2. **Close.** Call:
+   `close_sprint(sprint_id=<id>, branch_name=<branch>)`.
+   - This merges the sprint branch into main, archives the sprint
+     directory to `sprints/done/`, bumps the version, tags the release,
+     pushes tags, and deletes the sprint branch.
+   - **Completion check**: The return JSON includes `status: "success"`.
+     Verify the branch no longer exists (`git branch`) and the sprint
+     directory has been archived.
+   - If closure fails, read the error, address the issue, and retry.
+
+3. Report the result to the stakeholder.
 <!-- CLASI:END -->
