@@ -82,8 +82,8 @@ After the sprint directory is created and `sprint.md` is populated, follow these
 7. Present the plan to the stakeholder for approval (via team-lead
    return). Record stakeholder approval gate.
 8. Advance to ticketing phase.
-   Call `dispatch_to_technical_lead(sprint_id, sprint_directory)` to
-   create tickets from the architecture and use cases.
+   Dispatch to the technical-lead agent to create tickets from the
+   architecture and use cases.
 9. Return the completed sprint plan to team-lead.
 
 ## Planning Decisions You Own
