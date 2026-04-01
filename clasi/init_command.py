@@ -1,8 +1,16 @@
 """Implementation of the `clasi init` command.
 
-Installs the CLASI SE process into a target repository with minimal
-footprint: CLAUDE.md (with inline CLASI section), one skill stub,
-MCP config, and permissions. Does not take over existing files.
+Installs the CLASI SE process into a target repository. Supports two modes:
+
+- **Project-local mode** (default): Copies skills, agents, and hook config
+  from the bundled plugin/ directory into the project's .claude/ directory.
+  Skills are unnamespaced (/plan-sprint, /se, /todo).
+
+- **Plugin mode** (--plugin): Registers the CLASI plugin with Claude Code.
+  Skills are namespaced (/clasi:plan-sprint, /clasi:se, /clasi:todo).
+
+Both modes also configure MCP server, permissions, TODO directories,
+and path-scoped rules.
 """
 
 import json
@@ -12,6 +20,14 @@ from pathlib import Path
 from typing import Dict
 
 import click
+
+# The plugin directory is at the repo root (sibling of clasi/).
+# In development, resolve relative to this file. When installed as a
+# package, the plugin/ directory should also be findable.
+_PLUGIN_DIR = Path(__file__).parent.parent / "plugin"
+if not _PLUGIN_DIR.exists():
+    # Fallback: check if plugin content is bundled inside the package
+    _PLUGIN_DIR = Path(__file__).parent / "plugin"
 
 def _detect_mcp_command(target: Path) -> dict:
     """Detect the correct MCP server command for the target project.
@@ -423,25 +439,122 @@ def _install_role_guard(target: Path) -> bool:
     return True
 
 
-def run_init(target: str) -> None:
+def _install_plugin_content(target: Path) -> None:
+    """Copy skills, agents, and hooks from the plugin/ directory to .claude/.
+
+    This is the project-local installation mode. Skills are unnamespaced.
+    """
+    if not _PLUGIN_DIR.exists():
+        click.echo("  Warning: plugin/ directory not found, skipping content install")
+        return
+
+    # Copy skills
+    plugin_skills = _PLUGIN_DIR / "skills"
+    if plugin_skills.exists():
+        target_skills = target / ".claude" / "skills"
+        click.echo("Skills:")
+        for skill_dir in sorted(plugin_skills.iterdir()):
+            if not skill_dir.is_dir():
+                continue
+            skill_md = skill_dir / "SKILL.md"
+            if not skill_md.exists():
+                continue
+            dest_dir = target_skills / skill_dir.name
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            dest = dest_dir / "SKILL.md"
+            source_content = skill_md.read_text(encoding="utf-8")
+            rel = f".claude/skills/{skill_dir.name}/SKILL.md"
+            if dest.exists() and dest.read_text(encoding="utf-8") == source_content:
+                click.echo(f"  Unchanged: {rel}")
+            else:
+                dest.write_text(source_content, encoding="utf-8")
+                click.echo(f"  Wrote: {rel}")
+        click.echo()
+
+    # Copy agents
+    plugin_agents = _PLUGIN_DIR / "agents"
+    if plugin_agents.exists():
+        target_agents = target / ".claude" / "agents"
+        click.echo("Agents:")
+        for agent_dir in sorted(plugin_agents.iterdir()):
+            if not agent_dir.is_dir():
+                continue
+            for md_file in agent_dir.glob("*.md"):
+                dest_dir = target_agents / agent_dir.name
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                dest = dest_dir / md_file.name
+                source_content = md_file.read_text(encoding="utf-8")
+                rel = f".claude/agents/{agent_dir.name}/{md_file.name}"
+                if dest.exists() and dest.read_text(encoding="utf-8") == source_content:
+                    click.echo(f"  Unchanged: {rel}")
+                else:
+                    dest.write_text(source_content, encoding="utf-8")
+                    click.echo(f"  Wrote: {rel}")
+        click.echo()
+
+    # Merge hooks from plugin hooks.json into .claude/settings.json
+    plugin_hooks = _PLUGIN_DIR / "hooks" / "hooks.json"
+    if plugin_hooks.exists():
+        click.echo("Hooks (from plugin):")
+        hooks_data = json.loads(plugin_hooks.read_text(encoding="utf-8"))
+        settings_path = target / ".claude" / "settings.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if settings_path.exists():
+            try:
+                settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, ValueError):
+                settings = {}
+        else:
+            settings = {}
+
+        existing_hooks = settings.setdefault("hooks", {})
+        changed = False
+
+        for event_type, entries in hooks_data.get("hooks", {}).items():
+            existing = existing_hooks.get(event_type, [])
+            for entry in entries:
+                cmd = entry.get("hooks", [{}])[0].get("command", "")
+                already = any(
+                    cmd in (h.get("command", "") for h in e.get("hooks", []))
+                    for e in existing
+                )
+                if not already:
+                    existing.append(entry)
+                    changed = True
+            existing_hooks[event_type] = existing
+
+        if changed:
+            settings_path.write_text(
+                json.dumps(settings, indent=2) + "\n", encoding="utf-8"
+            )
+            click.echo("  Updated: .claude/settings.json (hooks)")
+        else:
+            click.echo("  Unchanged: .claude/settings.json (hooks)")
+        click.echo()
+
+
+def run_init(target: str, plugin_mode: bool = False) -> None:
     """Initialize a repository for the CLASI SE process.
 
-    Creates CLAUDE.md (with inline CLASI section), writes the /se skill
-    stub, and configures the MCP server.
+    In project-local mode (default), copies skills, agents, and hooks
+    from the plugin/ directory into .claude/. In plugin mode, registers
+    the CLASI plugin with Claude Code.
     """
     target_path = Path(target).resolve()
-    click.echo(f"Initializing CLASI in {target_path}")
+    mode_label = "plugin" if plugin_mode else "project-local"
+    click.echo(f"Initializing CLASI in {target_path} ({mode_label} mode)")
     click.echo()
 
-    # Install the /se skill dispatcher
-    click.echo("Skill stub:")
-    _write_se_skill(target_path)
-    click.echo()
-
-    # Create or update CLAUDE.md with inline CLASI section
-    click.echo("CLAUDE.md:")
-    _update_claude_md(target_path)
-    click.echo()
+    if plugin_mode:
+        # Plugin mode: just tell the user how to install
+        click.echo("Plugin mode: install the CLASI plugin with Claude Code:")
+        click.echo(f"  claude --plugin-dir {_PLUGIN_DIR}")
+        click.echo("  Or: /plugin install clasi (from marketplace)")
+        click.echo()
+    else:
+        # Project-local mode: copy plugin content to .claude/
+        _install_plugin_content(target_path)
 
     # Configure MCP server in .mcp.json at project root
     click.echo("MCP server configuration:")
@@ -449,40 +562,29 @@ def run_init(target: str) -> None:
     _update_vscode_mcp_json(target_path)
     click.echo()
 
-    # Add MCP permission to .claude/settings.local.json (user-specific, gitignored)
+    # Add MCP permission to .claude/settings.local.json
     click.echo("MCP permissions:")
     settings_local = target_path / ".claude" / "settings.local.json"
     _update_settings_json(settings_local)
     click.echo()
 
-    # Install session-start hook in .claude/settings.json (shared, checked in)
-    click.echo("Session-start hook:")
-    settings_shared = target_path / ".claude" / "settings.json"
-    _update_hooks_config(settings_shared)
-    click.echo()
+    if not plugin_mode:
+        # Install path-scoped rules in .claude/rules/
+        click.echo("Path-scoped rules:")
+        _create_rules(target_path)
+        click.echo()
 
-    # Install role guard hook to .claude/hooks/
-    click.echo("Role guard hook:")
-    _install_role_guard(target_path)
-    click.echo()
-
-    # Install path-scoped rules in .claude/rules/
-    click.echo("Path-scoped rules:")
-    _create_rules(target_path)
-    click.echo()
-
-    # Create TODO directories (including in-progress/)
+    # Create TODO directories
     click.echo("TODO directories:")
     todo_dir = target_path / "docs" / "clasi" / "todo"
     todo_in_progress = todo_dir / "in-progress"
     todo_done = todo_dir / "done"
     for d in [todo_dir, todo_in_progress, todo_done]:
         d.mkdir(parents=True, exist_ok=True)
-        # Add .gitkeep to keep empty dirs in git
         gitkeep = d / ".gitkeep"
         if not gitkeep.exists() and not any(d.iterdir()):
             gitkeep.touch()
-    click.echo(f"  Created: docs/clasi/todo/ (with in-progress/ and done/)")
+    click.echo("  Created: docs/clasi/todo/ (with in-progress/ and done/)")
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")

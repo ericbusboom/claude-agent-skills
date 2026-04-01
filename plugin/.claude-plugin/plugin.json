@@ -1,0 +1,12 @@
+{
+  "name": "clasi",
+  "version": "0.1.0",
+  "description": "CLASI Software Engineering process — sprint planning, ticket execution, and code quality management",
+  "author": {
+    "name": "Eric Busboom"
+  },
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

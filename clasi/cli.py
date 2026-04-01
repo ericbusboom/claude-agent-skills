@@ -23,15 +23,17 @@ def cli():
 
 @cli.command()
 @click.argument("target", default=".", type=click.Path(exists=True))
-def init(target):
+@click.option("--plugin", is_flag=True, help="Install as a Claude Code plugin instead of project-local .claude/ content.")
+def init(target, plugin):
     """Initialize a repository for the CLASI SE process.
 
-    Writes instruction files and configures the MCP server in the target
-    directory (defaults to current directory).
+    By default, copies skills, agents, and hooks into the project's
+    .claude/ directory (project-local mode). With --plugin, registers
+    the CLASI plugin with Claude Code (plugin mode).
     """
     from clasi.init_command import run_init
 
-    run_init(target)
+    run_init(target, plugin_mode=plugin)
 
 
 @cli.command("todo-split")
@@ -100,3 +102,27 @@ def mcp():
     from clasi.mcp_server import run_server
 
     run_server()
+
+
+@cli.command()
+@click.argument(
+    "event",
+    type=click.Choice(
+        [
+            "role-guard",
+            "subagent-start",
+            "subagent-stop",
+            "task-created",
+            "task-completed",
+        ]
+    ),
+)
+def hook(event):
+    """Handle a Claude Code hook event.
+
+    Reads hook payload from stdin (JSON), delegates to the appropriate
+    handler in clasi.hooks, and exits with the correct code.
+    """
+    from clasi.hook_handlers import handle_hook
+
+    handle_hook(event)
