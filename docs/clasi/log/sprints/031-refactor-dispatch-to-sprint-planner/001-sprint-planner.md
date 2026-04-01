@@ -1,5 +1,5 @@
 ---
-timestamp: '2026-04-01T02:14:22'
+timestamp: '2026-04-01T02:31:56'
 parent: team-lead
 child: sprint-planner
 scope: /Users/eric/proj/claude-agent-skills/docs/clasi/sprints/031-refactor-dispatch-to-sprint-planner
@@ -26,9 +26,9 @@ decisions: scoping, sequencing, and specification.
 - **Planning mode**: detail
 - **TODO IDs to address**:
 
-  - docs/clasi/todo/refactor-dispatch-to-sprint-planner.md
+  - refactor-dispatch-to-sprint-planner
 
-- **Goals**: Refactor dispatch_to_sprint_planner to remove redundant sprint_directory parameter, make sprint_id optional, add title parameter for new sprint creation, and add an "extend" mode for adding TODOs to an already-executing sprint. Update the team-lead agent.md to reflect the new signature and modes — remove create_sprint steps from "Execute TODOs" and "Sprint Planning Only", and update "Implement new TODO in an existing sprint" to use mode="extend". Update sprint planner agent.md, plan-sprint.md, dispatch-template.md.j2, and contract.yaml to document and handle the extend mode.
+- **Goals**: Refactor dispatch_to_sprint_planner to remove redundant sprint_directory parameter, make sprint_id optional, and add an "extend" mode for adding TODOs to an already-executing sprint. Update the sprint planner agent docs, contract, and dispatch template accordingly. Update team-lead agent.md to reflect the simplified calling convention.
 
 
 ## Detail Mode
