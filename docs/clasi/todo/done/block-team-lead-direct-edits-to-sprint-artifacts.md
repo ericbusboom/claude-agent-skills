@@ -1,8 +1,8 @@
 ---
-status: in-progress
+status: done
 sprint: '002'
 tickets:
-- 002-002
+- '002'
 ---
 
 # Block Team-Lead Direct Edits to Sprint Artifacts

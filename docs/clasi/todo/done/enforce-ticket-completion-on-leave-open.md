@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- '004'
 ---
 
 # Enforce Ticket Completion When Stakeholder Says "Leave Open"

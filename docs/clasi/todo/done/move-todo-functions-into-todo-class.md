@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- '006'
 ---
 
 # Move Todo Functions Into the Todo Class

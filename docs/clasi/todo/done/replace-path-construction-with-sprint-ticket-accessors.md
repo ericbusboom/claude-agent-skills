@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- 009
 ---
 
 # Replace Path Construction With Sprint/Ticket Accessors

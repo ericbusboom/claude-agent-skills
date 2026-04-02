@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- '010'
 ---
 
 # Sprint Should Own Branch and Worktree Lifecycle

@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- '005'
 ---
 
 # Move state_db Functions Into StateDB Class Methods

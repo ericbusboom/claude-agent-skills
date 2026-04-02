@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- 008
 ---
 
 # Replace Custom Frontmatter Parsing With python-frontmatter Module

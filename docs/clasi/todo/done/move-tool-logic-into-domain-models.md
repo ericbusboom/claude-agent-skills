@@ -1,5 +1,8 @@
 ---
-status: pending
+status: done
+sprint: '002'
+tickets:
+- '007'
 ---
 
 # Move Tool Logic Into Domain Models (Project, Sprint, Ticket)
