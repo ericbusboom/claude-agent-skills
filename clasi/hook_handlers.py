@@ -34,8 +34,13 @@ def read_payload() -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _log_hook_event(event_type: str, payload: dict) -> None:
+def _log_hook_event(
+    event_type: str, payload: dict, exit_code: int, reason: str,
+) -> None:
     """Append a single line to docs/clasi/log/hooks.log.
+
+    Called just before sys.exit(). Includes the exit code and a
+    fixed-width 12-char reason code.
 
     Creates docs/clasi/log/ if docs/clasi/ exists. Wraps everything in
     try/except so logging never causes a hook to fail.
@@ -47,7 +52,8 @@ def _log_hook_event(event_type: str, payload: dict) -> None:
         log_dir = base / "log"
         log_dir.mkdir(exist_ok=True)
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%SZ")
+        reason_fixed = f"{reason:<12.12}"
 
         # Build a short summary of key payload fields
         key_fields: list[str] = []
@@ -62,12 +68,20 @@ def _log_hook_event(event_type: str, payload: dict) -> None:
         if tier or name:
             key_fields.append(f"tier={tier or '0'} name={name or 'team-lead'}")
 
-        line = f"{timestamp} {event_type} {' '.join(key_fields)}\n"
+        line = f"{timestamp} {event_type:<16} {exit_code} {reason_fixed} {' '.join(key_fields)}\n"
         hooks_log = log_dir / "hooks.log"
         with open(hooks_log, "a", encoding="utf-8") as f:
             f.write(line)
     except Exception:
         pass  # Logging must never cause a hook to fail
+
+
+def _exit_hook(
+    event_type: str, payload: dict, exit_code: int, reason: str,
+) -> None:
+    """Log the hook event and exit with the given code."""
+    _log_hook_event(event_type, payload, exit_code, reason)
+    sys.exit(exit_code)
 
 
 # ---------------------------------------------------------------------------
@@ -83,7 +97,6 @@ def handle_role_guard(payload: dict) -> None:
     Tier 1 (sprint-planner): can write to docs/clasi/sprints/<sprint>/.
     Tier 2 (programmer): can write anywhere within scope_directory.
     """
-    _log_hook_event("role-guard", payload)
     tool_input = payload if payload else {}
     file_path = (
         tool_input.get("file_path")
@@ -93,7 +106,7 @@ def handle_role_guard(payload: dict) -> None:
     )
 
     if not file_path:
-        sys.exit(0)  # Can't determine path, allow
+        _exit_hook("role-guard", payload, 0, "no-path")
 
     agent_tier = os.environ.get("CLASI_AGENT_TIER", "")
 
@@ -109,11 +122,11 @@ def handle_role_guard(payload: dict) -> None:
 
     # Programmer (tier 2) can write — that's their job
     if agent_tier == "2":
-        sys.exit(0)
+        _exit_hook("role-guard", payload, 0, "tier-2")
 
     # OOP bypass
     if Path(".clasi-oop").exists():
-        sys.exit(0)
+        _exit_hook("role-guard", payload, 0, "oop-bypass")
 
     # Recovery state bypass
     db_path = Path("docs/clasi/.clasi.db")
@@ -123,7 +136,7 @@ def handle_role_guard(payload: dict) -> None:
 
             recovery = get_recovery_state(str(db_path))
             if recovery and file_path in recovery["allowed_paths"]:
-                sys.exit(0)
+                _exit_hook("role-guard", payload, 0, "recovery")
         except Exception:
             pass
 
@@ -131,7 +144,7 @@ def handle_role_guard(payload: dict) -> None:
     safe_prefixes = [".claude/", "CLAUDE.md", "AGENTS.md"]
     for prefix in safe_prefixes:
         if file_path == prefix or file_path.startswith(prefix):
-            sys.exit(0)
+            _exit_hook("role-guard", payload, 0, "safe-prefix")
 
     # Team-lead (tier 0 or unset) can write to docs/clasi/ but NOT sprints/
     if agent_tier in ("", "0") and file_path.startswith("docs/clasi/"):
@@ -141,12 +154,12 @@ def handle_role_guard(payload: dict) -> None:
                 "Use MCP tools (create_sprint, create_ticket, update_ticket_status, etc.).",
                 file=sys.stderr,
             )
-            sys.exit(2)
-        sys.exit(0)
+            _exit_hook("role-guard", payload, 2, "blk-sprint")
+        _exit_hook("role-guard", payload, 0, "clasi-docs")
 
     # Sprint-planner (tier 1) can write to sprint directories
     if agent_tier == "1" and file_path.startswith("docs/clasi/sprints/"):
-        sys.exit(0)
+        _exit_hook("role-guard", payload, 0, "tier-1")
 
     # Block — determine who's violating
     agent_name = os.environ.get("CLASI_AGENT_NAME", "team-lead")
@@ -167,7 +180,7 @@ def handle_role_guard(payload: dict) -> None:
             file=sys.stderr,
         )
         print("- programmer agent for source code and tests", file=sys.stderr)
-    sys.exit(2)
+    _exit_hook("role-guard", payload, 2, "blk-write")
 
 
 # ---------------------------------------------------------------------------
@@ -181,11 +194,9 @@ def handle_mcp_guard(payload: dict) -> None:
     The sprint-planner (Tier 1) and programmer (Tier 2) are allowed.
     OOP bypass: if .clasi-oop exists, allow all tiers.
     """
-    _log_hook_event("mcp-guard", payload)
-
     # OOP bypass
     if Path(".clasi-oop").exists():
-        sys.exit(0)
+        _exit_hook("mcp-guard", payload, 0, "oop-bypass")
 
     agent_tier = os.environ.get("CLASI_AGENT_TIER", "")
 
@@ -201,7 +212,7 @@ def handle_mcp_guard(payload: dict) -> None:
 
     # Only block Tier 0 (team-lead / interactive session)
     if agent_tier not in ("", "0"):
-        sys.exit(0)
+        _exit_hook("mcp-guard", payload, 0, "tier-allowed")
 
     tool_name = payload.get("tool_name", "")
     print(
@@ -209,7 +220,7 @@ def handle_mcp_guard(payload: dict) -> None:
         "Dispatch to sprint-planner agent to create planning artifacts.",
         file=sys.stderr,
     )
-    sys.exit(2)
+    _exit_hook("mcp-guard", payload, 2, "blk-mcp")
 
 
 # ---------------------------------------------------------------------------
@@ -333,10 +344,9 @@ def handle_subagent_start(payload: dict) -> None:
     Creates a log file in docs/clasi/log/ with frontmatter. The stop
     hook appends the transcript to this same file.
     """
-    _log_hook_event("subagent-start", payload)
     log_dir, sprint_id = _get_sprint_context()
     if log_dir is None:
-        sys.exit(0)
+        _exit_hook("sub-start", payload, 0, "no-log-dir")
 
     agent_type = payload.get("agent_type", "unknown")
     agent_id = payload.get("agent_id", "")
@@ -380,16 +390,14 @@ def handle_subagent_start(payload: dict) -> None:
     except Exception:
         pass
 
-    sys.exit(0)
+    _exit_hook("sub-start", payload, 0, "logged")
 
 
 def handle_subagent_stop(payload: dict) -> None:
     """Append transcript to the log file created by subagent-start."""
-    _log_hook_event("subagent-stop", payload)
-
     log_dir = _get_log_dir()
     if log_dir is None:
-        sys.exit(0)
+        _exit_hook("sub-stop", payload, 0, "no-log-dir")
 
     agent_id = payload.get("agent_id", "")
     session_id = payload.get("session_id", "")
@@ -415,7 +423,7 @@ def handle_subagent_stop(payload: dict) -> None:
         pass
 
     if not log_file or not log_file.exists():
-        sys.exit(0)
+        _exit_hook("sub-stop", payload, 0, "no-log-file")
 
     # Build content to append
     lines = []
@@ -473,7 +481,7 @@ def handle_subagent_stop(payload: dict) -> None:
         with open(log_file, "a", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
-    sys.exit(0)
+    _exit_hook("sub-stop", payload, 0, "logged")
 
 
 # ---------------------------------------------------------------------------
@@ -487,10 +495,9 @@ def handle_task_created(payload: dict) -> None:
     Creates a log file in docs/clasi/log/ with frontmatter and writes an
     .active/task-{task_id}.json marker so task_completed can find it.
     """
-    _log_hook_event("task-created", payload)
     log_dir, sprint_id = _get_sprint_context()
     if log_dir is None:
-        sys.exit(0)
+        _exit_hook("task-created", payload, 0, "no-log-dir")
 
     task_id = payload.get("task_id", "")
     task_subject = payload.get("task_subject", "")
@@ -532,7 +539,7 @@ def handle_task_created(payload: dict) -> None:
     except Exception:
         pass
 
-    sys.exit(0)
+    _exit_hook("task-created", payload, 0, "logged")
 
 
 def handle_task_completed(payload: dict) -> None:
@@ -541,10 +548,9 @@ def handle_task_completed(payload: dict) -> None:
     Finds the .active marker, appends duration to frontmatter, extracts
     the prompt from the transcript, and appends the transcript content.
     """
-    _log_hook_event("task-completed", payload)
     log_dir = _get_log_dir()
     if log_dir is None:
-        sys.exit(0)
+        _exit_hook("task-done", payload, 0, "no-log-dir")
 
     task_id = payload.get("task_id", "")
     transcript_path = payload.get("transcript_path", "")
@@ -568,7 +574,7 @@ def handle_task_completed(payload: dict) -> None:
         pass
 
     if not log_file or not log_file.exists():
-        sys.exit(0)
+        _exit_hook("task-done", payload, 0, "no-log-file")
 
     # Add duration to frontmatter by rewriting the file
     if started_at:
@@ -622,7 +628,7 @@ def handle_task_completed(payload: dict) -> None:
         with open(log_file, "a", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
-    sys.exit(0)
+    _exit_hook("task-done", payload, 0, "logged")
 
 
 # ---------------------------------------------------------------------------

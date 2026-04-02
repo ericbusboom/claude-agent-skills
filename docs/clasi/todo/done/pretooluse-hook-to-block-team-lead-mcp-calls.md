@@ -1,8 +1,8 @@
 ---
-status: in-progress
+status: done
 sprint: '002'
 tickets:
-- 002-016
+- '016'
 ---
 
 # PreToolUse Hook to Block Team-Lead MCP Calls and Log All Hooks

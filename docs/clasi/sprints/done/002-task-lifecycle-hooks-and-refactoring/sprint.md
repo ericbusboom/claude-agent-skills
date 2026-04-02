@@ -1,7 +1,7 @@
 ---
-id: "002"
-title: "Task Lifecycle Hooks and Refactoring"
-status: planning
+id: '002'
+title: Task Lifecycle Hooks and Refactoring
+status: done
 branch: sprint/002-task-lifecycle-hooks-and-refactoring
 use-cases: []
 ---

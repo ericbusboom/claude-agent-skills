@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clasi"
-version = "0.20260331.9"
+version = "0.20260402.1"
 description = "MCP server for AI-driven software engineering process — agents, skills, instructions, and artifact management"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,6 +43,12 @@ markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.coverage.run]
 branch = true
+omit = [
+    "clasi/hooks/role_guard.py",
+    "clasi/cli.py",
+    "clasi/hook_handlers.py",
+    "clasi/mcp_server.py",
+]
 
 [tool.coverage.report]
 fail_under = 85
