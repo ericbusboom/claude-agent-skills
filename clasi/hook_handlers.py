@@ -278,24 +278,139 @@ def _handle_subagent_stop(payload: dict) -> None:
 
 
 def _handle_task_created(payload: dict) -> None:
-    """Validate a task creation.
+    """Log when a programmer task starts.
 
-    Checks that the referenced ticket exists and is in the right state.
-    For now, this is permissive — log and allow.
+    Creates a log file in docs/clasi/log/ with frontmatter and writes an
+    .active/task-{task_id}.json marker so task_completed can find it.
     """
-    # TODO: validate ticket exists, sprint is in executing phase
+    log_dir = Path("docs/clasi/log")
+    if not log_dir.exists():
+        sys.exit(0)
+
+    task_id = payload.get("task_id", "")
+    task_subject = payload.get("task_subject", "")
+    teammate_name = payload.get("teammate_name", "")
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    # Create the log file
+    _next = _next_log_number(log_dir)
+    safe_subject = task_subject[:40].replace("/", "-").replace(" ", "-").lower() if task_subject else "task"
+    log_file = log_dir / f"{_next:03d}-{safe_subject}.md"
+
+    lines = [
+        "---",
+        f"task_id: {task_id}",
+        f"task_subject: {task_subject}",
+        f"teammate_name: {teammate_name}",
+        f"started_at: {timestamp}",
+        "---",
+        "",
+        f"# Task: {task_subject}",
+        "",
+    ]
+    log_file.write_text("\n".join(lines))
+
+    # Write a marker so task_completed can find this log file
+    marker_dir = log_dir / ".active"
+    marker_dir.mkdir(parents=True, exist_ok=True)
+    marker = marker_dir / f"task-{task_id}.json"
+    marker.write_text(
+        json.dumps(
+            {
+                "log_file": str(log_file),
+                "started_at": timestamp,
+            },
+            indent=2,
+        )
+    )
+
     sys.exit(0)
 
 
 def _handle_task_completed(payload: dict) -> None:
-    """Validate task completion.
+    """Append transcript to the log file created by task_created.
 
-    Checks tests pass, acceptance criteria met, updates ticket frontmatter.
-    For now, this is permissive — log and allow.
-
-    Future: run tests, check criteria, merge worktree, block on failure.
+    Finds the .active marker, appends duration to frontmatter, extracts
+    the prompt from the transcript, and appends the transcript content.
     """
-    # TODO: run tests, validate criteria, merge worktree
+    log_dir = Path("docs/clasi/log")
+    if not log_dir.exists():
+        sys.exit(0)
+
+    task_id = payload.get("task_id", "")
+    transcript_path = payload.get("transcript_path", "")
+    stop_time = datetime.now(timezone.utc)
+
+    # Find the log file from the start marker
+    marker_dir = log_dir / ".active"
+    marker = marker_dir / f"task-{task_id}.json"
+
+    log_file = None
+    started_at = None
+    if marker.exists():
+        try:
+            start_info = json.loads(marker.read_text())
+            log_file = Path(start_info["log_file"])
+            started_at = start_info.get("started_at")
+        except (json.JSONDecodeError, KeyError, ValueError):
+            pass
+        marker.unlink(missing_ok=True)
+
+    if not log_file or not log_file.exists():
+        sys.exit(0)
+
+    # Add duration to frontmatter by rewriting the file
+    if started_at:
+        try:
+            duration_s = (stop_time - datetime.fromisoformat(started_at)).total_seconds()
+            content = log_file.read_text(encoding="utf-8")
+            content = content.replace(
+                "---\n\n",
+                f"stopped_at: {stop_time.isoformat()}\n"
+                f"duration_seconds: {duration_s:.1f}\n"
+                "---\n\n",
+                1,
+            )
+            log_file.write_text(content, encoding="utf-8")
+        except (ValueError, OSError):
+            pass
+
+    lines = []
+
+    # Extract prompt from transcript
+    prompt = ""
+    if transcript_path:
+        prompt = _extract_prompt_from_transcript(transcript_path)
+
+    if prompt:
+        lines.extend(["## Prompt", "", prompt, ""])
+
+    # Append full transcript as pretty-printed JSON array
+    if transcript_path:
+        transcript_file = Path(transcript_path)
+        if transcript_file.exists():
+            try:
+                transcript_content = transcript_file.read_text(encoding="utf-8")
+                messages = []
+                for line in transcript_content.splitlines():
+                    if line.strip():
+                        messages.append(json.loads(line))
+                pretty = json.dumps(messages, indent=2)
+                lines.extend([
+                    "## Transcript",
+                    "",
+                    "```json",
+                    pretty,
+                    "```",
+                    "",
+                ])
+            except OSError:
+                pass
+
+    if lines:
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+
     sys.exit(0)
 
 

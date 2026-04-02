@@ -22,6 +22,17 @@
         ]
       }
     ],
+    "TaskCreated": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/task_created.py"
+          }
+        ]
+      }
+    ],
     "TaskCompleted": [
       {
         "matcher": ".*",
