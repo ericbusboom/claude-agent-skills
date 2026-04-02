@@ -41,7 +41,6 @@ env/
 
 # CLASI state database and runtime markers (local coordination, not versioned)
 .clasi.db
-.clasi-agent-tier
 .clasi-oop
 
 # Testing

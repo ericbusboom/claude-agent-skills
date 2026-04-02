@@ -110,6 +110,98 @@ class TestStateDB:
         assert result["cleared"] is False
 
 
+class TestActiveAgents:
+    """Test active_agents table methods."""
+
+    @pytest.fixture()
+    def db(self, tmp_path):
+        sdb = StateDB(tmp_path / ".clasi.db")
+        sdb.init()
+        return sdb
+
+    def test_register_and_get_active_agent(self, db):
+        result = db.register_active_agent("agent-abc", "programmer", "2", "/tmp/log.md")
+        assert result["agent_id"] == "agent-abc"
+        assert result["agent_type"] == "programmer"
+        assert result["tier"] == "2"
+        assert result["log_file"] == "/tmp/log.md"
+        assert "started_at" in result
+
+        record = db.get_active_agent("agent-abc")
+        assert record is not None
+        assert record["agent_id"] == "agent-abc"
+        assert record["agent_type"] == "programmer"
+        assert record["tier"] == "2"
+        assert record["log_file"] == "/tmp/log.md"
+
+    def test_get_active_agent_returns_none_when_missing(self, db):
+        result = db.get_active_agent("nonexistent")
+        assert result is None
+
+    def test_register_active_agent_upserts(self, db):
+        db.register_active_agent("agent-abc", "programmer", "2", "/tmp/old.md")
+        db.register_active_agent("agent-abc", "sprint-planner", "1", "/tmp/new.md")
+        record = db.get_active_agent("agent-abc")
+        assert record["agent_type"] == "sprint-planner"
+        assert record["tier"] == "1"
+        assert record["log_file"] == "/tmp/new.md"
+
+    def test_remove_active_agent(self, db):
+        db.register_active_agent("agent-abc", "programmer", "2")
+        result = db.remove_active_agent("agent-abc")
+        assert result["removed"] is True
+        assert db.get_active_agent("agent-abc") is None
+
+    def test_remove_active_agent_missing(self, db):
+        result = db.remove_active_agent("nonexistent")
+        assert result["removed"] is False
+
+    def test_get_active_tier_returns_empty_when_no_agents(self, db):
+        tier = db.get_active_tier()
+        assert tier == ""
+
+    def test_get_active_tier_returns_tier_when_agent_present(self, db):
+        db.register_active_agent("agent-001", "programmer", "2")
+        tier = db.get_active_tier()
+        assert tier == "2"
+
+    def test_get_active_tier_with_multiple_agents(self, db):
+        db.register_active_agent("agent-001", "programmer", "2")
+        db.register_active_agent("agent-002", "sprint-planner", "1")
+        tier = db.get_active_tier()
+        # Returns one of the tiers (LIMIT 1)
+        assert tier in ("1", "2")
+
+    def test_register_active_agent_without_log_file(self, db):
+        result = db.register_active_agent("agent-xyz", "programmer", "2")
+        assert result["log_file"] is None
+        record = db.get_active_agent("agent-xyz")
+        assert record["log_file"] is None
+
+    def test_clear_stale_agents(self, db):
+        import sqlite3
+        from datetime import datetime, timedelta, timezone
+
+        # Insert a stale record directly
+        stale_time = (datetime.now(timezone.utc) - timedelta(hours=25)).isoformat()
+        conn = sqlite3.connect(str(db.path))
+        conn.execute(
+            "INSERT INTO active_agents (agent_id, agent_type, tier, log_file, started_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            ("stale-agent", "programmer", "2", None, stale_time),
+        )
+        conn.commit()
+        conn.close()
+
+        # Insert a fresh record via API
+        db.register_active_agent("fresh-agent", "programmer", "2")
+
+        result = db.clear_stale_agents(ttl_hours=24)
+        assert result["cleared"] == 1
+        assert db.get_active_agent("stale-agent") is None
+        assert db.get_active_agent("fresh-agent") is not None
+
+
 class TestProjectDbIntegration:
     """Test that Project.db returns a working StateDB."""
 

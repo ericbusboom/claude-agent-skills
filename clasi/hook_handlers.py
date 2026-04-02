@@ -97,13 +97,14 @@ def handle_role_guard(payload: dict) -> None:
 
     agent_tier = os.environ.get("CLASI_AGENT_TIER", "")
 
-    # If no env var, check the marker file written by SubagentStart
+    # If no env var, check the DB for the active agent tier
     if not agent_tier:
         try:
-            marker = Path(".clasi-agent-tier")
-            if marker.exists():
-                agent_tier = marker.read_text().strip()
-        except OSError:
+            db_path_tier = Path("docs/clasi/.clasi.db")
+            if db_path_tier.exists():
+                from clasi.state_db import get_active_tier
+                agent_tier = get_active_tier(str(db_path_tier))
+        except Exception:
             pass
 
     # Programmer (tier 2) can write — that's their job
@@ -188,13 +189,14 @@ def handle_mcp_guard(payload: dict) -> None:
 
     agent_tier = os.environ.get("CLASI_AGENT_TIER", "")
 
-    # If no env var, check the marker file written by SubagentStart
+    # If no env var, check the DB for the active agent tier
     if not agent_tier:
         try:
-            marker = Path(".clasi-agent-tier")
-            if marker.exists():
-                agent_tier = marker.read_text().strip()
-        except OSError:
+            db_path_tier = Path("docs/clasi/.clasi.db")
+            if db_path_tier.exists():
+                from clasi.state_db import get_active_tier
+                agent_tier = get_active_tier(str(db_path_tier))
+        except Exception:
             pass
 
     # Only block Tier 0 (team-lead / interactive session)
@@ -344,14 +346,9 @@ def handle_subagent_start(payload: dict) -> None:
     active_tickets = _get_active_tickets(sprint_id)
     tickets_str = ", ".join(active_tickets)
 
-    # Write a tier marker so the role guard knows which agent is active.
     # Maps agent_type to CLASI tier: programmer=2, sprint-planner=1, else 0.
     _AGENT_TYPE_TIERS = {"programmer": "2", "sprint-planner": "1"}
     tier = _AGENT_TYPE_TIERS.get(agent_type, "0")
-    try:
-        Path(".clasi-agent-tier").write_text(tier)
-    except OSError:
-        pass
 
     # Create the log file
     _next = _next_log_number(log_dir)
@@ -371,20 +368,17 @@ def handle_subagent_start(payload: dict) -> None:
     ]
     log_file.write_text("\n".join(lines))
 
-    # Write a marker so stop can find this log file
-    marker_dir = log_dir / ".active"
-    marker_dir.mkdir(parents=True, exist_ok=True)
+    # Register in DB so stop hook can find the log file and tier guard can check tier
     marker_id = agent_id or session_id or "unknown"
-    marker = marker_dir / f"{marker_id}.json"
-    marker.write_text(
-        json.dumps(
-            {
-                "log_file": str(log_file),
-                "started_at": timestamp,
-            },
-            indent=2,
-        )
-    )
+    try:
+        db_path = Path("docs/clasi/.clasi.db")
+        if db_path.exists() or (db_path.parent.exists()):
+            from clasi.state_db import register_active_agent
+            register_active_agent(
+                str(db_path), marker_id, agent_type, tier, str(log_file)
+            )
+    except Exception:
+        pass
 
     sys.exit(0)
 
@@ -392,12 +386,6 @@ def handle_subagent_start(payload: dict) -> None:
 def handle_subagent_stop(payload: dict) -> None:
     """Append transcript to the log file created by subagent-start."""
     _log_hook_event("subagent-stop", payload)
-
-    # Clean up the tier marker written by subagent-start
-    try:
-        Path(".clasi-agent-tier").unlink(missing_ok=True)
-    except OSError:
-        pass
 
     log_dir = _get_log_dir()
     if log_dir is None:
@@ -409,21 +397,22 @@ def handle_subagent_stop(payload: dict) -> None:
     transcript_path = payload.get("agent_transcript_path", "")
     stop_time = datetime.now(timezone.utc)
 
-    # Find the log file from the start marker
-    marker_dir = log_dir / ".active"
+    # Find the log file from the DB record written by subagent-start
     marker_id = agent_id or session_id or "unknown"
-    marker = marker_dir / f"{marker_id}.json"
-
     log_file = None
     started_at = None
-    if marker.exists():
-        try:
-            start_info = json.loads(marker.read_text())
-            log_file = Path(start_info["log_file"])
-            started_at = start_info.get("started_at")
-        except (json.JSONDecodeError, KeyError, ValueError):
-            pass
-        marker.unlink(missing_ok=True)
+    try:
+        db_path = Path("docs/clasi/.clasi.db")
+        if db_path.exists():
+            from clasi.state_db import get_active_agent, remove_active_agent
+            record = get_active_agent(str(db_path), marker_id)
+            if record:
+                if record.get("log_file"):
+                    log_file = Path(record["log_file"])
+                started_at = record.get("started_at")
+            remove_active_agent(str(db_path), marker_id)
+    except Exception:
+        pass
 
     if not log_file or not log_file.exists():
         sys.exit(0)
@@ -531,19 +520,17 @@ def handle_task_created(payload: dict) -> None:
     ]
     log_file.write_text("\n".join(lines))
 
-    # Write a marker so task_completed can find this log file
-    marker_dir = log_dir / ".active"
-    marker_dir.mkdir(parents=True, exist_ok=True)
-    marker = marker_dir / f"task-{task_id}.json"
-    marker.write_text(
-        json.dumps(
-            {
-                "log_file": str(log_file),
-                "started_at": timestamp,
-            },
-            indent=2,
-        )
-    )
+    # Register in DB so task_completed can find the log file
+    task_marker_id = f"task-{task_id}"
+    try:
+        db_path = Path("docs/clasi/.clasi.db")
+        if db_path.exists() or (db_path.parent.exists()):
+            from clasi.state_db import register_active_agent
+            register_active_agent(
+                str(db_path), task_marker_id, "task", "2", str(log_file)
+            )
+    except Exception:
+        pass
 
     sys.exit(0)
 
@@ -563,20 +550,22 @@ def handle_task_completed(payload: dict) -> None:
     transcript_path = payload.get("transcript_path", "")
     stop_time = datetime.now(timezone.utc)
 
-    # Find the log file from the start marker
-    marker_dir = log_dir / ".active"
-    marker = marker_dir / f"task-{task_id}.json"
-
+    # Find the log file from the DB record written by task_created
+    task_marker_id = f"task-{task_id}"
     log_file = None
     started_at = None
-    if marker.exists():
-        try:
-            start_info = json.loads(marker.read_text())
-            log_file = Path(start_info["log_file"])
-            started_at = start_info.get("started_at")
-        except (json.JSONDecodeError, KeyError, ValueError):
-            pass
-        marker.unlink(missing_ok=True)
+    try:
+        db_path = Path("docs/clasi/.clasi.db")
+        if db_path.exists():
+            from clasi.state_db import get_active_agent, remove_active_agent
+            record = get_active_agent(str(db_path), task_marker_id)
+            if record:
+                if record.get("log_file"):
+                    log_file = Path(record["log_file"])
+                started_at = record.get("started_at")
+            remove_active_agent(str(db_path), task_marker_id)
+    except Exception:
+        pass
 
     if not log_file or not log_file.exists():
         sys.exit(0)

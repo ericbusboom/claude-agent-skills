@@ -61,6 +61,14 @@ CREATE TABLE IF NOT EXISTS recovery_state (
     reason TEXT NOT NULL,
     recorded_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS active_agents (
+    agent_id TEXT PRIMARY KEY,
+    agent_type TEXT NOT NULL,
+    tier TEXT NOT NULL,
+    log_file TEXT,
+    started_at TEXT NOT NULL
+);
 """
 
 # Gate requirements for each transition: {from_phase: required_gate_name or None}
@@ -545,5 +553,119 @@ class StateDB:
             cursor = conn.execute("DELETE FROM recovery_state WHERE id = 1")
             conn.commit()
             return {"cleared": cursor.rowcount > 0}
+        finally:
+            conn.close()
+
+    # ------------------------------------------------------------------
+    # Active agent tracking
+    # ------------------------------------------------------------------
+
+    def register_active_agent(
+        self,
+        agent_id: str,
+        agent_type: str,
+        tier: str,
+        log_file: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Register an active agent in the database.
+
+        Uses upsert semantics: re-registering the same agent_id overwrites
+        the previous record.
+        """
+        self.init()
+        now = _now()
+        conn = _connect(self._path)
+        try:
+            conn.execute(
+                "INSERT INTO active_agents (agent_id, agent_type, tier, log_file, started_at) "
+                "VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(agent_id) DO UPDATE SET "
+                "agent_type = excluded.agent_type, tier = excluded.tier, "
+                "log_file = excluded.log_file, started_at = excluded.started_at",
+                (agent_id, agent_type, tier, log_file, now),
+            )
+            conn.commit()
+            return {
+                "agent_id": agent_id,
+                "agent_type": agent_type,
+                "tier": tier,
+                "log_file": log_file,
+                "started_at": now,
+            }
+        finally:
+            conn.close()
+
+    def get_active_agent(self, agent_id: str) -> Optional[dict[str, Any]]:
+        """Return the active agent record for the given agent_id, or None."""
+        self.init()
+        conn = _connect(self._path)
+        try:
+            row = conn.execute(
+                "SELECT agent_id, agent_type, tier, log_file, started_at "
+                "FROM active_agents WHERE agent_id = ?",
+                (agent_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "agent_id": row["agent_id"],
+                "agent_type": row["agent_type"],
+                "tier": row["tier"],
+                "log_file": row["log_file"],
+                "started_at": row["started_at"],
+            }
+        finally:
+            conn.close()
+
+    def remove_active_agent(self, agent_id: str) -> dict[str, Any]:
+        """Remove the active agent record for the given agent_id.
+
+        Returns {"removed": True} if a record was deleted,
+        {"removed": False} if no record existed.
+        """
+        self.init()
+        conn = _connect(self._path)
+        try:
+            cursor = conn.execute(
+                "DELETE FROM active_agents WHERE agent_id = ?", (agent_id,)
+            )
+            conn.commit()
+            return {"removed": cursor.rowcount > 0}
+        finally:
+            conn.close()
+
+    def get_active_tier(self) -> str:
+        """Return the tier of any active agent, or empty string if none.
+
+        Reads the first row from active_agents. This replaces the
+        .clasi-agent-tier file check.
+        """
+        self.init()
+        conn = _connect(self._path)
+        try:
+            row = conn.execute(
+                "SELECT tier FROM active_agents LIMIT 1"
+            ).fetchone()
+            if row is None:
+                return ""
+            return row["tier"]
+        finally:
+            conn.close()
+
+    def clear_stale_agents(self, ttl_hours: int = 24) -> dict[str, Any]:
+        """Delete active_agents records older than ttl_hours.
+
+        Returns {"cleared": count} with the number of records removed.
+        """
+        self.init()
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=ttl_hours)
+        cutoff_str = cutoff.isoformat()
+        conn = _connect(self._path)
+        try:
+            cursor = conn.execute(
+                "DELETE FROM active_agents WHERE started_at < ?", (cutoff_str,)
+            )
+            conn.commit()
+            return {"cleared": cursor.rowcount}
         finally:
             conn.close()

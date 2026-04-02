@@ -38,6 +38,11 @@ __all__ = [
     "write_recovery_state",
     "get_recovery_state",
     "clear_recovery_state",
+    "register_active_agent",
+    "get_active_agent",
+    "remove_active_agent",
+    "get_active_tier",
+    "clear_stale_agents",
 ]
 
 
@@ -121,3 +126,34 @@ def get_recovery_state(db_path: str | Path) -> Optional[dict[str, Any]]:
 def clear_recovery_state(db_path: str | Path) -> dict[str, Any]:
     """Delete the recovery state record."""
     return StateDB(db_path).clear_recovery_state()
+
+
+def register_active_agent(
+    db_path: str | Path,
+    agent_id: str,
+    agent_type: str,
+    tier: str,
+    log_file: Optional[str] = None,
+) -> dict[str, Any]:
+    """Register an active agent in the database."""
+    return StateDB(db_path).register_active_agent(agent_id, agent_type, tier, log_file)
+
+
+def get_active_agent(db_path: str | Path, agent_id: str) -> Optional[dict[str, Any]]:
+    """Return the active agent record for the given agent_id, or None."""
+    return StateDB(db_path).get_active_agent(agent_id)
+
+
+def remove_active_agent(db_path: str | Path, agent_id: str) -> dict[str, Any]:
+    """Remove the active agent record for the given agent_id."""
+    return StateDB(db_path).remove_active_agent(agent_id)
+
+
+def get_active_tier(db_path: str | Path) -> str:
+    """Return the tier of any active agent, or empty string if none."""
+    return StateDB(db_path).get_active_tier()
+
+
+def clear_stale_agents(db_path: str | Path, ttl_hours: int = 24) -> dict[str, Any]:
+    """Delete active_agents records older than ttl_hours."""
+    return StateDB(db_path).clear_stale_agents(ttl_hours)

@@ -14,7 +14,7 @@ from clasi.hook_handlers import (
     _get_log_dir,
     _get_active_tickets,
 )
-from clasi.state_db import init_db, register_sprint, acquire_lock
+from clasi.state_db import init_db, register_sprint, acquire_lock, get_active_agent
 
 
 # ---------------------------------------------------------------------------
@@ -107,22 +107,23 @@ class TestHandleTaskCreated:
         assert "started_at:" in content
 
     def test_creates_active_marker(self, tmp_path):
-        """task_created writes .active/task-{id}.json marker."""
+        """task_created registers task-{id} in the DB as an active agent."""
         _make_log_dir(tmp_path)
+        db_path = str(tmp_path / "docs" / "clasi" / ".clasi.db")
         payload = _task_created_payload(task_id="t-42")
 
         with pytest.raises(SystemExit):
             _run_with_cwd(tmp_path, handle_task_created, payload)
 
-        marker = tmp_path / "docs" / "clasi" / "log" / ".active" / "task-t-42.json"
-        assert marker.exists()
-        data = json.loads(marker.read_text())
-        assert "log_file" in data
-        assert "started_at" in data
+        record = get_active_agent(db_path, "task-t-42")
+        assert record is not None
+        assert "log_file" in record
+        assert "started_at" in record
 
     def test_marker_log_file_points_to_created_log(self, tmp_path):
-        """The marker's log_file path matches the created log file."""
+        """The DB record's log_file path matches the created log file."""
         _make_log_dir(tmp_path)
+        db_path = str(tmp_path / "docs" / "clasi" / ".clasi.db")
         payload = _task_created_payload(task_id="t-10")
 
         with pytest.raises(SystemExit):
@@ -130,11 +131,11 @@ class TestHandleTaskCreated:
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
         log_files = list(log_dir.glob("[0-9][0-9][0-9]-*.md"))
-        marker = log_dir / ".active" / "task-t-10.json"
-        data = json.loads(marker.read_text())
-        # The marker stores the log file path (relative or absolute).
+        record = get_active_agent(db_path, "task-t-10")
+        assert record is not None
+        # The record stores the log file path (relative or absolute).
         # Verify it refers to the same filename as the created log file.
-        assert Path(data["log_file"]).name == log_files[0].name
+        assert Path(record["log_file"]).name == log_files[0].name
 
     def test_exits_zero_when_log_dir_missing(self, tmp_path):
         """task_created exits 0 gracefully if docs/clasi/log does not exist."""
@@ -188,18 +189,20 @@ class TestHandleTaskCompleted:
         assert "duration_seconds:" in content
 
     def test_removes_active_marker_after_completion(self, tmp_path):
-        """task_completed removes the .active marker file."""
+        """task_completed removes the DB record for the task."""
         _make_log_dir(tmp_path)
+        db_path = str(tmp_path / "docs" / "clasi" / ".clasi.db")
         self._setup_active_task(tmp_path, task_id="t-002")
 
-        marker = tmp_path / "docs" / "clasi" / "log" / ".active" / "task-t-002.json"
-        assert marker.exists()
+        # The DB record should exist after task_created
+        assert get_active_agent(db_path, "task-t-002") is not None
 
         payload = _task_completed_payload(task_id="t-002")
         with pytest.raises(SystemExit):
             _run_with_cwd(tmp_path, handle_task_completed, payload)
 
-        assert not marker.exists()
+        # The DB record should be gone after task_completed
+        assert get_active_agent(db_path, "task-t-002") is None
 
     def test_appends_transcript_content(self, tmp_path):
         """task_completed appends the transcript as a JSON code block."""
@@ -337,17 +340,18 @@ class TestSprintScopedLogging:
         content = log_files[0].read_text()
         assert "task_id: t-sprint-001" in content
 
-    def test_task_created_active_marker_in_sprint_subdir(self, tmp_path):
-        """task_created places .active marker inside sprint subdir."""
+    def test_task_created_active_marker_in_db(self, tmp_path):
+        """task_created registers the task in the DB (not a file marker)."""
         _make_log_dir(tmp_path)
-        _setup_db_with_lock(tmp_path, sprint_id="001")
+        db_path = _setup_db_with_lock(tmp_path, sprint_id="001")
         payload = _task_created_payload(task_id="t-marker")
 
         with pytest.raises(SystemExit):
             _run_with_cwd(tmp_path, handle_task_created, payload)
 
-        marker = tmp_path / "docs" / "clasi" / "log" / "sprint-001" / ".active" / "task-t-marker.json"
-        assert marker.exists()
+        record = get_active_agent(db_path, "task-t-marker")
+        assert record is not None
+        assert record["agent_type"] == "task"
 
     def test_task_completed_finds_log_in_sprint_subdir(self, tmp_path):
         """task_completed appends to log in sprint subdir when lock is held."""
