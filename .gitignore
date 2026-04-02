@@ -56,3 +56,5 @@ tmp/
 *.log
 tests/e2e/project/
 tests/e2e/repro_project/
+
+docs/clasi/log/
