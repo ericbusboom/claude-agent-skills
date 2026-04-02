@@ -50,16 +50,10 @@ class Artifact:
 
         Creates parent directories if they do not exist.
         """
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        # write_frontmatter preserves body when file exists, but we
-        # want to set both explicitly, so write directly.
-        import yaml
+        from clasi.frontmatter import _write_document
 
-        yaml_str = yaml.dump(
-            frontmatter, default_flow_style=False, sort_keys=False
-        ).strip()
-        full = f"---\n{yaml_str}\n---\n{content}"
-        self._path.write_text(full, encoding="utf-8")
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        _write_document(self._path, frontmatter, content)
 
     def update_frontmatter(self, **fields: Any) -> None:
         """Update specific frontmatter fields, preserving others."""
