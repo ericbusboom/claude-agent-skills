@@ -22,7 +22,7 @@ written specification. There are no existing `overview.md`,
 
 1. **Read the specification** provided by the stakeholder.
 
-2. **Produce three documents** in `docs/clasi/`:
+2. **Produce three documents** in `docs/clasi/design/`:
 
    **`overview.md`** — A one-page summary of the project. An elevator
    pitch for quick context. It is additive, NOT a replacement for the
@@ -47,4 +47,4 @@ preserves everything. When in doubt, include rather than omit.
 
 ## Output
 
-Three documents in `docs/clasi/`: overview.md, specification.md, usecases.md.
+Three documents in `docs/clasi/design/`: overview.md, specification.md, usecases.md.

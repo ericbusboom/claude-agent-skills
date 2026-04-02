@@ -8,9 +8,9 @@ from unittest.mock import patch
 import pytest
 
 from clasi.hook_handlers import (
-    _handle_task_created,
-    _handle_task_completed,
-    _handle_subagent_start,
+    handle_task_created,
+    handle_task_completed,
+    handle_subagent_start,
     _get_log_dir,
     _get_active_tickets,
 )
@@ -93,7 +93,7 @@ class TestHandleTaskCreated:
         payload = _task_created_payload()
 
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
@@ -112,7 +112,7 @@ class TestHandleTaskCreated:
         payload = _task_created_payload(task_id="t-42")
 
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
 
         marker = tmp_path / "docs" / "clasi" / "log" / ".active" / "task-t-42.json"
         assert marker.exists()
@@ -126,7 +126,7 @@ class TestHandleTaskCreated:
         payload = _task_created_payload(task_id="t-10")
 
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
         log_files = list(log_dir.glob("[0-9][0-9][0-9]-*.md"))
@@ -140,7 +140,7 @@ class TestHandleTaskCreated:
         """task_created exits 0 gracefully if docs/clasi/log does not exist."""
         payload = _task_created_payload()
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
     def test_log_filename_derived_from_subject(self, tmp_path):
@@ -149,7 +149,7 @@ class TestHandleTaskCreated:
         payload = _task_created_payload(task_subject="My Great Task")
 
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
         log_files = list(log_dir.glob("[0-9][0-9][0-9]-*.md"))
@@ -168,7 +168,7 @@ class TestHandleTaskCompleted:
         """Run task_created to set up the log and marker files."""
         payload = _task_created_payload(task_id=task_id, task_subject=task_subject)
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
 
     def test_appends_duration_to_frontmatter(self, tmp_path):
         """task_completed adds stopped_at and duration_seconds to frontmatter."""
@@ -177,7 +177,7 @@ class TestHandleTaskCompleted:
 
         payload = _task_completed_payload(task_id="t-001")
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_completed, payload)
+            _run_with_cwd(tmp_path, handle_task_completed, payload)
         assert exc.value.code == 0
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
@@ -197,7 +197,7 @@ class TestHandleTaskCompleted:
 
         payload = _task_completed_payload(task_id="t-002")
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_completed, payload)
+            _run_with_cwd(tmp_path, handle_task_completed, payload)
 
         assert not marker.exists()
 
@@ -219,7 +219,7 @@ class TestHandleTaskCompleted:
             transcript_path=str(transcript_file),
         )
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_completed, payload)
+            _run_with_cwd(tmp_path, handle_task_completed, payload)
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
         log_files = list(log_dir.glob("[0-9][0-9][0-9]-*.md"))
@@ -245,7 +245,7 @@ class TestHandleTaskCompleted:
             transcript_path=str(transcript_file),
         )
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_completed, payload)
+            _run_with_cwd(tmp_path, handle_task_completed, payload)
 
         log_dir = tmp_path / "docs" / "clasi" / "log"
         log_files = list(log_dir.glob("[0-9][0-9][0-9]-*.md"))
@@ -257,7 +257,7 @@ class TestHandleTaskCompleted:
         """task_completed exits 0 gracefully if docs/clasi/log does not exist."""
         payload = _task_completed_payload()
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_completed, payload)
+            _run_with_cwd(tmp_path, handle_task_completed, payload)
         assert exc.value.code == 0
 
     def test_exits_zero_when_no_marker(self, tmp_path):
@@ -265,7 +265,7 @@ class TestHandleTaskCompleted:
         _make_log_dir(tmp_path)
         payload = _task_completed_payload(task_id="nonexistent")
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_completed, payload)
+            _run_with_cwd(tmp_path, handle_task_completed, payload)
         assert exc.value.code == 0
 
 
@@ -328,7 +328,7 @@ class TestSprintScopedLogging:
         payload = _task_created_payload(task_id="t-sprint-001")
 
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
         sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-001"
@@ -344,7 +344,7 @@ class TestSprintScopedLogging:
         payload = _task_created_payload(task_id="t-marker")
 
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
 
         marker = tmp_path / "docs" / "clasi" / "log" / "sprint-001" / ".active" / "task-t-marker.json"
         assert marker.exists()
@@ -357,12 +357,12 @@ class TestSprintScopedLogging:
         # task_created sets up the log
         create_payload = _task_created_payload(task_id="t-full")
         with pytest.raises(SystemExit):
-            _run_with_cwd(tmp_path, _handle_task_created, create_payload)
+            _run_with_cwd(tmp_path, handle_task_created, create_payload)
 
         # task_completed should find it in the same sprint subdir
         complete_payload = _task_completed_payload(task_id="t-full")
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_completed, complete_payload)
+            _run_with_cwd(tmp_path, handle_task_completed, complete_payload)
         assert exc.value.code == 0
 
         sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-001"
@@ -382,7 +382,7 @@ class TestSprintScopedLogging:
 
         payload = _task_created_payload(task_id="t-fallback")
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
         base_log_dir = tmp_path / "docs" / "clasi" / "log"
@@ -465,7 +465,7 @@ class TestSprintIdInFrontmatter:
         payload = _task_created_payload(task_id="t-sid")
 
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
         sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-002"
@@ -480,7 +480,7 @@ class TestSprintIdInFrontmatter:
         payload = _task_created_payload(task_id="t-nosid")
 
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
         base_log_dir = tmp_path / "docs" / "clasi" / "log"
@@ -500,7 +500,7 @@ class TestSprintIdInFrontmatter:
 
         payload = _task_created_payload(task_id="t-tickets")
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_task_created, payload)
+            _run_with_cwd(tmp_path, handle_task_created, payload)
         assert exc.value.code == 0
 
         sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-002"
@@ -509,7 +509,7 @@ class TestSprintIdInFrontmatter:
         assert "002-007" in content
 
     def test_subagent_start_includes_sprint_id_when_lock_held(self, tmp_path):
-        """_handle_subagent_start writes sprint_id to frontmatter when lock is held."""
+        """handle_subagent_start writes sprint_id to frontmatter when lock is held."""
         _make_log_dir(tmp_path)
         _setup_db_with_lock(tmp_path, sprint_id="002")
 
@@ -520,7 +520,7 @@ class TestSprintIdInFrontmatter:
             "hook_event_name": "SubagentStart",
         }
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_subagent_start, payload)
+            _run_with_cwd(tmp_path, handle_subagent_start, payload)
         assert exc.value.code == 0
 
         sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-002"
@@ -532,7 +532,7 @@ class TestSprintIdInFrontmatter:
         assert "agent_id: abc123" in content
 
     def test_subagent_start_includes_empty_sprint_id_when_no_lock(self, tmp_path):
-        """_handle_subagent_start writes empty sprint_id when no lock is held."""
+        """handle_subagent_start writes empty sprint_id when no lock is held."""
         _make_log_dir(tmp_path)
 
         payload = {
@@ -542,7 +542,7 @@ class TestSprintIdInFrontmatter:
             "hook_event_name": "SubagentStart",
         }
         with pytest.raises(SystemExit) as exc:
-            _run_with_cwd(tmp_path, _handle_subagent_start, payload)
+            _run_with_cwd(tmp_path, handle_subagent_start, payload)
         assert exc.value.code == 0
 
         base_log_dir = tmp_path / "docs" / "clasi" / "log"

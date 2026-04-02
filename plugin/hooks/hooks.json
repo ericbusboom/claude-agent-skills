@@ -53,6 +53,15 @@
             "command": "python3 .claude/hooks/role_guard.py"
           }
         ]
+      },
+      {
+        "matcher": "mcp__clasi__create_ticket|mcp__clasi__create_sprint",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/mcp_guard.py"
+          }
+        ]
       }
     ],
     "PostToolUse": [
