@@ -7,7 +7,13 @@ from unittest.mock import patch
 
 import pytest
 
-from clasi.hook_handlers import _handle_task_created, _handle_task_completed, _get_log_dir
+from clasi.hook_handlers import (
+    _handle_task_created,
+    _handle_task_completed,
+    _handle_subagent_start,
+    _get_log_dir,
+    _get_active_tickets,
+)
 from clasi.state_db import init_db, register_sprint, acquire_lock
 
 
@@ -384,3 +390,163 @@ class TestSprintScopedLogging:
         assert len(log_files) == 1
         # Sprint subdir should not have been created
         assert not (base_log_dir / "sprint-001").exists()
+
+
+# ---------------------------------------------------------------------------
+# Sprint ID and tickets in frontmatter
+# ---------------------------------------------------------------------------
+
+
+def _make_in_progress_ticket(sprint_dir: Path, ticket_id: str, title: str = "A ticket") -> None:
+    """Write a minimal in-progress ticket file to sprint_dir/tickets/."""
+    tickets_dir = sprint_dir / "tickets"
+    tickets_dir.mkdir(parents=True, exist_ok=True)
+    content = f"---\nid: '{ticket_id}'\ntitle: {title}\nstatus: in-progress\n---\n"
+    (tickets_dir / f"{ticket_id}-{title.lower().replace(' ', '-')}.md").write_text(content)
+
+
+def _make_done_ticket(sprint_dir: Path, ticket_id: str, title: str = "Done ticket") -> None:
+    """Write a minimal done ticket file to sprint_dir/tickets/."""
+    tickets_dir = sprint_dir / "tickets"
+    tickets_dir.mkdir(parents=True, exist_ok=True)
+    content = f"---\nid: '{ticket_id}'\ntitle: {title}\nstatus: done\n---\n"
+    (tickets_dir / f"{ticket_id}-{title.lower().replace(' ', '-')}.md").write_text(content)
+
+
+class TestGetActiveTickets:
+    def test_returns_empty_for_empty_sprint_id(self, tmp_path):
+        """_get_active_tickets returns empty list when sprint_id is empty string."""
+        result = _run_with_cwd(tmp_path, _get_active_tickets, "")
+        assert result == []
+
+    def test_returns_empty_when_no_sprints_dir(self, tmp_path):
+        """_get_active_tickets returns empty list when docs/clasi/sprints does not exist."""
+        result = _run_with_cwd(tmp_path, _get_active_tickets, "001")
+        assert result == []
+
+    def test_returns_empty_when_no_matching_sprint_dir(self, tmp_path):
+        """_get_active_tickets returns empty list when no sprint dir matches sprint_id."""
+        sprints = tmp_path / "docs" / "clasi" / "sprints"
+        sprints.mkdir(parents=True)
+        (sprints / "002-some-sprint").mkdir()
+        result = _run_with_cwd(tmp_path, _get_active_tickets, "001")
+        assert result == []
+
+    def test_returns_in_progress_ticket_ids(self, tmp_path):
+        """_get_active_tickets returns ticket IDs for in-progress tickets."""
+        sprints = tmp_path / "docs" / "clasi" / "sprints"
+        sprint_dir = sprints / "002-my-sprint"
+        sprint_dir.mkdir(parents=True)
+        _make_in_progress_ticket(sprint_dir, "007", "Feature A")
+        _make_in_progress_ticket(sprint_dir, "009", "Feature B")
+        _make_done_ticket(sprint_dir, "001", "Old task")
+
+        result = _run_with_cwd(tmp_path, _get_active_tickets, "002")
+        assert "002-007" in result
+        assert "002-009" in result
+        assert "002-001" not in result
+
+    def test_returns_empty_when_no_in_progress_tickets(self, tmp_path):
+        """_get_active_tickets returns empty list when all tickets are done."""
+        sprints = tmp_path / "docs" / "clasi" / "sprints"
+        sprint_dir = sprints / "003-another-sprint"
+        sprint_dir.mkdir(parents=True)
+        _make_done_ticket(sprint_dir, "001", "Done one")
+
+        result = _run_with_cwd(tmp_path, _get_active_tickets, "003")
+        assert result == []
+
+
+class TestSprintIdInFrontmatter:
+    def test_task_created_includes_sprint_id_when_lock_held(self, tmp_path):
+        """task_created writes sprint_id to frontmatter when an execution lock is held."""
+        _make_log_dir(tmp_path)
+        _setup_db_with_lock(tmp_path, sprint_id="002")
+        payload = _task_created_payload(task_id="t-sid")
+
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, _handle_task_created, payload)
+        assert exc.value.code == 0
+
+        sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-002"
+        log_files = list(sprint_log_dir.glob("[0-9][0-9][0-9]-*.md"))
+        assert len(log_files) == 1
+        content = log_files[0].read_text()
+        assert 'sprint_id: "002"' in content
+
+    def test_task_created_includes_empty_sprint_id_when_no_lock(self, tmp_path):
+        """task_created writes empty sprint_id when no execution lock is held."""
+        _make_log_dir(tmp_path)
+        payload = _task_created_payload(task_id="t-nosid")
+
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, _handle_task_created, payload)
+        assert exc.value.code == 0
+
+        base_log_dir = tmp_path / "docs" / "clasi" / "log"
+        log_files = list(base_log_dir.glob("[0-9][0-9][0-9]-*.md"))
+        assert len(log_files) == 1
+        content = log_files[0].read_text()
+        assert 'sprint_id: ""' in content
+
+    def test_task_created_includes_tickets_in_frontmatter(self, tmp_path):
+        """task_created writes in-progress ticket IDs to frontmatter."""
+        _make_log_dir(tmp_path)
+        _setup_db_with_lock(tmp_path, sprint_id="002")
+
+        # Create sprint directory with in-progress ticket
+        sprint_dir = tmp_path / "docs" / "clasi" / "sprints" / "002-test-sprint"
+        _make_in_progress_ticket(sprint_dir, "007", "Feature A")
+
+        payload = _task_created_payload(task_id="t-tickets")
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, _handle_task_created, payload)
+        assert exc.value.code == 0
+
+        sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-002"
+        log_files = list(sprint_log_dir.glob("[0-9][0-9][0-9]-*.md"))
+        content = log_files[0].read_text()
+        assert "002-007" in content
+
+    def test_subagent_start_includes_sprint_id_when_lock_held(self, tmp_path):
+        """_handle_subagent_start writes sprint_id to frontmatter when lock is held."""
+        _make_log_dir(tmp_path)
+        _setup_db_with_lock(tmp_path, sprint_id="002")
+
+        payload = {
+            "agent_type": "programmer",
+            "agent_id": "abc123",
+            "session_id": "sess-xyz",
+            "hook_event_name": "SubagentStart",
+        }
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, _handle_subagent_start, payload)
+        assert exc.value.code == 0
+
+        sprint_log_dir = tmp_path / "docs" / "clasi" / "log" / "sprint-002"
+        log_files = list(sprint_log_dir.glob("[0-9][0-9][0-9]-*.md"))
+        assert len(log_files) == 1
+        content = log_files[0].read_text()
+        assert 'sprint_id: "002"' in content
+        assert "agent_type: programmer" in content
+        assert "agent_id: abc123" in content
+
+    def test_subagent_start_includes_empty_sprint_id_when_no_lock(self, tmp_path):
+        """_handle_subagent_start writes empty sprint_id when no lock is held."""
+        _make_log_dir(tmp_path)
+
+        payload = {
+            "agent_type": "programmer",
+            "agent_id": "abc123",
+            "session_id": "sess-xyz",
+            "hook_event_name": "SubagentStart",
+        }
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, _handle_subagent_start, payload)
+        assert exc.value.code == 0
+
+        base_log_dir = tmp_path / "docs" / "clasi" / "log"
+        log_files = list(base_log_dir.glob("[0-9][0-9][0-9]-*.md"))
+        assert len(log_files) == 1
+        content = log_files[0].read_text()
+        assert 'sprint_id: ""' in content

@@ -141,17 +141,18 @@ def _handle_role_guard(payload: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _get_log_dir() -> Optional[Path]:
-    """Return the log directory to use for the current sprint context.
+def _get_sprint_context() -> tuple[Optional[Path], str]:
+    """Return (log_dir, sprint_id) for the current sprint context.
 
-    Returns None if docs/clasi/log does not exist (handlers should exit 0).
-    If an execution lock is held, returns a sprint-scoped subdirectory
+    log_dir is None if docs/clasi/log does not exist (handlers should exit 0).
+    If an execution lock is held, log_dir is a sprint-scoped subdirectory
     (docs/clasi/log/sprint-{sprint_id}/), creating it if needed.
-    Otherwise returns docs/clasi/log.
+    Otherwise log_dir is docs/clasi/log.
+    sprint_id is the active sprint ID string, or empty string if none.
     """
     base = Path("docs/clasi/log")
     if not base.exists():
-        return None
+        return None, ""
 
     db_path = Path("docs/clasi/.clasi.db")
     if db_path.exists():
@@ -160,13 +161,87 @@ def _get_log_dir() -> Optional[Path]:
 
             lock = get_lock_holder(str(db_path))
             if lock and lock.get("sprint_id"):
-                sprint_dir = base / f"sprint-{lock['sprint_id']}"
+                sprint_id = lock["sprint_id"]
+                sprint_dir = base / f"sprint-{sprint_id}"
                 sprint_dir.mkdir(parents=True, exist_ok=True)
-                return sprint_dir
+                return sprint_dir, sprint_id
         except Exception:
             pass
 
-    return base
+    return base, ""
+
+
+def _get_log_dir() -> Optional[Path]:
+    """Return the log directory to use for the current sprint context.
+
+    Returns None if docs/clasi/log does not exist (handlers should exit 0).
+    If an execution lock is held, returns a sprint-scoped subdirectory
+    (docs/clasi/log/sprint-{sprint_id}/), creating it if needed.
+    Otherwise returns docs/clasi/log.
+    """
+    log_dir, _ = _get_sprint_context()
+    return log_dir
+
+
+def _get_active_tickets(sprint_id: str) -> list[str]:
+    """Return a list of in-progress ticket IDs for the given sprint.
+
+    Scans docs/clasi/sprints/{sprint_dir}/tickets/ for files with
+    status: in-progress in their frontmatter. Returns ticket IDs in the
+    format "{sprint_id}-{ticket_id}" (e.g. "002-007").
+    Returns an empty list on any error or if no in-progress tickets found.
+    """
+    if not sprint_id:
+        return []
+    try:
+        sprints_base = Path("docs/clasi/sprints")
+        if not sprints_base.exists():
+            return []
+
+        # Find the sprint directory matching this sprint_id
+        sprint_dir = None
+        for candidate in sprints_base.iterdir():
+            if candidate.is_dir() and candidate.name.startswith(f"{sprint_id}-"):
+                sprint_dir = candidate
+                break
+        if sprint_dir is None:
+            return []
+
+        tickets_dir = sprint_dir / "tickets"
+        if not tickets_dir.exists():
+            return []
+
+        active_tickets = []
+        for ticket_file in tickets_dir.glob("*.md"):
+            try:
+                content = ticket_file.read_text(encoding="utf-8")
+                if "status: in-progress" in content:
+                    # Extract ticket id from frontmatter
+                    ticket_id = None
+                    in_frontmatter = False
+                    for line in content.splitlines():
+                        if line.strip() == "---":
+                            if not in_frontmatter:
+                                in_frontmatter = True
+                            else:
+                                break
+                        elif in_frontmatter and line.startswith("id:"):
+                            raw = line[3:].strip().strip("'\"")
+                            ticket_id = raw
+                            break
+                    if ticket_id:
+                        active_tickets.append(f"{sprint_id}-{ticket_id}")
+                    else:
+                        # Fall back to filename prefix
+                        name = ticket_file.stem
+                        prefix = name.split("-")[0] if "-" in name else name
+                        active_tickets.append(f"{sprint_id}-{prefix}")
+            except OSError:
+                continue
+
+        return sorted(active_tickets)
+    except Exception:
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +255,7 @@ def _handle_subagent_start(payload: dict) -> None:
     Creates a log file in docs/clasi/log/ with frontmatter. The stop
     hook appends the transcript to this same file.
     """
-    log_dir = _get_log_dir()
+    log_dir, sprint_id = _get_sprint_context()
     if log_dir is None:
         sys.exit(0)
 
@@ -188,6 +263,9 @@ def _handle_subagent_start(payload: dict) -> None:
     agent_id = payload.get("agent_id", "")
     session_id = payload.get("session_id", "")
     timestamp = datetime.now(timezone.utc).isoformat()
+
+    active_tickets = _get_active_tickets(sprint_id)
+    tickets_str = ", ".join(active_tickets)
 
     # Create the log file
     _next = _next_log_number(log_dir)
@@ -197,6 +275,8 @@ def _handle_subagent_start(payload: dict) -> None:
         "---",
         f"agent_type: {agent_type}",
         f"agent_id: {agent_id}",
+        f'sprint_id: "{sprint_id}"',
+        f'tickets: "{tickets_str}"',
         f"started_at: {timestamp}",
         "---",
         "",
@@ -324,7 +404,7 @@ def _handle_task_created(payload: dict) -> None:
     Creates a log file in docs/clasi/log/ with frontmatter and writes an
     .active/task-{task_id}.json marker so task_completed can find it.
     """
-    log_dir = _get_log_dir()
+    log_dir, sprint_id = _get_sprint_context()
     if log_dir is None:
         sys.exit(0)
 
@@ -332,6 +412,9 @@ def _handle_task_created(payload: dict) -> None:
     task_subject = payload.get("task_subject", "")
     teammate_name = payload.get("teammate_name", "")
     timestamp = datetime.now(timezone.utc).isoformat()
+
+    active_tickets = _get_active_tickets(sprint_id)
+    tickets_str = ", ".join(active_tickets)
 
     # Create the log file
     _next = _next_log_number(log_dir)
@@ -343,6 +426,8 @@ def _handle_task_created(payload: dict) -> None:
         f"task_id: {task_id}",
         f"task_subject: {task_subject}",
         f"teammate_name: {teammate_name}",
+        f'sprint_id: "{sprint_id}"',
+        f'tickets: "{tickets_str}"',
         f"started_at: {timestamp}",
         "---",
         "",
