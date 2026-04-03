@@ -30,7 +30,10 @@ The stakeholder may request this mode with a variety of phrases, such as:
 2. Make the change.
 3. Run the full test suite: `uv run pytest`.
 4. If tests pass, commit directly to master with a descriptive message.
-5. If tests fail, fix the issue and re-run.
+5. If the work addressed a TODO (from `docs/clasi/todo/`), call
+   `move_todo_to_done(filename)` to close it. The commit is not the
+   finish line — the TODO lifecycle must be closed too.
+6. If tests fail, fix the issue and re-run.
 
 That's it. No sprint, no tickets, no review gates, no architecture review.
 
