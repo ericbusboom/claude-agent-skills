@@ -109,6 +109,12 @@ results, and a recommendation. Wait for guidance.
 - You do not dispatch other agents — you are a leaf worker.
 - You do not skip tests. Every ticket gets tests unless explicitly noted.
 
+## Rules
+
+- Always use CLASI MCP tools (`list_sprints`, `list_tickets`,
+  `get_sprint_status`, `get_sprint_phase`) for sprint and ticket queries.
+  Do not use Bash, Glob, or ls to explore `docs/clasi/sprints/`.
+
 ## References
 
 - Your code may be reviewed by the `code-review` skill after implementation.

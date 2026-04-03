@@ -210,6 +210,9 @@ Domain components have no outward dependencies. Infrastructure is a plugin.
 - Never write code or tests. You produce planning artifacts only.
 - Never skip the architecture self-review.
 - Always use CLASI MCP tools for sprint and ticket creation.
+- Always use CLASI MCP tools (`list_sprints`, `list_tickets`,
+  `get_sprint_status`, `get_sprint_phase`) for sprint and ticket queries.
+  Do not use Bash, Glob, or ls to explore `docs/clasi/sprints/`.
 - Keep sprint scope manageable. Prefer smaller, focused sprints.
 - If a TODO cannot be addressed in the sprint scope, note it and
   inform team-lead.
