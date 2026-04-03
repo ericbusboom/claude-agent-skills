@@ -455,7 +455,7 @@ def handle_subagent_stop(payload: dict) -> None:
     if last_message:
         lines.extend(["## Result", "", last_message, ""])
 
-    # Append full transcript as pretty-printed JSON array
+    # Append transcript as markdown + raw JSON
     if transcript_path:
         transcript_file = Path(transcript_path)
         if transcript_file.exists():
@@ -465,15 +465,7 @@ def handle_subagent_stop(payload: dict) -> None:
                 for line in transcript_content.splitlines():
                     if line.strip():
                         messages.append(json.loads(line))
-                pretty = json.dumps(messages, indent=2)
-                lines.extend([
-                    "## Transcript",
-                    "",
-                    "```json",
-                    pretty,
-                    "```",
-                    "",
-                ])
+                lines.extend(_render_transcript_lines(messages))
             except OSError:
                 pass
 
@@ -602,7 +594,7 @@ def handle_task_completed(payload: dict) -> None:
     if prompt:
         lines.extend(["## Prompt", "", prompt, ""])
 
-    # Append full transcript as pretty-printed JSON array
+    # Append transcript as markdown + raw JSON
     if transcript_path:
         transcript_file = Path(transcript_path)
         if transcript_file.exists():
@@ -612,15 +604,7 @@ def handle_task_completed(payload: dict) -> None:
                 for line in transcript_content.splitlines():
                     if line.strip():
                         messages.append(json.loads(line))
-                pretty = json.dumps(messages, indent=2)
-                lines.extend([
-                    "## Transcript",
-                    "",
-                    "```json",
-                    pretty,
-                    "```",
-                    "",
-                ])
+                lines.extend(_render_transcript_lines(messages))
             except OSError:
                 pass
 
@@ -634,6 +618,96 @@ def handle_task_completed(payload: dict) -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _render_transcript_lines(messages: list) -> list[str]:
+    """Render transcript messages as markdown followed by raw JSON.
+
+    Returns a list of lines for the ``## Transcript`` section:
+    first a human-readable markdown rendering of each message,
+    then the full JSON dump in a fenced code block.
+    """
+    lines: list[str] = ["## Transcript", "", "---", ""]
+
+    for msg in messages:
+        timestamp = msg.get("timestamp", "")
+        msg_type = msg.get("type", "")
+        git_branch = msg.get("gitBranch", "")
+        user_type = msg.get("userType", "")
+        cwd = msg.get("cwd", "")
+        inner = msg.get("message", {})
+        model = inner.get("model", "")
+        stop_reason = inner.get("stop_reason", "")
+
+        # Header
+        lines.append(f"### {msg_type} — {timestamp}")
+        lines.append("")
+
+        # Metadata table
+        meta = []
+        if git_branch:
+            meta.append(f"branch: `{git_branch}`")
+        if user_type:
+            meta.append(f"userType: {user_type}")
+        if cwd:
+            meta.append(f"cwd: `{cwd}`")
+        if model:
+            meta.append(f"model: {model}")
+        if stop_reason:
+            meta.append(f"stop_reason: {stop_reason}")
+        if meta:
+            lines.append(" | ".join(meta))
+            lines.append("")
+
+        # Content
+        content = inner.get("content", msg.get("content", ""))
+        if isinstance(content, str) and content:
+            lines.append(content)
+            lines.append("")
+        elif isinstance(content, list):
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                block_type = block.get("type", "")
+                if block_type == "text":
+                    lines.append(block.get("text", ""))
+                    lines.append("")
+                elif block_type == "tool_use":
+                    name = block.get("name", "")
+                    tool_input = block.get("input", {})
+                    lines.append(f"> **Tool Use**: `{name}`")
+                    if tool_input:
+                        compact = json.dumps(tool_input, indent=2)
+                        # Truncate long tool inputs
+                        input_lines = compact.splitlines()
+                        if len(input_lines) > 15:
+                            input_lines = input_lines[:15] + ["  ..."]
+                        lines.append("> ```json")
+                        for il in input_lines:
+                            lines.append(f"> {il}")
+                        lines.append("> ```")
+                    lines.append("")
+                elif block_type == "tool_result":
+                    tool_id = block.get("tool_use_id", "")
+                    result_content = block.get("content", "")
+                    lines.append(f"> **Tool Result** (id: `{tool_id}`)")
+                    if isinstance(result_content, str) and result_content:
+                        result_preview = result_content[:500]
+                        if len(result_content) > 500:
+                            result_preview += "..."
+                        lines.append("> ```")
+                        for rl in result_preview.splitlines():
+                            lines.append(f"> {rl}")
+                        lines.append("> ```")
+                    lines.append("")
+
+        lines.append("---")
+        lines.append("")
+
+    # Raw JSON
+    pretty = json.dumps(messages, indent=2)
+    lines.extend(["", "```json", pretty, "```", ""])
+    return lines
 
 
 def _extract_prompt_from_transcript(transcript_path: str) -> str:
