@@ -20,30 +20,41 @@ written specification. There are no existing `overview.md`,
 
 ## Process
 
-1. **Read the specification** provided by the stakeholder.
+1. **Dispatch to the sprint-planner agent** via the Agent tool with:
+   - The specification file path
+   - Instruction to write all three documents to `docs/clasi/design/`
+   - Instruction to call the `create_overview` MCP tool after writing
+     `overview.md`
 
-2. **Produce three documents** in `docs/clasi/design/`:
+   The sprint-planner agent writes all three documents. Do not write
+   them yourself.
 
-   **`overview.md`** — A one-page summary of the project. An elevator
-   pitch for quick context. It is additive, NOT a replacement for the
-   specification.
+2. **Await completion.** The sprint-planner returns when all three
+   documents are written and `create_overview` has been called.
 
-   **`specification.md`** — The full feature specification, preserving
-   ALL stakeholder detail. Exact messages, behavior rules, edge cases,
-   test expectations — if the stakeholder wrote it, it MUST survive.
-   Reorganize for clarity, but do not lose information. Do not summarize,
-   paraphrase, or omit.
+3. **Report the result** to the stakeholder — confirm the files
+   created and any key decisions made.
 
-   **`usecases.md`** — Numbered use cases (UC-001, UC-002, etc.) extracted
-   from the specification. Each use case has: ID, title, actor,
-   preconditions, main flow, postconditions, and error flows.
+## Documents the Sprint-Planner Produces
 
-3. **Create the overview** using the `create_overview` MCP tool.
+**`docs/clasi/design/overview.md`** — A one-page summary of the
+project. An elevator pitch for quick context. It is additive, NOT a
+replacement for the specification.
+
+**`docs/clasi/design/specification.md`** — The full feature
+specification, preserving ALL stakeholder detail. Exact messages,
+behavior rules, edge cases, test expectations — if the stakeholder
+wrote it, it MUST survive. Reorganize for clarity, but do not lose
+information. Do not summarize, paraphrase, or omit.
+
+**`docs/clasi/design/usecases.md`** — Numbered use cases (UC-001,
+UC-002, etc.) extracted from the specification. Each use case has: ID,
+title, actor, preconditions, main flow, postconditions, and error flows.
 
 ## Critical Rule
 
-**Do not lose information.** The overview adds context. The specification
-preserves everything. When in doubt, include rather than omit.
+**Do not write documents yourself.** Dispatch to the sprint-planner
+agent. Your role is orchestration, not authorship.
 
 ## Output
 
