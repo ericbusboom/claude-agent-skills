@@ -863,6 +863,7 @@ class TestHandlePlanToTodo:
         mock_p2t.assert_called_once_with(
             Path.home() / ".claude" / "plans",
             Path("docs/clasi/todo"),
+            hook_payload={},
         )
 
     def test_prints_result_path_when_todo_created(self, capsys):
