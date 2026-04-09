@@ -10,6 +10,7 @@ These are thin dispatchers — actual logic lives in dedicated modules.
 
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -809,3 +810,87 @@ def _next_log_number(log_dir: Path) -> int:
         return last + 1
     except (ValueError, IndexError):
         return 1
+
+
+# ---------------------------------------------------------------------------
+# Plan-to-TODO — PostToolUse hook for ExitPlanMode
+# ---------------------------------------------------------------------------
+
+
+def handle_plan_to_todo(payload: dict) -> None:
+    """Convert the most recent plan file to a CLASI TODO.
+
+    Calls plan_to_todo() with the standard directories and prints the
+    path of the created TODO file if one was created.
+    """
+    from clasi.plan_to_todo import plan_to_todo
+
+    result = plan_to_todo(
+        Path.home() / ".claude" / "plans",
+        Path("docs/clasi/todo"),
+    )
+    if result:
+        print(result)
+    sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# Commit check — PostToolUse hook for Bash (git commit on master/main)
+# ---------------------------------------------------------------------------
+
+
+def handle_commit_check(payload: dict) -> None:
+    """Print a reminder when a git commit is made on master or main.
+
+    Reads TOOL_INPUT from the environment. If it contains 'git commit'
+    and the current branch is master or main, prints a reminder message.
+    Never blocks — always exits 0.
+    """
+    tool_input = os.environ.get("TOOL_INPUT", "")
+    if "git commit" in tool_input:
+        try:
+            result = subprocess.run(
+                ["git", "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+            )
+            branch = result.stdout.strip()
+            if branch in ("master", "main"):
+                print(
+                    "CLASI: You committed on master. Call tag_version() to bump the version."
+                )
+        except (OSError, subprocess.SubprocessError):
+            pass
+    sys.exit(0)
+
+
+# ---------------------------------------------------------------------------
+# Dispatcher
+# ---------------------------------------------------------------------------
+
+
+def handle_hook(event: str) -> None:
+    """Read stdin JSON and dispatch to the correct hook handler.
+
+    Routes the event name to the appropriate handler function. Exits with
+    code 1 for unknown event names.
+    """
+    payload = read_payload()
+
+    _ROUTING_TABLE = {
+        "role-guard": handle_role_guard,
+        "subagent-start": handle_subagent_start,
+        "subagent-stop": handle_subagent_stop,
+        "task-created": handle_task_created,
+        "task-completed": handle_task_completed,
+        "mcp-guard": handle_mcp_guard,
+        "plan-to-todo": handle_plan_to_todo,
+        "commit-check": handle_commit_check,
+    }
+
+    handler = _ROUTING_TABLE.get(event)
+    if handler is None:
+        print(f"clasi hook: unknown event '{event}'", file=sys.stderr)
+        sys.exit(1)
+
+    handler(payload)

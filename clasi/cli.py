@@ -200,6 +200,9 @@ def mcp():
             "subagent-stop",
             "task-created",
             "task-completed",
+            "mcp-guard",
+            "plan-to-todo",
+            "commit-check",
         ]
     ),
 )

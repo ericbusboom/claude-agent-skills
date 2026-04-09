@@ -11,6 +11,9 @@ from clasi.hook_handlers import (
     handle_task_created,
     handle_task_completed,
     handle_subagent_start,
+    handle_commit_check,
+    handle_plan_to_todo,
+    handle_hook,
     _get_log_dir,
     _get_active_tickets,
     _render_transcript_lines,
@@ -694,3 +697,191 @@ class TestRenderTranscriptLines:
         msg = _make_message_with_tool_use(block)
         output = "\n".join(_render_transcript_lines([msg]))
         assert "```json" in output
+
+
+# ---------------------------------------------------------------------------
+# handle_hook dispatcher tests
+# ---------------------------------------------------------------------------
+
+
+class TestHandleHook:
+    """Test that handle_hook routes event names to the correct handlers."""
+
+    def test_routes_role_guard(self):
+        """handle_hook('role-guard') calls handle_role_guard."""
+        with patch("clasi.hook_handlers.handle_role_guard") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("role-guard")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_subagent_start(self):
+        """handle_hook('subagent-start') calls handle_subagent_start."""
+        with patch("clasi.hook_handlers.handle_subagent_start") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("subagent-start")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_subagent_stop(self):
+        """handle_hook('subagent-stop') calls handle_subagent_stop."""
+        with patch("clasi.hook_handlers.handle_subagent_stop") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("subagent-stop")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_task_created(self):
+        """handle_hook('task-created') calls handle_task_created."""
+        with patch("clasi.hook_handlers.handle_task_created") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("task-created")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_task_completed(self):
+        """handle_hook('task-completed') calls handle_task_completed."""
+        with patch("clasi.hook_handlers.handle_task_completed") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("task-completed")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_mcp_guard(self):
+        """handle_hook('mcp-guard') calls handle_mcp_guard."""
+        with patch("clasi.hook_handlers.handle_mcp_guard") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("mcp-guard")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_plan_to_todo(self):
+        """handle_hook('plan-to-todo') calls handle_plan_to_todo."""
+        with patch("clasi.hook_handlers.handle_plan_to_todo") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("plan-to-todo")
+            mock_handler.assert_called_once_with({})
+
+    def test_routes_commit_check(self):
+        """handle_hook('commit-check') calls handle_commit_check."""
+        with patch("clasi.hook_handlers.handle_commit_check") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("commit-check")
+            mock_handler.assert_called_once_with({})
+
+    def test_unknown_event_exits_1(self, capsys):
+        """handle_hook exits with code 1 for unknown event names."""
+        with patch("clasi.hook_handlers.read_payload", return_value={}):
+            with pytest.raises(SystemExit) as exc:
+                handle_hook("no-such-event")
+        assert exc.value.code == 1
+        captured = capsys.readouterr()
+        assert "no-such-event" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# handle_commit_check tests
+# ---------------------------------------------------------------------------
+
+
+class TestHandleCommitCheck:
+    def test_prints_reminder_on_master_with_git_commit(self, capsys, monkeypatch):
+        """Prints reminder when TOOL_INPUT has 'git commit' and branch is master."""
+        monkeypatch.setenv("TOOL_INPUT", "git commit -m 'fix: something'")
+        with patch("clasi.hook_handlers.subprocess.run") as mock_run:
+            mock_run.return_value = type("R", (), {"stdout": "master\n"})()
+            with pytest.raises(SystemExit) as exc:
+                handle_commit_check({})
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "CLASI: You committed on master" in captured.out
+
+    def test_prints_reminder_on_main_with_git_commit(self, capsys, monkeypatch):
+        """Prints reminder when TOOL_INPUT has 'git commit' and branch is main."""
+        monkeypatch.setenv("TOOL_INPUT", "git commit -m 'feat: new thing'")
+        with patch("clasi.hook_handlers.subprocess.run") as mock_run:
+            mock_run.return_value = type("R", (), {"stdout": "main\n"})()
+            with pytest.raises(SystemExit) as exc:
+                handle_commit_check({})
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "CLASI: You committed on master" in captured.out
+
+    def test_silent_when_not_on_master(self, capsys, monkeypatch):
+        """No output when TOOL_INPUT has 'git commit' but branch is not master/main."""
+        monkeypatch.setenv("TOOL_INPUT", "git commit -m 'fix: bug'")
+        with patch("clasi.hook_handlers.subprocess.run") as mock_run:
+            mock_run.return_value = type("R", (), {"stdout": "feature/my-feature\n"})()
+            with pytest.raises(SystemExit) as exc:
+                handle_commit_check({})
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+    def test_silent_when_tool_input_lacks_git_commit(self, capsys, monkeypatch):
+        """No subprocess call and no output when TOOL_INPUT has no 'git commit'."""
+        monkeypatch.setenv("TOOL_INPUT", "git status")
+        with patch("clasi.hook_handlers.subprocess.run") as mock_run:
+            with pytest.raises(SystemExit) as exc:
+                handle_commit_check({})
+        assert exc.value.code == 0
+        mock_run.assert_not_called()
+        captured = capsys.readouterr()
+        assert captured.out == ""
+
+    def test_exits_zero_when_tool_input_missing(self, capsys, monkeypatch):
+        """handle_commit_check exits 0 when TOOL_INPUT env var is not set."""
+        monkeypatch.delenv("TOOL_INPUT", raising=False)
+        with pytest.raises(SystemExit) as exc:
+            handle_commit_check({})
+        assert exc.value.code == 0
+
+
+# ---------------------------------------------------------------------------
+# handle_plan_to_todo tests
+# ---------------------------------------------------------------------------
+
+
+class TestHandlePlanToTodo:
+    def test_calls_plan_to_todo_with_standard_dirs(self, tmp_path):
+        """handle_plan_to_todo calls plan_to_todo with home/.claude/plans and docs/clasi/todo."""
+        with patch("clasi.plan_to_todo.plan_to_todo") as mock_p2t:
+            mock_p2t.return_value = None
+            with pytest.raises(SystemExit) as exc:
+                handle_plan_to_todo({})
+        assert exc.value.code == 0
+        mock_p2t.assert_called_once_with(
+            Path.home() / ".claude" / "plans",
+            Path("docs/clasi/todo"),
+        )
+
+    def test_prints_result_path_when_todo_created(self, capsys):
+        """handle_plan_to_todo prints the created TODO path when plan_to_todo returns one."""
+        todo_path = Path("docs/clasi/todo/001-my-plan.md")
+        with patch("clasi.plan_to_todo.plan_to_todo") as mock_p2t:
+            mock_p2t.return_value = todo_path
+            with pytest.raises(SystemExit) as exc:
+                handle_plan_to_todo({})
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "001-my-plan.md" in captured.out
+
+    def test_no_output_when_no_plan_file(self, capsys):
+        """handle_plan_to_todo prints nothing when plan_to_todo returns None."""
+        with patch("clasi.plan_to_todo.plan_to_todo") as mock_p2t:
+            mock_p2t.return_value = None
+            with pytest.raises(SystemExit) as exc:
+                handle_plan_to_todo({})
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert captured.out == ""
