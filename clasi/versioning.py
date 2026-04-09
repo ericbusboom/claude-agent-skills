@@ -472,7 +472,7 @@ def create_version_tag(version: str) -> None:
         raise RuntimeError(f"Failed to create tag {tag_name}: {result.stderr.strip()}")
 
 
-def bump_version(major: int = 0, tag: bool = True) -> dict:
+def bump_version(major: int = 0, tag: bool = False) -> dict:
     """Compute the next version, update all version files, and optionally tag.
 
     This is the main entry point for `clasi version bump`.

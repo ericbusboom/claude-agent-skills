@@ -73,6 +73,15 @@
             "command": "if echo \"$TOOL_INPUT\" | grep -q 'git commit' && git branch --show-current 2>/dev/null | grep -qE '^(master|main)$'; then echo 'CLASI: You committed on master. Call tag_version() to bump the version.'; fi"
           }
         ]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/plan_to_todo.py"
+          }
+        ]
       }
     ]
   }
