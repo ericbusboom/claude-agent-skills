@@ -1128,7 +1128,7 @@ def _close_sprint_full(
         result["tag"] = f"v{version}"
     result["git"] = {
         "merged": merged,
-        "merge_strategy": "--no-ff",
+        "merge_strategy": "rebase + --no-ff",
         "merge_target": main_branch,
         "tags_pushed": tags_pushed,
         "branch_deleted": branch_deleted,

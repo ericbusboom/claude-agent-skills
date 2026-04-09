@@ -766,6 +766,7 @@ class TestCloseSprintFull:
             self._make_subprocess_result(0),  # git commit (version bump)
             self._make_subprocess_result(0),  # git rev-parse --verify
             self._make_subprocess_result(1),  # git merge-base (not ancestor)
+            self._make_subprocess_result(0),  # git rebase master sprint/001-sprint
             self._make_subprocess_result(0),  # git checkout master
             self._make_subprocess_result(1, "", "CONFLICT in foo.py"),  # git merge --no-ff
             self._make_subprocess_result(0, "foo.py\n"),  # git diff --name-only

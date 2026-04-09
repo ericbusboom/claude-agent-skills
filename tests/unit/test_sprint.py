@@ -504,6 +504,7 @@ class TestSprintMergeBranch:
             mock_run.side_effect = [
                 _make_run_result(0),  # git rev-parse --verify (branch exists)
                 _make_run_result(1),  # git merge-base --is-ancestor (not yet merged)
+                _make_run_result(0),  # git rebase master sprint/001-test-sprint
                 _make_run_result(0),  # git checkout master
                 _make_run_result(0),  # git merge --no-ff
             ]
@@ -535,6 +536,23 @@ class TestSprintMergeBranch:
         assert result["already_merged"] is True
         assert result["branch_exists"] is True
 
+    def test_merge_branch_rebase_failure_raises(self, tmp_path):
+        proj, sprint_dir = _make_sprint_dir(tmp_path)
+        s = Sprint(sprint_dir, proj)
+        with patch("clasi.sprint.subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                _make_run_result(0),  # rev-parse: branch exists
+                _make_run_result(1),  # merge-base: not ancestor
+                _make_run_result(1, stderr="rebase conflict"),  # rebase fails
+                _make_run_result(0),  # git rebase --abort
+            ]
+            try:
+                s.merge_branch("master")
+                assert False, "Expected RuntimeError"
+            except RuntimeError as e:
+                assert "Rebase of" in str(e)
+                assert "rebase conflict" in str(e)
+
     def test_merge_branch_conflict_raises_merge_conflict_error(self, tmp_path):
         proj, sprint_dir = _make_sprint_dir(tmp_path)
         s = Sprint(sprint_dir, proj)
@@ -542,6 +560,7 @@ class TestSprintMergeBranch:
             mock_run.side_effect = [
                 _make_run_result(0),  # rev-parse: branch exists
                 _make_run_result(1),  # merge-base: not ancestor
+                _make_run_result(0),  # git rebase master sprint/001-test-sprint
                 _make_run_result(0),  # checkout master
                 _make_run_result(1, stderr="Automatic merge failed"),  # git merge --no-ff
                 _make_run_result(0, stdout="foo.py\nbar.py\n"),  # git diff
@@ -567,6 +586,7 @@ class TestSprintMergeBranch:
             mock_run.side_effect = [
                 _make_run_result(0),  # rev-parse: branch exists
                 _make_run_result(1),  # merge-base: not ancestor
+                _make_run_result(0),  # git rebase master sprint/001-test-sprint
                 _make_run_result(1, stderr="not a git repo"),  # checkout fails
             ]
             try:
@@ -589,6 +609,92 @@ class TestSprintMergeBranch:
             assert False, "Expected RuntimeError"
         except RuntimeError as e:
             assert "no 'branch' field" in str(e)
+
+    def test_merge_branch_rebase_produces_linear_history(self, tmp_path):
+        """Integration test: rebase before --no-ff merge yields linear history.
+
+        Uses a real git repo in tmp_path to verify that after merge_branch()
+        the sprint commit appears on the first-parent chain of master.
+        """
+        import os
+        import subprocess as sp
+
+        git = lambda *args: sp.run(  # noqa: E731
+            ["git", *args], capture_output=True, text=True, cwd=tmp_path, check=True
+        )
+
+        # Bootstrap a git repo with a single commit on master.
+        git("init", "-b", "master")
+        git("config", "user.email", "test@example.com")
+        git("config", "user.name", "Test")
+        (tmp_path / "base.txt").write_text("base", encoding="utf-8")
+        git("add", "base.txt")
+        git("commit", "-m", "initial commit")
+
+        # Create sprint branch and add a commit on it.
+        sprint_branch = "sprint/001-test-sprint"
+        git("checkout", "-b", sprint_branch)
+        (tmp_path / "sprint.txt").write_text("sprint work", encoding="utf-8")
+        git("add", "sprint.txt")
+        git("commit", "-m", "sprint commit")
+
+        # Switch back to master and add a diverging commit.
+        git("checkout", "master")
+        (tmp_path / "master-extra.txt").write_text("master work", encoding="utf-8")
+        git("add", "master-extra.txt")
+        git("commit", "-m", "master diverge commit")
+
+        # Build a Sprint object pointing at a sprint dir within tmp_path.
+        proj = Project(tmp_path)
+        sprint_dir = proj.sprints_dir / "001-test-sprint"
+        sprint_dir.mkdir(parents=True)
+        (sprint_dir / "tickets").mkdir()
+        (sprint_dir / "tickets" / "done").mkdir()
+        (sprint_dir / "sprint.md").write_text(
+            f"---\nid: \"001\"\ntitle: \"Test Sprint\"\n"
+            f"status: active\nbranch: {sprint_branch}\n---\n# Sprint 001\n",
+            encoding="utf-8",
+        )
+        s = Sprint(sprint_dir, proj)
+
+        # merge_branch() calls subprocess.run without cwd, so it operates on
+        # the process's working directory.  Change into the test repo so that
+        # all git commands target it.
+        orig_dir = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            result = s.merge_branch("master")
+        finally:
+            os.chdir(orig_dir)
+
+        assert result["merged"] is True
+        assert result["already_merged"] is False
+
+        # Verify the merge commit appears on master's first-parent chain and
+        # the sprint commit is reachable from master's full history.
+        first_parent_log = sp.run(
+            ["git", "log", "--oneline", "--first-parent", "master"],
+            capture_output=True, text=True, cwd=tmp_path, check=True,
+        )
+        fp_subjects = [
+            line.split(" ", 1)[1]
+            for line in first_parent_log.stdout.strip().splitlines()
+        ]
+        assert any("sprint/001-test-sprint" in subj for subj in fp_subjects), (
+            f"Merge commit not found in first-parent log: {fp_subjects}"
+        )
+
+        full_log = sp.run(
+            ["git", "log", "--oneline", "master"],
+            capture_output=True, text=True, cwd=tmp_path, check=True,
+        )
+        full_subjects = [
+            line.split(" ", 1)[1]
+            for line in full_log.stdout.strip().splitlines()
+        ]
+        assert any("sprint commit" in subj for subj in full_subjects), (
+            f"Sprint commit not reachable from master: {full_subjects}"
+        )
 
 
 class TestSprintDeleteBranch:

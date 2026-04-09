@@ -298,6 +298,21 @@ class Sprint:
         if is_ancestor:
             return {"branch_exists": True, "merged": True, "already_merged": True}
 
+        # Rebase sprint branch onto main before merging.
+        # Two-argument form avoids requiring a checkout first:
+        #   git rebase <upstream> <branch>
+        rebase = subprocess.run(
+            ["git", "rebase", main_branch, branch_name],
+            capture_output=True,
+            text=True,
+        )
+        if rebase.returncode != 0:
+            subprocess.run(["git", "rebase", "--abort"], capture_output=True)
+            raise RuntimeError(
+                f"Rebase of {branch_name} onto {main_branch} failed: "
+                f"{rebase.stderr.strip()}"
+            )
+
         checkout = subprocess.run(
             ["git", "checkout", main_branch],
             capture_output=True,
