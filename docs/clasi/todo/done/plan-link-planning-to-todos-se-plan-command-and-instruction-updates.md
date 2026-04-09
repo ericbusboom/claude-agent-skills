@@ -1,5 +1,8 @@
 ---
-status: pending
+status: in-progress
+sprint: '005'
+tickets:
+- 005-002
 ---
 
 # Plan: Link planning to TODOs — /se plan command and instruction updates

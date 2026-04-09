@@ -1,5 +1,7 @@
 """Convert a Claude Code plan file to a CLASI TODO."""
 
+import json
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -7,11 +9,14 @@ from clasi.templates import slugify
 from clasi.todo_split import _unique_path
 
 
-def plan_to_todo(plans_dir: Path, todo_dir: Path) -> Optional[Path]:
+def plan_to_todo(plans_dir: Path, todo_dir: Path, hook_payload: Optional[dict] = None) -> Optional[Path]:
     """Copy the most recent plan file to the TODO directory.
 
     Finds the newest .md in plans_dir, adds ``status: pending``
     frontmatter, writes it to todo_dir, and deletes the original.
+
+    If hook_payload is provided (not None), a debug block with payload and
+    environment context is appended to the TODO file.
 
     Returns the path of the created TODO file, or None if nothing
     was converted.
@@ -48,7 +53,32 @@ def plan_to_todo(plans_dir: Path, todo_dir: Path) -> Optional[Path]:
 
     todo_dir.mkdir(parents=True, exist_ok=True)
     out_path = _unique_path(todo_dir, slug)
-    out_path.write_text(f"---\nstatus: pending\n---\n\n{body}\n", encoding="utf-8")
+
+    debug_block = ""
+    if hook_payload is not None:
+        debug_info = {
+            "hook_payload": hook_payload,
+            "env": {
+                k: os.environ.get(k, "")
+                for k in [
+                    "TOOL_INPUT", "TOOL_NAME", "SESSION_ID",
+                    "CLASI_AGENT_TIER", "CLASI_AGENT_NAME",
+                    "CLAUDE_PROJECT_DIR", "PWD", "CWD",
+                ]
+            },
+            "plans_dir": str(plans_dir),
+            "plan_file": str(plan_file),
+            "cwd": os.getcwd(),
+        }
+        debug_block = (
+            "\n\n---\n\n"
+            "## Hook Debug Info\n\n"
+            "```json\n"
+            + json.dumps(debug_info, indent=2)
+            + "\n```\n"
+        )
+
+    out_path.write_text(f"---\nstatus: pending\n---\n\n{body}\n{debug_block}", encoding="utf-8")
 
     plan_file.unlink()
     return out_path
