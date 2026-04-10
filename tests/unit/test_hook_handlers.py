@@ -863,7 +863,6 @@ class TestHandlePlanToTodo:
         mock_p2t.assert_called_once_with(
             Path.home() / ".claude" / "plans",
             Path("docs/clasi/todo"),
-            hook_payload={},
             plan_file=None,
         )
 
@@ -900,6 +899,5 @@ class TestHandlePlanToTodo:
         mock_p2t.assert_called_once_with(
             Path.home() / ".claude" / "plans",
             Path("docs/clasi/todo"),
-            hook_payload=payload,
             plan_file=Path("/tmp/my-plan.md"),
         )

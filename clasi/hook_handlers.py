@@ -863,7 +863,6 @@ def handle_plan_to_todo(payload: dict) -> None:
     result = plan_to_todo(
         Path.home() / ".claude" / "plans",
         Path("docs/clasi/todo"),
-        hook_payload=payload,
         plan_file=plan_file,
     )
     if result:
