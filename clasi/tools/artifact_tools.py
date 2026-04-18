@@ -15,10 +15,10 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
+from clasi.artifact import Artifact
 from clasi.frontmatter import read_document, read_frontmatter
 from clasi.mcp_server import server, get_project
-
-logger = logging.getLogger("clasi.artifact")
+from clasi.sprint import MergeConflictError, Sprint
 from clasi.state_db import (
     PHASES as _PHASES,
     rename_sprint as _rename_sprint,
@@ -31,6 +31,18 @@ from clasi.templates import (
     TICKET_TEMPLATE,
     OVERVIEW_TEMPLATE,
 )
+from clasi.ticket import Ticket
+from clasi.todo import Todo
+from clasi.versioning import (
+    compute_next_version,
+    create_version_tag,
+    detect_version_file,
+    load_version_trigger,
+    should_version,
+    update_version_file,
+)
+
+logger = logging.getLogger("clasi.artifact")
 
 
 def resolve_artifact_path(path: str) -> Path:
@@ -184,8 +196,6 @@ def _renumber_sprint_dir(sprint_dir: Path, old_id: str, new_id: str) -> Path:
 
     Returns the new directory path.
     """
-    from clasi.artifact import Artifact
-
     # Rename directory
     slug = sprint_dir.name[len(old_id) + 1:] if sprint_dir.name.startswith(old_id) else sprint_dir.name
     new_dir_name = f"{new_id}-{slug}"
@@ -300,8 +310,7 @@ def insert_sprint(after_sprint_id: str, title: str) -> str:
     sprint_dir = project.sprints_dir / f"{new_id}-{slug}"
 
     sprint_dir.mkdir(parents=True, exist_ok=True)
-    from clasi.sprint import Sprint as _Sprint
-    _new_sprint = _Sprint(sprint_dir, project)
+    _new_sprint = Sprint(sprint_dir, project)
     _new_sprint.tickets_dir.mkdir()
     _new_sprint.tickets_done_dir.mkdir()
 
@@ -532,8 +541,6 @@ def update_ticket_status(path: str, status: str) -> str:
 
     Returns JSON with {path, old_status, new_status}.
     """
-    from clasi.artifact import Artifact
-
     valid_statuses = {"todo", "in-progress", "done"}
     if status not in valid_statuses:
         raise ValueError(f"Invalid status '{status}'. Must be one of: {', '.join(sorted(valid_statuses))}")
@@ -563,9 +570,6 @@ def move_ticket_to_done(path: str) -> str:
 
     Returns JSON with {old_path, new_path}.
     """
-    from clasi.ticket import Ticket
-    from clasi.sprint import Sprint
-
     try:
         ticket_path = resolve_artifact_path(path)
     except FileNotFoundError:
@@ -626,9 +630,6 @@ def reopen_ticket(path: str) -> str:
 
     Returns JSON with {old_path, new_path, old_status, new_status}.
     """
-    from clasi.ticket import Ticket
-    from clasi.sprint import Sprint
-
     try:
         ticket_path = resolve_artifact_path(path)
     except FileNotFoundError:
@@ -655,6 +656,7 @@ def close_sprint(
     main_branch: str = "master",
     push_tags: bool = True,
     delete_branch: bool = True,
+    test_command: Optional[str] = None,
 ) -> str:
     """Close a sprint by updating its status and moving it to sprints/done/.
 
@@ -672,20 +674,21 @@ def close_sprint(
         main_branch: Target branch for merge (default: 'master')
         push_tags: Whether to push tags after tagging (default: True)
         delete_branch: Whether to delete the sprint branch after merge (default: True)
+        test_command: Shell command to run tests. Defaults to 'uv run pytest'.
+            Pass empty string to skip tests entirely (for non-Python projects).
 
     Returns JSON with structured result (success or error).
     """
     if branch_name is not None:
         return _close_sprint_full(
-            sprint_id, branch_name, main_branch, push_tags, delete_branch
+            sprint_id, branch_name, main_branch, push_tags, delete_branch,
+            test_command=test_command,
         )
     return _close_sprint_legacy(sprint_id)
 
 
 def _close_sprint_legacy(sprint_id: str) -> str:
     """Original close_sprint behavior: archive + state, no git."""
-    from clasi.todo import Todo
-
     project = get_project()
     sprint = project.get_sprint(sprint_id)
 
@@ -721,9 +724,8 @@ def _close_sprint_legacy(sprint_id: str) -> str:
     if db.path.exists():
         try:
             state = db.get_sprint_state(sprint_id)
-            from clasi.state_db import PHASES
-            phase_idx = PHASES.index(state["phase"])
-            done_idx = PHASES.index("done")
+            phase_idx = _PHASES.index(state["phase"])
+            done_idx = _PHASES.index("done")
             while phase_idx < done_idx:
                 db.advance_phase(sprint_id)
                 phase_idx += 1
@@ -735,14 +737,6 @@ def _close_sprint_legacy(sprint_id: str) -> str:
     # Auto-version after archiving (respects version_trigger setting)
     version = None
     try:
-        from clasi.versioning import (
-            compute_next_version,
-            create_version_tag,
-            detect_version_file,
-            load_version_trigger,
-            should_version,
-            update_version_file,
-        )
         trigger = load_version_trigger()
         if should_version(trigger, "sprint_close"):
             version = compute_next_version()
@@ -775,12 +769,9 @@ def _close_sprint_full(
     main_branch: str,
     push_tags_flag: bool,
     delete_branch_flag: bool,
+    test_command: Optional[str] = None,
 ) -> str:
     """Full lifecycle close: preconditions, tests, archive, git ops."""
-    from clasi.sprint import Sprint
-    from clasi.ticket import Ticket
-    from clasi.todo import Todo
-
     project = get_project()
     db = project.db
     completed_steps: list[str] = []
@@ -923,57 +914,67 @@ def _close_sprint_full(
     # ── Step 2: Run tests ──
     all_steps = ["precondition_verification", "tests", "archive", "db_update", "version_bump", "merge", "push_tags", "delete_branch"]
 
-    try:
-        test_result = subprocess.run(
-            ["uv", "run", "pytest"],
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-        if test_result.returncode != 0:
-            error_msg = f"Tests failed (exit code {test_result.returncode})"
-            test_output = test_result.stdout[-2000:] if test_result.stdout else ""
-            if test_result.stderr:
-                test_output += "\n" + test_result.stderr[-500:]
+    if test_command == "":
+        # Explicitly skip tests (non-Python projects, etc.)
+        repairs.append("skipped tests (test_command is empty)")
+    else:
+        # Determine the command to run
+        if test_command is not None:
+            test_cmd = test_command.split()
+        else:
+            test_cmd = ["uv", "run", "pytest"]
+
+        try:
+            test_result = subprocess.run(
+                test_cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if test_result.returncode != 0:
+                error_msg = f"Tests failed (exit code {test_result.returncode})"
+                test_output = test_result.stdout[-2000:] if test_result.stdout else ""
+                if test_result.stderr:
+                    test_output += "\n" + test_result.stderr[-500:]
+                if db.path.exists():
+                    db.write_recovery_state(
+                        sprint_id, "tests", [], error_msg,
+                    )
+                return json.dumps({
+                    "status": "error",
+                    "error": {
+                        "step": "tests",
+                        "message": error_msg,
+                        "output": test_output.strip(),
+                        "recovery": {
+                            "recorded": db.path.exists(),
+                            "allowed_paths": [],
+                            "instruction": "Fix failing tests, then call close_sprint again.",
+                        },
+                    },
+                    "completed_steps": completed_steps,
+                    "remaining_steps": [s for s in all_steps if s not in completed_steps],
+                }, indent=2)
+        except FileNotFoundError:
+            # Test command not available — skip tests
+            repairs.append(f"skipped tests ({test_cmd[0]} not found)")
+        except subprocess.TimeoutExpired:
+            error_msg = "Test suite timed out after 300 seconds"
             if db.path.exists():
-                db.write_recovery_state(
-                    sprint_id, "tests", [], error_msg,
-                )
+                db.write_recovery_state(sprint_id, "tests", [], error_msg)
             return json.dumps({
                 "status": "error",
                 "error": {
                     "step": "tests",
                     "message": error_msg,
-                    "output": test_output.strip(),
                     "recovery": {
                         "recorded": db.path.exists(),
                         "allowed_paths": [],
-                        "instruction": "Fix failing tests, then call close_sprint again.",
+                        "instruction": "Investigate slow tests, then call close_sprint again.",
                     },
                 },
                 "completed_steps": completed_steps,
                 "remaining_steps": [s for s in all_steps if s not in completed_steps],
-            }, indent=2)
-    except FileNotFoundError:
-        # uv not available — skip tests
-        repairs.append("skipped tests (uv not found)")
-    except subprocess.TimeoutExpired:
-        error_msg = "Test suite timed out after 300 seconds"
-        if db.path.exists():
-            db.write_recovery_state(sprint_id, "tests", [], error_msg)
-        return json.dumps({
-            "status": "error",
-            "error": {
-                "step": "tests",
-                "message": error_msg,
-                "recovery": {
-                    "recorded": db.path.exists(),
-                    "allowed_paths": [],
-                    "instruction": "Investigate slow tests, then call close_sprint again.",
-                },
-            },
-            "completed_steps": completed_steps,
-            "remaining_steps": [s for s in all_steps if s not in completed_steps],
         }, indent=2)
 
     completed_steps.append("tests")
@@ -1023,14 +1024,6 @@ def _close_sprint_full(
     # ── Step 5: Version bump ──
     version = None
     try:
-        from clasi.versioning import (
-            compute_next_version,
-            create_version_tag,
-            detect_version_file,
-            load_version_trigger,
-            should_version,
-            update_version_file,
-        )
         trigger = load_version_trigger()
         if should_version(trigger, "sprint_close"):
             version = compute_next_version()
@@ -1063,7 +1056,6 @@ def _close_sprint_full(
         branch_exists = merge_result["branch_exists"]
         merged = merge_result["merged"]
     except RuntimeError as e:
-        from clasi.sprint import MergeConflictError
         error_msg = str(e)
         conflicted: list[str] = (
             e.conflicted_files if isinstance(e, MergeConflictError) else []
@@ -1653,8 +1645,6 @@ def read_artifact_frontmatter(path: str) -> str:
 
     Returns JSON dict of frontmatter fields.
     """
-    from clasi.artifact import Artifact
-
     try:
         resolved = resolve_artifact_path(path)
     except FileNotFoundError:
@@ -1677,8 +1667,6 @@ def write_artifact_frontmatter(path: str, updates: str) -> str:
 
     Returns JSON with {path, updated_fields}.
     """
-    from clasi.artifact import Artifact
-
     try:
         resolved = resolve_artifact_path(path)
     except FileNotFoundError:
@@ -1712,12 +1700,6 @@ def tag_version(major: int = 0) -> str:
 
     Returns JSON with {version, tag}.
     """
-    from clasi.versioning import (
-        compute_next_version,
-        create_version_tag,
-        detect_version_file,
-        update_version_file,
-    )
 
     version = compute_next_version(major)
     detected = detect_version_file(get_project().root)
@@ -1798,8 +1780,6 @@ def _check_git_branch() -> str:
 
 def _collect_tickets(sprint_dir: Path) -> list:
     """Collect all tickets from a sprint directory with their metadata."""
-    from clasi.sprint import Sprint
-
     sprint = Sprint(sprint_dir, get_project())
     tickets = []
     for ticket in sprint.list_tickets():

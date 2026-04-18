@@ -84,7 +84,7 @@ You are modifying source code or tests. Before writing code:
    said "out of process".
 2. If you have a ticket, follow the execute-ticket skill — call
    `get_skill_definition("execute-ticket")` if unsure of the steps.
-3. Run tests after changes: `uv run pytest`.
+3. Run the project's test suite after changes.
 """,
     "todo-dir.md": """\
 ---
@@ -103,7 +103,7 @@ paths:
 ---
 
 Before committing, verify:
-1. All tests pass (`uv run pytest`).
+1. All tests pass (run the project's test suite).
 2. If on a sprint branch, the sprint has an execution lock.
 3. Commit message references the ticket ID if working on a ticket.
 See `instructions/git-workflow` for full rules.
@@ -385,6 +385,15 @@ def run_init(target: str, plugin_mode: bool = False) -> None:
         if not gitkeep.exists() and not any(d.iterdir()):
             gitkeep.touch()
     click.echo("  Created: docs/clasi/todo/ (with in-progress/ and done/)")
+
+    # Create log directory with .gitignore to prevent logs from being committed
+    click.echo()
+    click.echo("Log directory:")
+    log_dir = target_path / "docs" / "clasi" / "log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_gitignore = log_dir / ".gitignore"
+    log_gitignore.write_text("# Ignore all log files\n*\n!.gitignore\n", encoding="utf-8")
+    click.echo("  Created: docs/clasi/log/ (with .gitignore)")
 
     click.echo()
     click.echo("Done! The CLASI SE process is now configured.")
