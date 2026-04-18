@@ -204,6 +204,35 @@ class TestRunInit:
         assert (todo_dir / "in-progress").exists()
         assert (todo_dir / "done").exists()
 
+    def test_creates_log_directory_with_gitignore(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+
+        log_dir = target_dir / "docs" / "clasi" / "log"
+        assert log_dir.exists()
+
+        gitignore = log_dir / ".gitignore"
+        assert gitignore.exists()
+        content = gitignore.read_text(encoding="utf-8")
+        assert "*" in content
+        assert "!.gitignore" in content
+
+    def test_log_gitignore_idempotent(self, target_dir):
+        target_dir.mkdir()
+        run_init(str(target_dir))
+        run_init(str(target_dir))
+
+        gitignore = target_dir / "docs" / "clasi" / "log" / ".gitignore"
+        assert gitignore.exists()
+        content = gitignore.read_text(encoding="utf-8")
+        assert "*" in content
+
+    def test_source_code_rule_no_pytest(self):
+        assert "uv run pytest" not in RULES["source-code.md"]
+
+    def test_git_commits_rule_no_pytest(self):
+        assert "uv run pytest" not in RULES["git-commits.md"]
+
 
 class TestHooksConfig:
     def test_init_creates_hooks_in_settings(self, target_dir):
