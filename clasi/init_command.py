@@ -11,10 +11,16 @@ Installs the CLASI SE process into a target repository. Supports two modes:
 
 Both modes also configure MCP server, permissions, TODO directories,
 and path-scoped rules.
+
+When run interactively (TTY attached) with no --claude or --codex flag,
+the command inspects advisory platform signals and prompts the user to
+choose Claude, Codex, or both, with a recommended default.  Non-interactive
+calls with no flag default to Claude-only (backward compatible).
 """
 
 import json
 import re
+import sys
 from pathlib import Path
 
 import click
@@ -46,6 +52,31 @@ def _detect_mcp_command(target: Path) -> dict:
         if re.search(r"(?m)^\[project\]\s*$", text):
             return {"command": "uv", "args": ["run", "clasi", "mcp"]}
     return {"command": "clasi", "args": ["mcp"]}
+
+
+def _prompt_platform(recommendation: str) -> str:
+    """Prompt the user to choose a platform and return the choice string.
+
+    Displays the three options with a recommended default derived from
+    *recommendation* (``"claude"``, ``"codex"``, or ``"both"``).  Returns
+    one of those three strings based on the user's numeric selection.
+
+    Only call this function when running interactively (TTY attached).
+    """
+    _choice_map = {"1": "claude", "2": "codex", "3": "both"}
+    _rec_to_default = {"claude": "1", "codex": "2", "both": "3"}
+
+    default_num = _rec_to_default.get(recommendation, "1")
+    rec_label = {"1": "Claude", "2": "Codex", "3": "Both"}[default_num]
+
+    click.echo(f"Install for: [1] Claude  [2] Codex  [3] Both  (recommended: {rec_label})")
+    raw = click.prompt(
+        "Choice",
+        default=default_num,
+        type=click.Choice(["1", "2", "3"]),
+        show_choices=False,
+    )
+    return _choice_map[raw]
 
 
 def _update_mcp_json(mcp_json_path: Path, target: Path) -> bool:
@@ -102,9 +133,19 @@ def run_init(
     from clasi.platforms.claude import install as claude_install
     from clasi.platforms.codex import install as codex_install
 
-    # Non-interactive default: if neither flag was set, default to Claude only.
+    # Resolve the platform selection when neither flag was supplied.
     if not claude and not codex:
-        claude = True
+        interactive = sys.stdin.isatty() and sys.stdout.isatty()
+        if interactive:
+            from clasi.platforms.detect import detect_platforms
+
+            signals = detect_platforms(Path(target).resolve())
+            choice = _prompt_platform(signals.recommendation)
+            claude = choice in ("claude", "both")
+            codex = choice in ("codex", "both")
+        else:
+            # Non-interactive default: Claude-only for backward compatibility.
+            claude = True
 
     target_path = Path(target).resolve()
     mode_label = "plugin" if plugin_mode else "project-local"
