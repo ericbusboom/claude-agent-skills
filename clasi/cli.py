@@ -4,6 +4,7 @@ CLI entry point for CLASI.
 Subcommands:
     clasi init [target]             — Initialize a repo for CLASI
     clasi install [target]          — Synonym for clasi init
+    clasi uninstall [target]        — Remove CLASI platform integration files
     clasi mcp                       — Run the MCP server (stdio)
     clasi tool plan-to-todo         — Convert plan file to TODO
     clasi version                   — Show the current project version
@@ -44,6 +45,18 @@ def init(target, plugin, install_claude, install_codex):
 
 # Register 'install' as a synonym for 'init' — same callback, same options.
 cli.add_command(init, name="install")
+
+
+@cli.command()
+@click.argument("target", default=".", type=click.Path(exists=True))
+@click.option("--claude", "uninstall_claude", is_flag=True, default=False,
+              help="Remove Claude platform integration.")
+@click.option("--codex", "uninstall_codex", is_flag=True, default=False,
+              help="Remove Codex platform integration.")
+def uninstall(target, uninstall_claude, uninstall_codex):
+    """Remove CLASI-managed platform integration files."""
+    from clasi.uninstall_command import run_uninstall
+    run_uninstall(target, claude=uninstall_claude, codex=uninstall_codex)
 
 
 @cli.group()
