@@ -1,11 +1,12 @@
 ---
-status: in-progress
+status: done
 sprint: '012'
 tickets:
-- 012-001
-- 012-006
-- 012-007
-- 012-008
+- '001'
+- '002'
+- '006'
+- '007'
+- 008
 ---
 
 # Codex install rules coverage gap — only partial mirror of Claude RULES dict
