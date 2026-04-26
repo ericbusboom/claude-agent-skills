@@ -99,6 +99,75 @@ complete.
 | `/todo <description>` | Capture an idea as a TODO file in `docs/clasi/todo/` |
 | `/project-initiation` | Start a new project with a guided interview |
 
+## Codex Integration
+
+CLASI supports [OpenAI Codex](https://openai.com/codex) in addition to Claude Code.
+
+### Installing for Codex
+
+```bash
+clasi init --codex
+```
+
+Or install for both Claude Code and Codex at once:
+
+```bash
+clasi init --claude --codex
+```
+
+### Files Written by `clasi init --codex`
+
+| Path | Purpose |
+|------|---------|
+| `AGENTS.md` | Root marker file with the CLASI entry-point sentence (marker-managed CLASI section) |
+| `.codex/config.toml` | Codex config with `[mcp_servers.clasi]` and `codex_hooks = true` |
+| `.codex/hooks.json` | Stop hook that calls `clasi hook codex-plan-to-todo` (correct wrapper schema per the [Codex hooks spec](https://developers.openai.com/codex/hooks)) |
+| `.codex/agents/team-lead.toml` | Sub-agent definition for the team-lead role |
+| `.codex/agents/sprint-planner.toml` | Sub-agent definition for the sprint-planner role |
+| `.codex/agents/programmer.toml` | Sub-agent definition for the programmer role |
+| `.agents/skills/<name>/SKILL.md` | 26 skill workflow files (cross-tool standard — usable by any agent) |
+| `docs/clasi/AGENTS.md` | Nested rule file: SE process rules for agents working in `docs/clasi/` |
+| `clasi/AGENTS.md` | Nested rule file: source-code rules for agents working in `clasi/` |
+
+### Sub-Agents
+
+CLASI installs three Codex sub-agent definitions under `.codex/agents/`:
+`team-lead`, `sprint-planner`, and `programmer`. These correspond to the
+CLASI SE process roles and can be invoked as Codex sub-agents from within
+a session.
+
+### Stop Hook Firing Limitation
+
+> **Note**: As of April 2026, Codex fires Stop hooks only from
+> `~/.codex/hooks.json`, not from a repo-local `.codex/hooks.json`
+> ([openai/codex#17532](https://github.com/openai/codex/issues/17532)).
+> To enable plan-to-todo capture, copy `.codex/hooks.json` to
+> `~/.codex/hooks.json` after install:
+>
+> ```bash
+> cp .codex/hooks.json ~/.codex/hooks.json
+> ```
+
+### Removing Codex Integration
+
+```bash
+clasi uninstall --codex
+```
+
+This removes only CLASI-managed files and entries — the CLASI marker block
+in `AGENTS.md`, `[mcp_servers.clasi]` from `.codex/config.toml`, the CLASI
+Stop hook from `.codex/hooks.json`, the `.codex/agents/<name>.toml` sub-agent
+files, the `.agents/skills/` skill files, and the nested `docs/clasi/AGENTS.md`
+and `clasi/AGENTS.md` rule files. User-added content is preserved.
+
+To remove only the Claude integration:
+
+```bash
+clasi uninstall --claude
+```
+
+---
+
 ## How It Works
 
 CLASI is an MCP (Model Context Protocol) server. When Claude Code
