@@ -1,7 +1,7 @@
 ---
 id: "007"
 title: "Add clasi/uninstall_command.py and clasi uninstall CLI command"
-status: todo
+status: done
 use-cases:
   - SUC-007
   - SUC-008
@@ -28,16 +28,16 @@ Depends on tickets 002 (Claude uninstall), 003 (detect), and 004 (Codex uninstal
 
 ## Acceptance Criteria
 
-- [ ] `clasi uninstall --claude` runs `clasi.platforms.claude.uninstall(target)`.
-- [ ] `clasi uninstall --codex` runs `clasi.platforms.codex.uninstall(target)`.
-- [ ] `clasi uninstall --claude --codex` runs both uninstallers.
-- [ ] Interactive `clasi uninstall` (no flags, tty) inspects installed CLASI platform
+- [x] `clasi uninstall --claude` runs `clasi.platforms.claude.uninstall(target)`.
+- [x] `clasi uninstall --codex` runs `clasi.platforms.codex.uninstall(target)`.
+- [x] `clasi uninstall --claude --codex` runs both uninstallers.
+- [x] Interactive `clasi uninstall` (no flags, tty) inspects installed CLASI platform
       files and presents: "Uninstall: [1] Claude  [2] Codex  [3] Both".
-- [ ] Non-interactive `clasi uninstall` with no flags exits with a clear error message
+- [x] Non-interactive `clasi uninstall` with no flags exits with a clear error message
       asking for an explicit flag.
-- [ ] Uninstall does not touch `docs/clasi/`, `.mcp.json`, or any non-CLASI content.
-- [ ] Uninstalling a platform that was never installed is a no-op (idempotent, no error).
-- [ ] Tests in `tests/unit/test_uninstall_command.py` cover:
+- [x] Uninstall does not touch `docs/clasi/`, `.mcp.json`, or any non-CLASI content.
+- [x] Uninstalling a platform that was never installed is a no-op (idempotent, no error).
+- [x] Tests in `tests/unit/test_uninstall_command.py` cover:
   - `--claude` only removes Claude artifacts.
   - `--codex` only removes Codex artifacts.
   - `--claude --codex` removes both.
