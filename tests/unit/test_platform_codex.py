@@ -58,7 +58,12 @@ def test_codex_install_creates_all_artifacts(project: Path) -> None:
     content = agents_md.read_text(encoding="utf-8")
     assert "<!-- CLASI:START -->" in content
     assert "<!-- CLASI:END -->" in content
-    assert ".agents/skills/se/SKILL.md" in content
+    assert ".codex/agents/team-lead.toml" in content, (
+        "AGENTS.md must point the agent at the team-lead role definition"
+    )
+    assert "you ARE the team-lead" in content, (
+        "AGENTS.md must make the team-lead identity explicit"
+    )
     assert "Available skills: run" not in content, "CLASI section must not contain the /se dispatcher line"
     assert "run `/se` for a list" not in content, "CLASI section must not contain the /se dispatcher line"
 

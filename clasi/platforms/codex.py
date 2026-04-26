@@ -37,8 +37,13 @@ _PLUGIN_DIR = Path(__file__).parent.parent / "plugin"
 # ---------------------------------------------------------------------------
 
 _CODEX_ENTRY_POINT = (
-    "Skills are in `.agents/skills/` — start with the `se` skill at "
-    "`.agents/skills/se/SKILL.md`."
+    "**You are the CLASI team-lead** — the root agent the user "
+    "interacts with. Read `.codex/agents/team-lead.toml` at session "
+    "start for your role and workflow (the `developer_instructions` "
+    "field is your operating contract). Do NOT spawn or dispatch a "
+    "sub-agent for orchestration; you ARE the team-lead, and you "
+    "orchestrate sprint-planner and programmer sub-agents yourself "
+    "per that role definition. Skills live under `.agents/skills/`."
 )
 
 # ---------------------------------------------------------------------------

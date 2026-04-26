@@ -117,8 +117,12 @@ See `instructions/git-workflow` for full rules.
 # ---------------------------------------------------------------------------
 
 _CLAUDE_ENTRY_POINT = (
-    "Your role and workflow are defined in "
-    "`.claude/agents/team-lead/agent.md` — read it at session start."
+    "**You are the CLASI team-lead** — the root agent the user "
+    "interacts with. Read `.claude/agents/team-lead/agent.md` at "
+    "session start for your role and workflow. Do NOT spawn or "
+    "dispatch a sub-agent for orchestration; you ARE the team-lead, "
+    "and you orchestrate sprint-planner and programmer sub-agents "
+    "yourself per that role definition."
 )
 
 
