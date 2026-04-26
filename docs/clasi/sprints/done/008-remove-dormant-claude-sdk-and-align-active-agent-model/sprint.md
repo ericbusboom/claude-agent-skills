@@ -1,9 +1,14 @@
 ---
-id: "008"
-title: "Remove Dormant Claude SDK and Align Active Agent Model"
-status: planning
+id: 008
+title: Remove Dormant Claude SDK and Align Active Agent Model
+status: done
 branch: sprint/008-remove-dormant-claude-sdk-and-align-active-agent-model
-use-cases: ["SUC-001", "SUC-002", "SUC-003", "SUC-004", "SUC-005"]
+use-cases:
+- SUC-001
+- SUC-002
+- SUC-003
+- SUC-004
+- SUC-005
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
