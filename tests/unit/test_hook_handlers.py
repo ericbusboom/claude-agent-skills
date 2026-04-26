@@ -13,6 +13,7 @@ from clasi.hook_handlers import (
     handle_subagent_start,
     handle_commit_check,
     handle_plan_to_todo,
+    handle_codex_plan_to_todo,
     handle_hook,
     _get_log_dir,
     _get_active_tickets,
@@ -901,3 +902,111 @@ class TestHandlePlanToTodo:
             Path("docs/clasi/todo"),
             plan_file=Path("/tmp/my-plan.md"),
         )
+
+
+# ---------------------------------------------------------------------------
+# handle_codex_plan_to_todo tests
+# ---------------------------------------------------------------------------
+
+
+class TestHandleCodexPlanToTodo:
+    def _payload(self, message: str) -> dict:
+        return {"last_assistant_message": message}
+
+    def test_no_plan_tag_exits_0_no_file(self, tmp_path, capsys):
+        """No <proposed_plan> in message: exits 0, no TODO file created."""
+        payload = self._payload("No plan tag here, just some text.")
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+        todo_dir = tmp_path / "docs" / "clasi" / "todo"
+        assert not todo_dir.exists() or len(list(todo_dir.glob("*.md"))) == 0
+
+    def test_no_plan_tag_never_exits_2(self, tmp_path):
+        """handle_codex_plan_to_todo never exits with code 2."""
+        payload = self._payload("No plan here.")
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code != 2
+
+    def test_with_plan_creates_todo_exits_0(self, tmp_path, capsys):
+        """<proposed_plan> present: one TODO file created, exits 0."""
+        (tmp_path / "docs" / "clasi" / "todo").mkdir(parents=True)
+        message = "Here is my plan:\n<proposed_plan>\n# My Plan\n\nDo some things.\n</proposed_plan>"
+        payload = self._payload(message)
+
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+
+        todo_dir = tmp_path / "docs" / "clasi" / "todo"
+        todo_files = list(todo_dir.glob("*.md"))
+        assert len(todo_files) == 1
+        content = todo_files[0].read_text()
+        assert "# My Plan" in content
+        assert "source: codex-plan" in content
+
+        captured = capsys.readouterr()
+        assert "CLASI: Codex plan saved as TODO:" in captured.out
+
+    def test_with_plan_never_exits_2(self, tmp_path):
+        """handle_codex_plan_to_todo always exits 0, even when a TODO is created."""
+        (tmp_path / "docs" / "clasi" / "todo").mkdir(parents=True)
+        message = "<proposed_plan>\n# Plan\n\nDetails here.\n</proposed_plan>"
+        payload = self._payload(message)
+
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+
+    def test_dedup_second_call_creates_no_file(self, tmp_path):
+        """Duplicate plan (same content hash): second call creates no file."""
+        (tmp_path / "docs" / "clasi" / "todo").mkdir(parents=True)
+        message = "<proposed_plan>\n# Unique Plan\n\nExactly this content.\n</proposed_plan>"
+        payload = self._payload(message)
+
+        # First call — creates a TODO
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+
+        todo_dir = tmp_path / "docs" / "clasi" / "todo"
+        files_after_first = list(todo_dir.glob("*.md"))
+        assert len(files_after_first) == 1
+
+        # Second call with identical payload — dedup, no new file
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+
+        files_after_second = list(todo_dir.glob("*.md"))
+        assert len(files_after_second) == 1
+
+    def test_empty_message_exits_0_no_file(self, tmp_path):
+        """Empty last_assistant_message: exits 0, no TODO created."""
+        payload = self._payload("")
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+        todo_dir = tmp_path / "docs" / "clasi" / "todo"
+        assert not todo_dir.exists() or len(list(todo_dir.glob("*.md"))) == 0
+
+    def test_missing_last_assistant_message_key_exits_0(self, tmp_path):
+        """Payload without last_assistant_message key: exits 0, no TODO created."""
+        payload = {}
+        with pytest.raises(SystemExit) as exc:
+            _run_with_cwd(tmp_path, handle_codex_plan_to_todo, payload)
+        assert exc.value.code == 0
+
+
+class TestHandleHookCodexPlanToTodo:
+    """Test that handle_hook routes codex-plan-to-todo to handle_codex_plan_to_todo."""
+
+    def test_routes_codex_plan_to_todo(self):
+        """handle_hook('codex-plan-to-todo') calls handle_codex_plan_to_todo."""
+        with patch("clasi.hook_handlers.handle_codex_plan_to_todo") as mock_handler, \
+             patch("clasi.hook_handlers.read_payload", return_value={}):
+            mock_handler.side_effect = SystemExit(0)
+            with pytest.raises(SystemExit):
+                handle_hook("codex-plan-to-todo")
+            mock_handler.assert_called_once_with({})

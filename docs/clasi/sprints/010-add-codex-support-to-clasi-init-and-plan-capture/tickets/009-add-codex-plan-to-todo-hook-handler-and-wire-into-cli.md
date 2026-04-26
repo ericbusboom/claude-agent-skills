@@ -1,7 +1,7 @@
 ---
 id: "009"
 title: "Add codex-plan-to-todo hook handler and wire into CLI"
-status: todo
+status: done
 use-cases:
   - SUC-010
   - SUC-011
@@ -32,17 +32,17 @@ end-to-end. Depends on ticket 008.
 
 ## Acceptance Criteria
 
-- [ ] `clasi/hook_handlers.py` contains `handle_codex_plan_to_todo(payload: dict) -> None`.
-- [ ] `handle_codex_plan_to_todo` extracts `<proposed_plan>...</proposed_plan>` from
+- [x] `clasi/hook_handlers.py` contains `handle_codex_plan_to_todo(payload: dict) -> None`.
+- [x] `handle_codex_plan_to_todo` extracts `<proposed_plan>...</proposed_plan>` from
       `payload["last_assistant_message"]` using a regex.
-- [ ] If no `<proposed_plan>` is found: exits 0, no TODO created.
-- [ ] If a `<proposed_plan>` is found: calls `plan_to_todo_from_text` with the extracted
+- [x] If no `<proposed_plan>` is found: exits 0, no TODO created.
+- [x] If a `<proposed_plan>` is found: calls `plan_to_todo_from_text` with the extracted
       text and `Path("docs/clasi/todo")`. If a TODO is created, prints the path.
-- [ ] `handle_codex_plan_to_todo` always exits 0 (never exits 2).
-- [ ] The routing table includes `"codex-plan-to-todo": handle_codex_plan_to_todo`.
-- [ ] `clasi/cli.py` `hook` command choices include `"codex-plan-to-todo"`.
-- [ ] Existing `handle_plan_to_todo` (Claude) behavior is unchanged.
-- [ ] Tests in `tests/unit/test_hook_handlers.py` (extended) cover:
+- [x] `handle_codex_plan_to_todo` always exits 0 (never exits 2).
+- [x] The routing table includes `"codex-plan-to-todo": handle_codex_plan_to_todo`.
+- [x] `clasi/cli.py` `hook` command choices include `"codex-plan-to-todo"`.
+- [x] Existing `handle_plan_to_todo` (Claude) behavior is unchanged.
+- [x] Tests in `tests/unit/test_hook_handlers.py` (extended) cover:
   - No `<proposed_plan>` in message: exits 0, no file created.
   - `<proposed_plan>` present: one TODO file created, exits 0.
   - Duplicate plan (same hash): second call creates no file, exits 0.
