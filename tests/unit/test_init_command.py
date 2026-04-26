@@ -637,3 +637,24 @@ class TestPlatformsClaude:
         claude_uninstall(target)
         # Second call should not raise
         claude_uninstall(target)
+
+    def test_uninstall_preserves_user_file_inside_skill_dir(self, tmp_path):
+        """User-added notes.md in .claude/skills/se/ survives uninstall."""
+        from clasi.platforms import claude
+
+        target = tmp_path / "repo"
+        target.mkdir()
+        mcp_config = _detect_mcp_command(target)
+        claude.install(target, mcp_config)
+
+        # Simulate user dropping a file into the skill subdir
+        user_file = target / ".claude" / "skills" / "se" / "notes.md"
+        user_file.write_text("my notes", encoding="utf-8")
+
+        claude.uninstall(target)
+
+        assert user_file.exists(), "user notes.md must survive uninstall"
+        assert not (target / ".claude" / "skills" / "se" / "SKILL.md").exists(), \
+            "SKILL.md must be removed by uninstall"
+        # Directory stays because it is non-empty
+        assert (target / ".claude" / "skills" / "se").is_dir()

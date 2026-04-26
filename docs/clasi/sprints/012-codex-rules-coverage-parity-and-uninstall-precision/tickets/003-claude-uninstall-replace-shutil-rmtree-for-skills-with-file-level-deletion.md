@@ -1,7 +1,7 @@
 ---
 id: '003'
 title: 'Claude uninstall: replace shutil.rmtree for skills with file-level deletion'
-status: todo
+status: done
 use-cases:
   - SUC-005
 depends-on: []
@@ -24,20 +24,20 @@ remove only `SKILL.md`, then `rmdir` the leaf directory if and only if it is emp
 
 ## Acceptance Criteria
 
-- [ ] `shutil.rmtree(target_skill)` is removed from `claude.py` uninstall.
-- [ ] For each plugin skill, uninstall removes only `target_skill / "SKILL.md"` if it
+- [x] `shutil.rmtree(target_skill)` is removed from `claude.py` uninstall.
+- [x] For each plugin skill, uninstall removes only `target_skill / "SKILL.md"` if it
       exists.
-- [ ] After removing `SKILL.md`, if `target_skill` is empty, it is removed with `rmdir`.
+- [x] After removing `SKILL.md`, if `target_skill` is empty, it is removed with `rmdir`.
       If non-empty, it is left in place and a "Partial" message is emitted.
-- [ ] `import shutil` is removed from the `uninstall` function body if no longer needed
+- [x] `import shutil` is removed from the `uninstall` function body if no longer needed
       elsewhere in the function. (Check first — the agent section currently also imports
       shutil; once ticket 004 is done, the import can be removed from the module level
       if the function-level import was the last reference.)
-- [ ] New test passes: install Claude platform into a temp dir, add
+- [x] New test passes: install Claude platform into a temp dir, add
       `.claude/skills/se/notes.md`, run `claude.uninstall()`, assert `notes.md` exists,
       assert `.claude/skills/se/SKILL.md` does not exist, assert `.claude/skills/se/`
       directory still exists (non-empty).
-- [ ] Existing test suite passes (`uv run pytest`).
+- [x] Existing test suite passes (`uv run pytest`).
 
 ## Implementation Plan
 

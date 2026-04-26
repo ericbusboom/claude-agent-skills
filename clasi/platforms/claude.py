@@ -301,10 +301,19 @@ def uninstall(target: Path) -> None:
                 if not skill_dir.is_dir():
                     continue
                 target_skill = skills_dir / skill_dir.name
-                if target_skill.exists():
-                    import shutil
-                    shutil.rmtree(target_skill)
+                if not target_skill.exists():
+                    continue
+                skill_md = target_skill / "SKILL.md"
+                if skill_md.exists():
+                    skill_md.unlink()
+                if not any(target_skill.iterdir()):
+                    target_skill.rmdir()
                     click.echo(f"  Removed: .claude/skills/{skill_dir.name}/")
+                else:
+                    click.echo(
+                        f"  Partial: .claude/skills/{skill_dir.name}/ "
+                        f"(removed SKILL.md; user files preserved)"
+                    )
 
     # --- .claude/agents/ ---
     agents_dir = target / ".claude" / "agents"
