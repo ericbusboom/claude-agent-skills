@@ -1,7 +1,7 @@
 ---
 id: '006'
 title: 'Codex installer: write global-rules block on root AGENTS.md'
-status: todo
+status: done
 use-cases:
   - SUC-001
   - SUC-008
@@ -33,25 +33,25 @@ applies broadly to project-root agents which is close enough to the intent.
 
 ## Acceptance Criteria
 
-- [ ] `codex.py` has `_install_global_rules(target: Path)` that calls
+- [x] `codex.py` has `_install_global_rules(target: Path)` that calls
       `_markers.write_named_section(target / "AGENTS.md", "RULES", global_content)`
       where `global_content` is the concatenated `MCP_REQUIRED_BODY` and
       `GIT_COMMITS_BODY` from `_rules.py` (with a heading per rule).
-- [ ] `codex.py` has `_uninstall_global_rules(target: Path)` that calls
+- [x] `codex.py` has `_uninstall_global_rules(target: Path)` that calls
       `_markers.strip_named_section(target / "AGENTS.md", "RULES")`.
-- [ ] `codex.install()` calls `_install_global_rules(target)`.
-- [ ] `codex.uninstall()` calls `_uninstall_global_rules(target)`.
-- [ ] After `codex.install()`, root `AGENTS.md` contains:
+- [x] `codex.install()` calls `_install_global_rules(target)`.
+- [x] `codex.uninstall()` calls `_uninstall_global_rules(target)`.
+- [x] After `codex.install()`, root `AGENTS.md` contains:
       - The original CLASI entry-point block (`<!-- CLASI:START -->...<!-- CLASI:END -->`).
       - The new rules block (`<!-- CLASI:RULES:START -->...<!-- CLASI:RULES:END -->`).
       - The `mcp-required` body inside the rules block.
       - The `git-commits` body inside the rules block.
-- [ ] After `codex.uninstall()`, only the rules block is stripped. The entry-point block
+- [x] After `codex.uninstall()`, only the rules block is stripped. The entry-point block
       survives (or is stripped separately by its own code path — it must not be damaged
       by `_uninstall_global_rules`).
-- [ ] Round-trip test: install, uninstall, re-install — root AGENTS.md ends up with both
+- [x] Round-trip test: install, uninstall, re-install — root AGENTS.md ends up with both
       blocks each time with no duplication.
-- [ ] Existing test suite passes (`uv run pytest`).
+- [x] Existing test suite passes (`uv run pytest`).
 
 ## Implementation Plan
 

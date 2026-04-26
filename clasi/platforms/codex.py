@@ -23,7 +23,12 @@ from pathlib import Path
 
 import click
 
-from clasi.platforms._rules import CLASI_ARTIFACTS_BODY, SOURCE_CODE_BODY
+from clasi.platforms._rules import (
+    CLASI_ARTIFACTS_BODY,
+    GIT_COMMITS_BODY,
+    MCP_REQUIRED_BODY,
+    SOURCE_CODE_BODY,
+)
 
 try:
     import tomllib
@@ -87,6 +92,46 @@ def _write_agents_md(target: Path) -> None:
     from clasi.platforms._markers import write_section
 
     write_section(target / "AGENTS.md", entry_point=_CODEX_ENTRY_POINT)
+
+
+# ---------------------------------------------------------------------------
+# Global rules block on root AGENTS.md
+# ---------------------------------------------------------------------------
+
+
+def _build_global_rules_content() -> str:
+    """Build the content for the global-scope rules block on root AGENTS.md."""
+    return (
+        "# Global CLASI Rules\n\n"
+        "## MCP Server Required\n\n"
+        f"{MCP_REQUIRED_BODY}\n"
+        "## Git Commits\n\n"
+        f"{GIT_COMMITS_BODY}"
+    )
+
+
+def _install_global_rules(target: Path) -> None:
+    """Write the global-rules named block on root AGENTS.md.
+
+    Uses the RULES block name so the marker is distinct from the entry-point
+    block (CLASI:START/END).  Content is sourced from _rules.py constants.
+    """
+    from clasi.platforms._markers import write_named_section
+
+    content = _build_global_rules_content()
+    write_named_section(target / "AGENTS.md", "RULES", content)
+    click.echo("  Wrote: AGENTS.md (global rules block)")
+
+
+def _uninstall_global_rules(target: Path) -> None:
+    """Strip the global-rules named block from root AGENTS.md.
+
+    Only removes the CLASI:RULES:START/END block; the entry-point block
+    (CLASI:START/END) is left intact.
+    """
+    from clasi.platforms._markers import strip_named_section
+
+    strip_named_section(target / "AGENTS.md", "RULES")
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +409,7 @@ def install(target: Path, mcp_config: dict) -> None:
     """
     click.echo("AGENTS.md:")
     _write_agents_md(target)
+    _install_global_rules(target)
     click.echo()
 
     click.echo("Codex config:")
@@ -413,6 +459,7 @@ def uninstall(target: Path) -> None:
     # --- AGENTS.md ---
     from clasi.platforms._markers import strip_section
     strip_section(target / "AGENTS.md")
+    _uninstall_global_rules(target)
 
     # --- .codex/config.toml ---
     config_path = target / ".codex" / "config.toml"

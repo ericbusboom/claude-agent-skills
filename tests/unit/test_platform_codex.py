@@ -578,6 +578,91 @@ def test_uninstall_rules_no_error_if_missing(project: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Global rules block tests (ticket 006)
+# ---------------------------------------------------------------------------
+
+
+def test_global_rules_block_present_after_install(tmp_path: Path) -> None:
+    """Root AGENTS.md must contain both the entry-point block and the rules block."""
+    install(tmp_path, _MCP_CONFIG)
+
+    content = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert "<!-- CLASI:START -->" in content
+    assert "<!-- CLASI:END -->" in content
+    assert "<!-- CLASI:RULES:START -->" in content
+    assert "<!-- CLASI:RULES:END -->" in content
+    # Rule content is present (from MCP_REQUIRED_BODY and GIT_COMMITS_BODY).
+    assert "get_version" in content or "MCP server" in content
+    assert "commit" in content.lower() or "git" in content.lower()
+
+
+def test_global_rules_block_stripped_on_uninstall(tmp_path: Path) -> None:
+    """Uninstall removes only the rules block; entry-point block must survive if present."""
+    install(tmp_path, _MCP_CONFIG)
+    uninstall(tmp_path)
+
+    # After a clean install+uninstall, AGENTS.md should be deleted (only CLASI content).
+    agents_md = tmp_path / "AGENTS.md"
+    if agents_md.exists():
+        content = agents_md.read_text(encoding="utf-8")
+        assert "<!-- CLASI:RULES:START -->" not in content
+        assert "<!-- CLASI:RULES:END -->" not in content
+
+
+def test_global_rules_entry_point_block_survives_uninstall_when_user_content_present(
+    tmp_path: Path,
+) -> None:
+    """The entry-point block and user content survive _uninstall_global_rules.
+
+    This verifies the two blocks are independent: stripping RULES does not
+    damage the CLASI:START/END block or surrounding user content.
+    """
+    user_content = "# My custom instructions\n\nDo things my way.\n"
+    agents_md = tmp_path / "AGENTS.md"
+    agents_md.write_text(user_content, encoding="utf-8")
+
+    install(tmp_path, _MCP_CONFIG)
+    # Confirm both blocks are present.
+    after_install = agents_md.read_text(encoding="utf-8")
+    assert "<!-- CLASI:START -->" in after_install
+    assert "<!-- CLASI:RULES:START -->" in after_install
+
+    uninstall(tmp_path)
+
+    # AGENTS.md must survive (user content is present).
+    assert agents_md.exists(), "AGENTS.md must survive when user content is present"
+    content = agents_md.read_text(encoding="utf-8")
+    assert "My custom instructions" in content
+    assert "Do things my way" in content
+    assert "<!-- CLASI:RULES:START -->" not in content
+    assert "<!-- CLASI:RULES:END -->" not in content
+    assert "<!-- CLASI:START -->" not in content  # entry-point also stripped
+
+
+def test_global_rules_round_trip_no_duplication(tmp_path: Path) -> None:
+    """Install -> uninstall -> install produces exactly one of each block, no duplication."""
+    install(tmp_path, _MCP_CONFIG)
+    uninstall(tmp_path)
+    install(tmp_path, _MCP_CONFIG)
+
+    content = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert content.count("<!-- CLASI:START -->") == 1
+    assert content.count("<!-- CLASI:END -->") == 1
+    assert content.count("<!-- CLASI:RULES:START -->") == 1
+    assert content.count("<!-- CLASI:RULES:END -->") == 1
+
+
+def test_global_rules_idempotent(tmp_path: Path) -> None:
+    """Running install() twice produces no duplication in the rules block."""
+    install(tmp_path, _MCP_CONFIG)
+    install(tmp_path, _MCP_CONFIG)
+
+    content = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert content.count("<!-- CLASI:RULES:START -->") == 1
+    assert content.count("<!-- CLASI:RULES:END -->") == 1
+
+
+# ---------------------------------------------------------------------------
 # test_codex_install_end_to_end — canonical round-trip correctness check
 # ---------------------------------------------------------------------------
 
