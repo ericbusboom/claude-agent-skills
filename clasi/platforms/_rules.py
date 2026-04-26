@@ -1,0 +1,68 @@
+"""Canonical rule body content for all five CLASI path-scoped rules.
+
+This module is the single source of truth for rule content.  Both
+``claude.py`` and ``codex.py`` import from it.  Neither platform
+hardcodes rule strings of its own.
+
+Boundary: data-only module.  No I/O, no side effects, no imports from
+other CLASI modules.  Leaf node in the dependency graph.
+"""
+
+# ---------------------------------------------------------------------------
+# Rule bodies (prose text only — no YAML frontmatter, no platform wrapper)
+# ---------------------------------------------------------------------------
+
+MCP_REQUIRED_BODY = """\
+This project uses the CLASI MCP server. Before doing ANY work:
+
+1. Call `get_version()` to verify the MCP server is running.
+2. If the call fails, STOP. Do not proceed. Tell the stakeholder:
+   "The CLASI MCP server is not available. Check .mcp.json and
+   restart the session."
+3. Do NOT create sprint directories, tickets, TODOs, or planning
+   artifacts manually. Do NOT improvise workarounds. All SE process
+   operations require the MCP server.
+"""
+
+CLASI_ARTIFACTS_BODY = """\
+You are modifying CLASI planning artifacts. Before making changes:
+
+1. Confirm you have an active sprint (`list_sprints(status="active")`),
+   or the stakeholder said "out of process" / "direct change".
+2. If creating or modifying tickets, the sprint must be in `ticketing`
+   or `executing` phase (`get_sprint_phase(sprint_id)`).
+3. Use CLASI MCP tools for all artifact operations — do not create
+   sprint/ticket/TODO files manually.
+
+Direct edits to `docs/clasi/sprints/` are blocked for team-lead. Use MCP tools.
+"""
+
+SOURCE_CODE_BODY = """\
+You are modifying source code or tests. Before writing code:
+
+1. You must have a ticket in `in-progress` status, or the stakeholder
+   said "out of process".
+2. If you have a ticket, follow the execute-ticket skill — call
+   `get_skill_definition("execute-ticket")` if unsure of the steps.
+3. Run the project's test suite after changes.
+"""
+
+TODO_DIR_BODY = """\
+Use the CLASI `todo` skill or `move_todo_to_done` MCP tool for TODO
+operations. Do not use the generic TodoWrite tool for CLASI TODOs.
+"""
+
+GIT_COMMITS_BODY = """\
+Before committing, verify:
+1. All tests pass (run the project's test suite).
+2. If on a sprint branch, the sprint has an execution lock.
+3. Commit message references the ticket ID if working on a ticket.
+
+After committing substantive changes, run `clasi version bump` to
+advance the version, then commit that change (`chore: bump version`).
+Tools are installed editable, so the version is how sessions tell
+which code is live — bump per commit, not just at sprint close.
+Skip the manual bump right before `close_sprint` (it bumps + tags).
+
+See `instructions/git-workflow` for full rules.
+"""
