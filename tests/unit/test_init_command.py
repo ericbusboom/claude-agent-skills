@@ -227,6 +227,40 @@ class TestRunInit:
         content = gitignore.read_text(encoding="utf-8")
         assert "*" in content
 
+    def test_detect_mcp_command_no_pyproject(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        cmd = _detect_mcp_command(target)
+        assert cmd == {"command": "clasi", "args": ["mcp"]}
+
+    def test_detect_mcp_command_pyproject_with_project_table(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.chdir(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        (target / "pyproject.toml").write_text(
+            '[project]\nname = "x"\nversion = "0.1"\n', encoding="utf-8"
+        )
+        cmd = _detect_mcp_command(target)
+        assert cmd == {"command": "uv", "args": ["run", "clasi", "mcp"]}
+
+    def test_detect_mcp_command_pyproject_tool_only(
+        self, tmp_path, monkeypatch
+    ):
+        """A pyproject.toml with only tool config (no [project] table) must
+        not trigger 'uv run' — uv would abort with "No `project` table found".
+        """
+        monkeypatch.chdir(tmp_path)
+        target = tmp_path / "target"
+        target.mkdir()
+        (target / "pyproject.toml").write_text(
+            '[tool.black]\nline-length = 100\n', encoding="utf-8"
+        )
+        cmd = _detect_mcp_command(target)
+        assert cmd == {"command": "clasi", "args": ["mcp"]}
+
     def test_source_code_rule_no_pytest(self):
         assert "uv run pytest" not in RULES["source-code.md"]
 

@@ -14,6 +14,7 @@ and path-scoped rules.
 """
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Dict
@@ -26,11 +27,21 @@ _PLUGIN_DIR = Path(__file__).parent / "plugin"
 def _detect_mcp_command(target: Path) -> dict:
     """Detect the correct MCP server command for the target project.
 
-    Uses 'uv run clasi mcp' when a pyproject.toml exists (uv project),
-    otherwise falls back to bare 'clasi mcp'.
+    Uses 'uv run clasi mcp' only when a pyproject.toml declares a
+    [project] table (the minimum uv needs to set up an environment).
+    A pyproject.toml that only carries tool config (e.g. [tool.black])
+    will make 'uv run' abort with "No `project` table found", so in
+    that case fall back to bare 'clasi mcp'.
     """
-    if (target / "pyproject.toml").exists() or (Path.cwd() / "pyproject.toml").exists():
-        return {"command": "uv", "args": ["run", "clasi", "mcp"]}
+    for candidate in (target / "pyproject.toml", Path.cwd() / "pyproject.toml"):
+        if not candidate.exists():
+            continue
+        try:
+            text = candidate.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if re.search(r"(?m)^\[project\]\s*$", text):
+            return {"command": "uv", "args": ["run", "clasi", "mcp"]}
     return {"command": "clasi", "args": ["mcp"]}
 
 
