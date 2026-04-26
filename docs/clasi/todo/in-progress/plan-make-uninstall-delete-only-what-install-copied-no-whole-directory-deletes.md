@@ -1,5 +1,11 @@
 ---
-status: pending
+status: in-progress
+sprint: '012'
+tickets:
+- 012-001
+- 012-003
+- 012-004
+- 012-005
 ---
 
 # Plan: Make uninstall delete only what install copied (no whole-directory deletes)
