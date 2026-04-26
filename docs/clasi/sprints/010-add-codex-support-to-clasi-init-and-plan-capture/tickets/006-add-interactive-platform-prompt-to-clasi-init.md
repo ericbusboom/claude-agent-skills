@@ -1,7 +1,7 @@
 ---
 id: "006"
 title: "Add interactive platform prompt to clasi init"
-status: todo
+status: done
 use-cases:
   - SUC-006
 depends-on:
@@ -28,14 +28,14 @@ path. Depends on tickets 003 and 005.
 
 ## Acceptance Criteria
 
-- [ ] Interactive `clasi init` (no flags, tty attached) presents:
+- [x] Interactive `clasi init` (no flags, tty attached) presents:
       "Install for: [1] Claude  [2] Codex  [3] Both  (recommended: X)".
-- [ ] The user's selection determines which platform installer runs.
-- [ ] Non-interactive `clasi init` (no flags, no tty) defaults to Claude only without
+- [x] The user's selection determines which platform installer runs.
+- [x] Non-interactive `clasi init` (no flags, no tty) defaults to Claude only without
       prompting (SUC-001 preserved).
-- [ ] The prompt never reads environment variable values — only names.
-- [ ] The recommended option is driven by `detect_platforms(target)` from ticket 003.
-- [ ] Tests in `tests/unit/test_init_interactive.py` cover:
+- [x] The prompt never reads environment variable values — only names.
+- [x] The recommended option is driven by `detect_platforms(target)` from ticket 003.
+- [x] Tests in `tests/unit/test_init_interactive.py` cover:
   - Non-interactive path: no prompt called, Claude installed.
   - Interactive path with Claude recommendation: prompt presented, user selects 1.
   - Interactive path with Codex recommendation: prompt presented, user selects 2.

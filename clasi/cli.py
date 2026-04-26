@@ -33,10 +33,17 @@ def cli():
 def init(target, plugin, install_claude, install_codex):
     """Initialize a repository for the CLASI SE process.
 
-    By default (no --claude or --codex flag), installs Claude-only artifacts
-    for backward compatibility. With --claude and/or --codex, installs the
-    selected platform(s). With --plugin, registers the CLASI plugin with
-    Claude Code (plugin mode).
+    By default (no --claude or --codex flag), behavior depends on context:
+
+    \b
+    - Interactive (TTY): inspects advisory platform signals and prompts the
+      user to choose Claude, Codex, or both, with a recommended default.
+    - Non-interactive (no TTY, e.g. scripts/CI): defaults to Claude-only for
+      backward compatibility.
+
+    With --claude and/or --codex, installs the selected platform(s) without
+    prompting.  With --plugin, registers the CLASI plugin with Claude Code
+    (plugin mode).
     """
     from clasi.init_command import run_init
 
