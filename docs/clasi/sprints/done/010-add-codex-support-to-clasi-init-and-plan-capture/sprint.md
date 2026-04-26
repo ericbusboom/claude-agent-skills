@@ -1,21 +1,21 @@
 ---
-id: "010"
-title: "Add Codex Support to CLASI Init and Plan Capture"
-status: active
+id: '010'
+title: Add Codex Support to CLASI Init and Plan Capture
+status: done
 branch: sprint/010-add-codex-support-to-clasi-init-and-plan-capture
 use-cases:
-  - SUC-001
-  - SUC-002
-  - SUC-003
-  - SUC-004
-  - SUC-005
-  - SUC-006
-  - SUC-007
-  - SUC-008
-  - SUC-009
-  - SUC-010
-  - SUC-011
-  - SUC-012
+- SUC-001
+- SUC-002
+- SUC-003
+- SUC-004
+- SUC-005
+- SUC-006
+- SUC-007
+- SUC-008
+- SUC-009
+- SUC-010
+- SUC-011
+- SUC-012
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
