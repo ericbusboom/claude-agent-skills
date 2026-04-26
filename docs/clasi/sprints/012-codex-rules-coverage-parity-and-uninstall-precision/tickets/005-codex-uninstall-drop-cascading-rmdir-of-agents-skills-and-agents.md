@@ -1,9 +1,9 @@
 ---
 id: '005'
 title: 'Codex uninstall: drop cascading rmdir of .agents/skills/ and .agents/'
-status: todo
+status: done
 use-cases:
-  - SUC-007
+- SUC-007
 depends-on: []
 github-issue: ''
 todo: plan-make-uninstall-delete-only-what-install-copied-no-whole-directory-deletes.md
@@ -24,18 +24,18 @@ Only the two cascading parent rmdirs (`.agents/skills/` and `.agents/`) are remo
 
 ## Acceptance Criteria
 
-- [ ] Lines ~516-523 in `codex.py` that cascade `rmdir` from `.agents/skills/` to
+- [x] Lines ~516-523 in `codex.py` that cascade `rmdir` from `.agents/skills/` to
       `.agents/` are removed.
-- [ ] The per-skill leaf `rmdir-if-empty` (lines ~510-513) is preserved.
-- [ ] After a clean uninstall (no user files in `.agents/`), `.agents/skills/` and
+- [x] The per-skill leaf `rmdir-if-empty` (lines ~510-513) is preserved.
+- [x] After a clean uninstall (no user files in `.agents/`), `.agents/skills/` and
       `.agents/` may remain as empty directories — this is acceptable.
-- [ ] New test passes: install Codex into a temp dir, add `.agents/other-tool.md`,
+- [x] New test passes: install Codex into a temp dir, add `.agents/other-tool.md`,
       run `codex.uninstall()`, assert `.agents/` still exists, assert
       `other-tool.md` still exists.
-- [ ] New test passes: install Codex into a temp dir (no extra user files), run
+- [x] New test passes: install Codex into a temp dir (no extra user files), run
       `codex.uninstall()`, confirm no exception raised even if `.agents/skills/` or
       `.agents/` remain non-empty (empty dirs are OK remaining).
-- [ ] Existing test suite passes (`uv run pytest`).
+- [x] Existing test suite passes (`uv run pytest`).
 
 ## Implementation Plan
 

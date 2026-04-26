@@ -387,6 +387,28 @@ def test_codex_uninstall_handles_old_format_gracefully(project: Path) -> None:
     assert not hooks_path.exists(), "hooks.json should be deleted after old entry removed"
 
 
+def test_uninstall_does_not_delete_agents_root_dir(tmp_path: Path) -> None:
+    """CLASI uninstall must not remove .agents/ even when another tool has content there."""
+    install(tmp_path, _MCP_CONFIG)
+
+    # Simulate another tool using .agents/
+    other_file = tmp_path / ".agents" / "other-tool.md"
+    other_file.write_text("other tool content", encoding="utf-8")
+
+    uninstall(tmp_path)
+
+    assert (tmp_path / ".agents").is_dir(), ".agents/ must survive CLASI uninstall"
+    assert other_file.exists(), "other tool file must survive CLASI uninstall"
+
+
+def test_uninstall_does_not_raise_when_agents_dir_becomes_empty(tmp_path: Path) -> None:
+    """Clean uninstall must not raise even if .agents/ remains as an empty dir."""
+    install(tmp_path, _MCP_CONFIG)
+    # No extra files — clean state
+    uninstall(tmp_path)
+    # .agents/ or .agents/skills/ may or may not exist — just no exception raised
+
+
 # ---------------------------------------------------------------------------
 # Sub-agent TOML install / uninstall tests
 # ---------------------------------------------------------------------------

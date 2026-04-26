@@ -493,15 +493,6 @@ def uninstall(target: Path) -> None:
                     if not any(target_skill.iterdir()):
                         target_skill.rmdir()
                     click.echo(f"  Removed: .agents/skills/{skill_dir.name}/")
-        # Remove .agents/skills/ if now empty
-        if skills_dir.exists() and not any(skills_dir.iterdir()):
-            skills_dir.rmdir()
-            click.echo("  Removed: .agents/skills/ (empty)")
-        # Remove .agents/ if now empty
-        agents_root = target / ".agents"
-        if agents_root.exists() and not any(agents_root.iterdir()):
-            agents_root.rmdir()
-            click.echo("  Removed: .agents/ (empty)")
     else:
         click.echo("  Skipped: .agents/skills/ (not found)")
 
