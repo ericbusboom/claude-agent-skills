@@ -1,17 +1,17 @@
 ---
-id: "012"
-title: "Codex rules-coverage parity and uninstall precision"
-status: planning
+id: '012'
+title: Codex rules-coverage parity and uninstall precision
+status: done
 branch: sprint/012-codex-rules-coverage-parity-and-uninstall-precision
 use-cases:
-  - SUC-001
-  - SUC-002
-  - SUC-003
-  - SUC-004
-  - SUC-005
-  - SUC-006
-  - SUC-007
-  - SUC-008
+- SUC-001
+- SUC-002
+- SUC-003
+- SUC-004
+- SUC-005
+- SUC-006
+- SUC-007
+- SUC-008
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 

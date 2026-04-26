@@ -1,13 +1,13 @@
 ---
 id: '007'
 title: 'Codex installer: expand docs/clasi/AGENTS.md and add docs/clasi/todo/AGENTS.md'
-status: todo
+status: done
 use-cases:
-  - SUC-002
-  - SUC-003
-  - SUC-004
+- SUC-002
+- SUC-003
+- SUC-004
 depends-on:
-  - '001'
+- '001'
 github-issue: ''
 todo: codex-install-rules-coverage-gap.md
 ---
@@ -39,24 +39,24 @@ to how it is written.
 
 ## Acceptance Criteria
 
-- [ ] `_DOCS_CLASI_RULES` in `codex.py` is replaced by the full `CLASI_ARTIFACTS_BODY`
+- [x] `_DOCS_CLASI_RULES` in `codex.py` is replaced by the full `CLASI_ARTIFACTS_BODY`
       from `_rules.py` (adds the active-sprint check, phase check, and MCP-tools-only
       instruction that were missing).
-- [ ] `_install_rules(target)` writes `docs/clasi/todo/AGENTS.md` using the
+- [x] `_install_rules(target)` writes `docs/clasi/todo/AGENTS.md` using the
       `TODO_DIR_BODY` from `_rules.py`. The directory `docs/clasi/todo/` is created
       if absent (`mkdir(parents=True, exist_ok=True)`).
-- [ ] `_uninstall_rules(target)` removes `docs/clasi/todo/AGENTS.md` if present.
-- [ ] After `codex.install()`:
+- [x] `_uninstall_rules(target)` removes `docs/clasi/todo/AGENTS.md` if present.
+- [x] After `codex.install()`:
       - `docs/clasi/AGENTS.md` exists and contains text about active-sprint check
         and phase check (from the full `clasi-artifacts` rule).
       - `docs/clasi/todo/AGENTS.md` exists and contains text about using the
         `todo` skill or `move_todo_to_done` MCP tool.
       - `clasi/AGENTS.md` exists (unchanged from sprint 011).
-- [ ] After `codex.uninstall()`:
+- [x] After `codex.uninstall()`:
       - `docs/clasi/AGENTS.md` is removed.
       - `docs/clasi/todo/AGENTS.md` is removed.
       - `clasi/AGENTS.md` is removed.
-- [ ] Existing test suite passes (`uv run pytest`).
+- [x] Existing test suite passes (`uv run pytest`).
 
 ## Implementation Plan
 

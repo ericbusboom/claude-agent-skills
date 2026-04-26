@@ -1,7 +1,7 @@
 ---
 id: '001'
 title: Extract rule content into shared _rules.py module
-status: todo
+status: done
 use-cases:
   - SUC-004
 depends-on: []
@@ -27,19 +27,19 @@ This is a pure refactor on the Claude side — no behavioral change to the insta
 
 ## Acceptance Criteria
 
-- [ ] `clasi/platforms/_rules.py` exists and exports constants for all five rule bodies:
+- [x] `clasi/platforms/_rules.py` exists and exports constants for all five rule bodies:
       `MCP_REQUIRED_BODY`, `CLASI_ARTIFACTS_BODY`, `SOURCE_CODE_BODY`,
       `TODO_DIR_BODY`, `GIT_COMMITS_BODY` (names may vary; must be unambiguous).
-- [ ] `_rules.py` has no imports from other CLASI modules (data-only leaf module).
-- [ ] `claude.py`'s `RULES` dict is refactored to compose values using the constants
+- [x] `_rules.py` has no imports from other CLASI modules (data-only leaf module).
+- [x] `claude.py`'s `RULES` dict is refactored to compose values using the constants
       from `_rules.py`. The YAML frontmatter (`paths:`) wrapper stays in `claude.py`.
-- [ ] The installed `.claude/rules/*.md` file content is byte-for-byte identical before
+- [x] The installed `.claude/rules/*.md` file content is byte-for-byte identical before
       and after this refactor. (Verify by reading the old strings and new rendered values
       in a test or by inspection.)
-- [ ] `_DOCS_CLASI_RULES` and `_CLASI_SRC_RULES` constants in `codex.py` are updated
+- [x] `_DOCS_CLASI_RULES` and `_CLASI_SRC_RULES` constants in `codex.py` are updated
       to import from `_rules.py`. (Partial alignment — full Codex content update is
       tickets 007.)
-- [ ] All existing tests pass.
+- [x] All existing tests pass.
 
 ## Implementation Plan
 

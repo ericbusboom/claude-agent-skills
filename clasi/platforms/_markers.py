@@ -5,6 +5,20 @@ same CLASI section into a host markdown file with idempotent
 create/update/append semantics, preserving any user content outside the
 marker block. This module centralizes that logic so the two platforms
 cannot drift.
+
+Named-block API
+---------------
+`write_named_section(file_path, block_name, content)` and
+`strip_named_section(file_path, block_name)` support multiple independent
+CLASI-managed blocks in the same file.  Each block is delimited by::
+
+    <!-- CLASI:{block_name}:START -->
+    <!-- CLASI:{block_name}:END -->
+
+Multiple differently-named blocks can coexist; each function operates only
+on the block whose name matches `block_name`.  The existing
+`write_section`/`strip_section` pair (which uses `CLASI:START/END`) is
+unchanged and continues to work independently.
 """
 
 from __future__ import annotations
@@ -122,6 +136,91 @@ def strip_section(file_path: Path) -> bool:
     if new_content.strip():
         file_path.write_text(new_content, encoding="utf-8")
         click.echo(f"  Removed: {label} (CLASI section)")
+    else:
+        file_path.unlink()
+        click.echo(f"  Deleted: {label} (was only CLASI content)")
+    return True
+
+
+def write_named_section(file_path: Path, block_name: str, content: str) -> bool:
+    """Write or replace the named CLASI block in *file_path*.
+
+    The block is delimited by::
+
+        <!-- CLASI:{block_name}:START -->
+        <!-- CLASI:{block_name}:END -->
+
+    Behavior:
+
+    - Block already present: replace in place.
+    - File exists, block absent: append at end.
+    - File does not exist: create with just the block.
+
+    If a malformed file contains the START marker more than once, the
+    replacement spans from the first START to the first END of that name.
+
+    Returns True if the file was written/updated, False if unchanged.
+    """
+    marker_start = f"<!-- CLASI:{block_name}:START -->"
+    marker_end = f"<!-- CLASI:{block_name}:END -->"
+    section = f"{marker_start}\n{content}\n{marker_end}\n"
+    label = file_path.name
+
+    if not file_path.exists():
+        file_path.write_text(section, encoding="utf-8")
+        click.echo(f"  Created: {label}")
+        return True
+
+    existing = file_path.read_text(encoding="utf-8")
+
+    if marker_start in existing and marker_end in existing:
+        start_idx = existing.index(marker_start)
+        end_idx = existing.index(marker_end) + len(marker_end)
+        new_content = existing[:start_idx] + section.strip() + existing[end_idx:]
+        if new_content != existing:
+            file_path.write_text(new_content, encoding="utf-8")
+            click.echo(f"  Updated: {label} (replaced CLASI:{block_name} section)")
+            return True
+        click.echo(f"  Unchanged: {label}")
+        return False
+
+    if not existing.endswith("\n"):
+        existing += "\n"
+    new_content = existing + "\n" + section
+    file_path.write_text(new_content, encoding="utf-8")
+    click.echo(f"  Updated: {label} (appended CLASI:{block_name} section)")
+    return True
+
+
+def strip_named_section(file_path: Path, block_name: str) -> bool:
+    """Remove the named CLASI block from *file_path*, preserving everything else.
+
+    Deletes the file if it becomes empty (only whitespace).
+
+    Returns True if anything was removed/changed, False otherwise.
+    """
+    marker_start = f"<!-- CLASI:{block_name}:START -->"
+    marker_end = f"<!-- CLASI:{block_name}:END -->"
+    label = file_path.name
+
+    if not file_path.exists():
+        click.echo(f"  Skipped: {label} (not found)")
+        return False
+
+    content = file_path.read_text(encoding="utf-8")
+    if marker_start not in content or marker_end not in content:
+        click.echo(f"  Unchanged: {label} (no CLASI:{block_name} section found)")
+        return False
+
+    start_idx = content.index(marker_start)
+    end_idx = content.index(marker_end) + len(marker_end)
+    before = content[:start_idx].rstrip("\n")
+    after = content[end_idx:]
+    new_content = before + ("\n" if after.strip() else "") + after
+
+    if new_content.strip():
+        file_path.write_text(new_content, encoding="utf-8")
+        click.echo(f"  Removed: {label} (CLASI:{block_name} section)")
     else:
         file_path.unlink()
         click.echo(f"  Deleted: {label} (was only CLASI content)")

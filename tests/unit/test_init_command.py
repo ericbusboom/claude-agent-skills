@@ -397,6 +397,27 @@ class TestHooksConfig:
             assert py_files == [], f"Unexpected .py files: {py_files}"
 
 
+class TestUninstallAgentPrecision:
+    def test_uninstall_preserves_user_file_inside_agent_dir(self, tmp_path):
+        """User-added custom.md in .claude/agents/team-lead/ survives uninstall."""
+        from clasi.platforms import claude
+
+        claude.install(tmp_path, mcp_config={})
+
+        # Simulate user dropping a file into the agent subdir
+        user_file = tmp_path / ".claude" / "agents" / "team-lead" / "custom.md"
+        user_file.write_text("my custom instructions", encoding="utf-8")
+
+        claude.uninstall(tmp_path)
+
+        assert user_file.exists(), "custom.md must survive uninstall"
+        # CLASI-installed agent.md must be removed
+        assert not (tmp_path / ".claude" / "agents" / "team-lead" / "agent.md").exists(), \
+            "CLASI agent.md must be removed by uninstall"
+        # Directory stays because it is non-empty
+        assert (tmp_path / ".claude" / "agents" / "team-lead").is_dir()
+
+
 class TestRules:
     def test_init_creates_all_rule_files(self, target_dir):
         """Init creates all CLASI rule files."""
@@ -637,3 +658,24 @@ class TestPlatformsClaude:
         claude_uninstall(target)
         # Second call should not raise
         claude_uninstall(target)
+
+    def test_uninstall_preserves_user_file_inside_skill_dir(self, tmp_path):
+        """User-added notes.md in .claude/skills/se/ survives uninstall."""
+        from clasi.platforms import claude
+
+        target = tmp_path / "repo"
+        target.mkdir()
+        mcp_config = _detect_mcp_command(target)
+        claude.install(target, mcp_config)
+
+        # Simulate user dropping a file into the skill subdir
+        user_file = target / ".claude" / "skills" / "se" / "notes.md"
+        user_file.write_text("my notes", encoding="utf-8")
+
+        claude.uninstall(target)
+
+        assert user_file.exists(), "user notes.md must survive uninstall"
+        assert not (target / ".claude" / "skills" / "se" / "SKILL.md").exists(), \
+            "SKILL.md must be removed by uninstall"
+        # Directory stays because it is non-empty
+        assert (target / ".claude" / "skills" / "se").is_dir()

@@ -22,6 +22,14 @@ from typing import Dict
 
 import click
 
+from clasi.platforms._rules import (
+    CLASI_ARTIFACTS_BODY,
+    GIT_COMMITS_BODY,
+    MCP_REQUIRED_BODY,
+    SOURCE_CODE_BODY,
+    TODO_DIR_BODY,
+)
+
 # The plugin directory is bundled inside the clasi package.
 _PLUGIN_DIR = Path(__file__).parent.parent / "plugin"
 
@@ -32,84 +40,23 @@ _PLUGIN_DIR = Path(__file__).parent.parent / "plugin"
 # Path-scoped rules installed by `clasi init`.
 # Each key is the filename under `.claude/rules/`, each value is the
 # complete file content (YAML frontmatter + markdown body).
+# Rule bodies are sourced from clasi.platforms._rules (single source of truth).
 RULES: Dict[str, str] = {
-    "mcp-required.md": """\
----
-paths:
-  - "**"
----
-
-This project uses the CLASI MCP server. Before doing ANY work:
-
-1. Call `get_version()` to verify the MCP server is running.
-2. If the call fails, STOP. Do not proceed. Tell the stakeholder:
-   "The CLASI MCP server is not available. Check .mcp.json and
-   restart the session."
-3. Do NOT create sprint directories, tickets, TODOs, or planning
-   artifacts manually. Do NOT improvise workarounds. All SE process
-   operations require the MCP server.
-""",
-    "clasi-artifacts.md": """\
----
-paths:
-  - docs/clasi/**
----
-
-You are modifying CLASI planning artifacts. Before making changes:
-
-1. Confirm you have an active sprint (`list_sprints(status="active")`),
-   or the stakeholder said "out of process" / "direct change".
-2. If creating or modifying tickets, the sprint must be in `ticketing`
-   or `executing` phase (`get_sprint_phase(sprint_id)`).
-3. Use CLASI MCP tools for all artifact operations — do not create
-   sprint/ticket/TODO files manually.
-
-Direct edits to `docs/clasi/sprints/` are blocked for team-lead. Use MCP tools.
-""",
-    "source-code.md": """\
----
-paths:
-  - clasi/**
-  - tests/**
----
-
-You are modifying source code or tests. Before writing code:
-
-1. You must have a ticket in `in-progress` status, or the stakeholder
-   said "out of process".
-2. If you have a ticket, follow the execute-ticket skill — call
-   `get_skill_definition("execute-ticket")` if unsure of the steps.
-3. Run the project's test suite after changes.
-""",
-    "todo-dir.md": """\
----
-paths:
-  - docs/clasi/todo/**
----
-
-Use the CLASI `todo` skill or `move_todo_to_done` MCP tool for TODO
-operations. Do not use the generic TodoWrite tool for CLASI TODOs.
-""",
-    "git-commits.md": """\
----
-paths:
-  - "**/*.py"
-  - "**/*.md"
----
-
-Before committing, verify:
-1. All tests pass (run the project's test suite).
-2. If on a sprint branch, the sprint has an execution lock.
-3. Commit message references the ticket ID if working on a ticket.
-
-After committing substantive changes, run `clasi version bump` to
-advance the version, then commit that change (`chore: bump version`).
-Tools are installed editable, so the version is how sessions tell
-which code is live — bump per commit, not just at sprint close.
-Skip the manual bump right before `close_sprint` (it bumps + tags).
-
-See `instructions/git-workflow` for full rules.
-""",
+    "mcp-required.md": (
+        '---\npaths:\n  - "**"\n---\n\n' + MCP_REQUIRED_BODY
+    ),
+    "clasi-artifacts.md": (
+        "---\npaths:\n  - docs/clasi/**\n---\n\n" + CLASI_ARTIFACTS_BODY
+    ),
+    "source-code.md": (
+        "---\npaths:\n  - clasi/**\n  - tests/**\n---\n\n" + SOURCE_CODE_BODY
+    ),
+    "todo-dir.md": (
+        "---\npaths:\n  - docs/clasi/todo/**\n---\n\n" + TODO_DIR_BODY
+    ),
+    "git-commits.md": (
+        '---\npaths:\n  - "**/*.py"\n  - "**/*.md"\n---\n\n' + GIT_COMMITS_BODY
+    ),
 }
 
 # ---------------------------------------------------------------------------
@@ -354,10 +301,19 @@ def uninstall(target: Path) -> None:
                 if not skill_dir.is_dir():
                     continue
                 target_skill = skills_dir / skill_dir.name
-                if target_skill.exists():
-                    import shutil
-                    shutil.rmtree(target_skill)
+                if not target_skill.exists():
+                    continue
+                skill_md = target_skill / "SKILL.md"
+                if skill_md.exists():
+                    skill_md.unlink()
+                if not any(target_skill.iterdir()):
+                    target_skill.rmdir()
                     click.echo(f"  Removed: .claude/skills/{skill_dir.name}/")
+                else:
+                    click.echo(
+                        f"  Partial: .claude/skills/{skill_dir.name}/ "
+                        f"(removed SKILL.md; user files preserved)"
+                    )
 
     # --- .claude/agents/ ---
     agents_dir = target / ".claude" / "agents"
@@ -368,10 +324,21 @@ def uninstall(target: Path) -> None:
                 if not agent_dir.is_dir():
                     continue
                 target_agent = agents_dir / agent_dir.name
-                if target_agent.exists():
-                    import shutil
-                    shutil.rmtree(target_agent)
+                if not target_agent.exists():
+                    continue
+                # Install copies *.md from plugin/agents/<name>/ — mirror that.
+                for plugin_md in agent_dir.glob("*.md"):
+                    target_md = target_agent / plugin_md.name
+                    if target_md.exists():
+                        target_md.unlink()
+                if not any(target_agent.iterdir()):
+                    target_agent.rmdir()
                     click.echo(f"  Removed: .claude/agents/{agent_dir.name}/")
+                else:
+                    click.echo(
+                        f"  Partial: .claude/agents/{agent_dir.name}/ "
+                        f"(removed CLASI .md files; user files preserved)"
+                    )
 
     # --- .claude/rules/ ---
     rules_dir = target / ".claude" / "rules"

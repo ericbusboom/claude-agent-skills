@@ -1,7 +1,7 @@
 ---
 id: '008'
 title: End-to-end Codex install correctness test for all AGENTS.md files
-status: todo
+status: done
 use-cases:
   - SUC-001
   - SUC-002
@@ -33,7 +33,7 @@ test fails immediately.
 
 ## Acceptance Criteria
 
-- [ ] A single test function `test_codex_install_full_agents_md_footprint` (or
+- [x] A single test function `test_codex_install_full_agents_md_footprint` (or
       equivalent) calls `codex.install()` and asserts:
       - `AGENTS.md` (root) exists and contains `<!-- CLASI:START -->`.
       - `AGENTS.md` (root) exists and contains `<!-- CLASI:RULES:START -->`.
@@ -42,14 +42,14 @@ test fails immediately.
         (active-sprint check and phase check).
       - `docs/clasi/todo/AGENTS.md` exists and contains the todo-dir rule.
       - `clasi/AGENTS.md` exists and contains the source-code rule.
-- [ ] A companion uninstall test asserts that after `codex.uninstall()`:
+- [x] A companion uninstall test asserts that after `codex.uninstall()`:
       - `<!-- CLASI:RULES:START -->` is absent from root `AGENTS.md` (rules block stripped).
       - `docs/clasi/AGENTS.md` does not exist.
       - `docs/clasi/todo/AGENTS.md` does not exist.
       - `clasi/AGENTS.md` does not exist.
-- [ ] Round-trip test: install → uninstall → re-install produces the same file state
+- [x] Round-trip test: install → uninstall → re-install produces the same file state
       as the first install. No duplication of blocks.
-- [ ] All existing tests pass (`uv run pytest`).
+- [x] All existing tests pass (`uv run pytest`).
 
 ## Implementation Plan
 

@@ -1,9 +1,9 @@
 ---
 id: '004'
 title: 'Claude uninstall: replace shutil.rmtree for agents with file-level deletion'
-status: todo
+status: done
 use-cases:
-  - SUC-006
+- SUC-006
 depends-on: []
 github-issue: ''
 todo: plan-make-uninstall-delete-only-what-install-copied-no-whole-directory-deletes.md
@@ -25,20 +25,20 @@ present, then `rmdir` the leaf directory only if empty.
 
 ## Acceptance Criteria
 
-- [ ] `shutil.rmtree(target_agent)` is removed from `claude.py` uninstall.
-- [ ] For each plugin agent dir, uninstall globs `plugin/agents/<name>/*.md` to identify
+- [x] `shutil.rmtree(target_agent)` is removed from `claude.py` uninstall.
+- [x] For each plugin agent dir, uninstall globs `plugin/agents/<name>/*.md` to identify
       which files were copied at install time, and removes them from `target_agent`.
-- [ ] After the per-file deletions, if `target_agent` is empty, it is removed with
+- [x] After the per-file deletions, if `target_agent` is empty, it is removed with
       `rmdir`. If non-empty, it is left in place with a "Partial" message.
-- [ ] `import shutil` is fully removed from the `uninstall` function (and from the
+- [x] `import shutil` is fully removed from the `uninstall` function (and from the
       module-level import if it was only used in the uninstall context). Check ticket
       003 is done first; if ticket 003 already removed the only `import shutil`, this
       ticket confirms the module-level import is gone.
-- [ ] New test passes: install Claude platform into a temp dir, add
+- [x] New test passes: install Claude platform into a temp dir, add
       `.claude/agents/team-lead/custom.md`, run `claude.uninstall()`, assert `custom.md`
       exists, assert CLASI-installed `.md` files (e.g., `agent.md`) are gone, assert
       `.claude/agents/team-lead/` directory still exists.
-- [ ] Existing test suite passes (`uv run pytest`).
+- [x] Existing test suite passes (`uv run pytest`).
 
 ## Implementation Plan
 

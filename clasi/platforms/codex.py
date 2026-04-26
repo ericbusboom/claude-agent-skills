@@ -23,6 +23,14 @@ from pathlib import Path
 
 import click
 
+from clasi.platforms._rules import (
+    CLASI_ARTIFACTS_BODY,
+    GIT_COMMITS_BODY,
+    MCP_REQUIRED_BODY,
+    SOURCE_CODE_BODY,
+    TODO_DIR_BODY,
+)
+
 try:
     import tomllib
 except ImportError:
@@ -85,6 +93,46 @@ def _write_agents_md(target: Path) -> None:
     from clasi.platforms._markers import write_section
 
     write_section(target / "AGENTS.md", entry_point=_CODEX_ENTRY_POINT)
+
+
+# ---------------------------------------------------------------------------
+# Global rules block on root AGENTS.md
+# ---------------------------------------------------------------------------
+
+
+def _build_global_rules_content() -> str:
+    """Build the content for the global-scope rules block on root AGENTS.md."""
+    return (
+        "# Global CLASI Rules\n\n"
+        "## MCP Server Required\n\n"
+        f"{MCP_REQUIRED_BODY}\n"
+        "## Git Commits\n\n"
+        f"{GIT_COMMITS_BODY}"
+    )
+
+
+def _install_global_rules(target: Path) -> None:
+    """Write the global-rules named block on root AGENTS.md.
+
+    Uses the RULES block name so the marker is distinct from the entry-point
+    block (CLASI:START/END).  Content is sourced from _rules.py constants.
+    """
+    from clasi.platforms._markers import write_named_section
+
+    content = _build_global_rules_content()
+    write_named_section(target / "AGENTS.md", "RULES", content)
+    click.echo("  Wrote: AGENTS.md (global rules block)")
+
+
+def _uninstall_global_rules(target: Path) -> None:
+    """Strip the global-rules named block from root AGENTS.md.
+
+    Only removes the CLASI:RULES:START/END block; the entry-point block
+    (CLASI:START/END) is left intact.
+    """
+    from clasi.platforms._markers import strip_named_section
+
+    strip_named_section(target / "AGENTS.md", "RULES")
 
 
 # ---------------------------------------------------------------------------
@@ -226,30 +274,25 @@ _ACTIVE_AGENTS = ["team-lead", "sprint-planner", "programmer"]
 # alternative — Codex reads the closest file upward in the directory tree.
 # ---------------------------------------------------------------------------
 
-_DOCS_CLASI_RULES = """\
-# CLASI SE Process Rules
+_CLASI_SRC_RULES = SOURCE_CODE_BODY
 
-Before doing any SE process work in this directory:
 
-1. Verify the CLASI MCP server is running by calling get_version().
-   If the call fails, stop and report the issue.
-2. Use CLASI MCP tools for all sprint, ticket, and TODO operations.
-   Do not create sprint directories, tickets, or TODO files manually.
-3. Do not create planning artifacts (sprint.md, usecases.md,
-   architecture-update.md, ticket files) outside the MCP tools.
-"""
+def _build_docs_clasi_content() -> str:
+    """Build the full content for docs/clasi/AGENTS.md.
 
-_CLASI_SRC_RULES = """\
-# CLASI Source Code Rules
+    Wraps the complete CLASI_ARTIFACTS_BODY (active-sprint check, phase check,
+    and MCP-tools-only instruction) with a section header.
+    """
+    return f"# CLASI SE Process Rules\n\n{CLASI_ARTIFACTS_BODY}\n"
 
-Before modifying source code or tests in this directory:
 
-1. You must have a ticket in `in-progress` status, or the stakeholder
-   said "out of process".
-2. If you have a ticket, follow the execute-ticket skill for the full
-   implementation flow.
-3. Run the project test suite after making changes.
-"""
+def _build_todo_dir_content() -> str:
+    """Build the content for docs/clasi/todo/AGENTS.md.
+
+    Wraps TODO_DIR_BODY with a section header so Codex agents working in
+    docs/clasi/todo/ receive the instruction to use CLASI tooling.
+    """
+    return f"# CLASI TODO Rules\n\n{TODO_DIR_BODY}\n"
 
 
 def _install_agents(target: Path) -> None:
@@ -320,7 +363,7 @@ def _uninstall_agents(target: Path) -> None:
 
 
 def _install_rules(target: Path) -> None:
-    """Write nested AGENTS.md rule files at docs/clasi/ and clasi/.
+    """Write nested AGENTS.md rule files at docs/clasi/, docs/clasi/todo/, and clasi/.
 
     These files provide path-scoped guidance for Codex agents operating in
     those directories, mirroring the intent of Claude's .claude/rules/ files.
@@ -329,8 +372,13 @@ def _install_rules(target: Path) -> None:
     """
     docs_clasi = target / "docs" / "clasi"
     docs_clasi.mkdir(parents=True, exist_ok=True)
-    (docs_clasi / "AGENTS.md").write_text(_DOCS_CLASI_RULES, encoding="utf-8")
+    (docs_clasi / "AGENTS.md").write_text(_build_docs_clasi_content(), encoding="utf-8")
     click.echo("  Wrote: docs/clasi/AGENTS.md")
+
+    docs_clasi_todo = target / "docs" / "clasi" / "todo"
+    docs_clasi_todo.mkdir(parents=True, exist_ok=True)
+    (docs_clasi_todo / "AGENTS.md").write_text(_build_todo_dir_content(), encoding="utf-8")
+    click.echo("  Wrote: docs/clasi/todo/AGENTS.md")
 
     clasi_src = target / "clasi"
     clasi_src.mkdir(parents=True, exist_ok=True)
@@ -341,7 +389,7 @@ def _install_rules(target: Path) -> None:
 def _uninstall_rules(target: Path) -> None:
     """Remove nested AGENTS.md rule files written by _install_rules.
 
-    Non-destructive: if either file does not exist, the removal is skipped
+    Non-destructive: if any file does not exist, the removal is skipped
     without error.
     """
     docs_clasi_md = target / "docs" / "clasi" / "AGENTS.md"
@@ -350,6 +398,13 @@ def _uninstall_rules(target: Path) -> None:
         click.echo("  Removed: docs/clasi/AGENTS.md")
     else:
         click.echo("  Skipped: docs/clasi/AGENTS.md (not found)")
+
+    docs_clasi_todo_md = target / "docs" / "clasi" / "todo" / "AGENTS.md"
+    if docs_clasi_todo_md.exists():
+        docs_clasi_todo_md.unlink()
+        click.echo("  Removed: docs/clasi/todo/AGENTS.md")
+    else:
+        click.echo("  Skipped: docs/clasi/todo/AGENTS.md (not found)")
 
     clasi_src_md = target / "clasi" / "AGENTS.md"
     if clasi_src_md.exists():
@@ -383,6 +438,7 @@ def install(target: Path, mcp_config: dict) -> None:
     """
     click.echo("AGENTS.md:")
     _write_agents_md(target)
+    _install_global_rules(target)
     click.echo()
 
     click.echo("Codex config:")
@@ -432,6 +488,7 @@ def uninstall(target: Path) -> None:
     # --- AGENTS.md ---
     from clasi.platforms._markers import strip_section
     strip_section(target / "AGENTS.md")
+    _uninstall_global_rules(target)
 
     # --- .codex/config.toml ---
     config_path = target / ".codex" / "config.toml"
@@ -512,15 +569,6 @@ def uninstall(target: Path) -> None:
                     if not any(target_skill.iterdir()):
                         target_skill.rmdir()
                     click.echo(f"  Removed: .agents/skills/{skill_dir.name}/")
-        # Remove .agents/skills/ if now empty
-        if skills_dir.exists() and not any(skills_dir.iterdir()):
-            skills_dir.rmdir()
-            click.echo("  Removed: .agents/skills/ (empty)")
-        # Remove .agents/ if now empty
-        agents_root = target / ".agents"
-        if agents_root.exists() and not any(agents_root.iterdir()):
-            agents_root.rmdir()
-            click.echo("  Removed: .agents/ (empty)")
     else:
         click.echo("  Skipped: .agents/skills/ (not found)")
 

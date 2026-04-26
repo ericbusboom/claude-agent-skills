@@ -1,7 +1,7 @@
 ---
 id: "002"
 title: "Extend _markers.py with named marker block support"
-status: todo
+status: done
 use-cases:
   - SUC-001
   - SUC-008
@@ -26,26 +26,28 @@ left unchanged for backward compatibility.
 
 ## Acceptance Criteria
 
-- [ ] `_markers.py` exports `write_named_section(file_path, block_name, content)` that
+- [x] `_markers.py` exports `write_named_section(file_path, block_name, content)` that
       writes or replaces the block delimited by `<!-- CLASI:{block_name}:START -->` and
       `<!-- CLASI:{block_name}:END -->`.
-- [ ] `_markers.py` exports `strip_named_section(file_path, block_name)` that removes
+- [x] `_markers.py` exports `strip_named_section(file_path, block_name)` that removes
       only the named block, leaving everything else (including other named blocks and
       user content) intact.
-- [ ] Round-trip test: a file with user content + CLASI:START/END block + CLASI:RULES:START/END
+- [x] Round-trip test: a file with user content + CLASI:START/END block + CLASI:RULES:START/END
       block survives:
       - `write_named_section(..., "RULES", ...)` does not touch the CLASI:START/END block.
       - `strip_named_section(..., "RULES")` leaves the CLASI:START/END block and user content
         intact.
       - `strip_named_section(..., "CLASI")` (if tested) would only strip via the existing
         `strip_section`, not via the new API — or the new API also handles this name.
-        (Implementation decision: the named API with name="CLASI" should work identically
-        to the existing `strip_section`.)
-- [ ] If a named block appears twice in the same file (malformed state), `write_named_section`
+        (Implementation decision: the named API with name="CLASI" produces
+        `<!-- CLASI:CLASI:START/END -->` markers, which is distinct from the legacy
+        `<!-- CLASI:START/END -->` pair used by `write_section`/`strip_section`. Both
+        APIs are independent; callers should use each for their respective marker style.)
+- [x] If a named block appears twice in the same file (malformed state), `write_named_section`
       replaces from the first START to the first END of that name. Document the behavior.
-- [ ] `write_named_section` is idempotent: calling it twice with the same content leaves
+- [x] `write_named_section` is idempotent: calling it twice with the same content leaves
       the file unchanged on the second call.
-- [ ] All existing tests pass (existing `write_section`/`strip_section` behavior is
+- [x] All existing tests pass (existing `write_section`/`strip_section` behavior is
       unchanged).
 
 ## Implementation Plan
