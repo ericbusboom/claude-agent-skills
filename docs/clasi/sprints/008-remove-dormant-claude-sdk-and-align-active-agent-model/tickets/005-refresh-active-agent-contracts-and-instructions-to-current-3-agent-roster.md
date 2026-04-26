@@ -1,7 +1,7 @@
 ---
 id: "005"
 title: "Refresh active agent contracts and instructions to current 3-agent roster"
-status: todo
+status: done
 use-cases: ["SUC-004"]
 depends-on: ["004"]
 github-issue: ""
@@ -29,13 +29,13 @@ After this ticket, all active plugin files reference only the current active ros
 
 ## Acceptance Criteria
 
-- [ ] `team-lead/contract.yaml` `delegates_to` lists only agents present in the active `clasi/plugin/agents/` directory (not `old/`).
-- [ ] `team-lead/agent.md` does not instruct dispatching to `project-manager`, `sprint-executor`, `ad-hoc-executor`, `todo-worker`, `code-monkey`, `technical-lead`, `architect`, `architecture-reviewer`, `code-reviewer`, or `project-architect` as targets.
-- [ ] `sprint-planner/contract.yaml` does not list `architect`, `architecture-reviewer`, or `technical-lead` in `delegates_to`.
-- [ ] `sprint-planner/agent.md` accurately reflects the inline role with no dispatch-to-old-sub-agent language.
-- [ ] `programmer/contract.yaml` and `programmer/agent.md` are verified to contain no stale agent name references (likely already clean).
-- [ ] `uv run pytest tests/unit/test_contracts.py` passes.
-- [ ] `grep -r "code-monkey\|sprint-executor\|ad-hoc-executor\|technical-lead\|project-manager\|code-reviewer" clasi/plugin/agents/ --include="*.md" --include="*.yaml" | grep -v old/` returns no matches as delegation targets.
+- [x] `team-lead/contract.yaml` `delegates_to` lists only agents present in the active `clasi/plugin/agents/` directory (not `old/`).
+- [x] `team-lead/agent.md` does not instruct dispatching to `project-manager`, `sprint-executor`, `ad-hoc-executor`, `todo-worker`, `code-monkey`, `technical-lead`, `architect`, `architecture-reviewer`, `code-reviewer`, or `project-architect` as targets.
+- [x] `sprint-planner/contract.yaml` does not list `architect`, `architecture-reviewer`, or `technical-lead` in `delegates_to`.
+- [x] `sprint-planner/agent.md` accurately reflects the inline role with no dispatch-to-old-sub-agent language.
+- [x] `programmer/contract.yaml` and `programmer/agent.md` are verified to contain no stale agent name references (likely already clean).
+- [x] `uv run pytest tests/unit/test_contracts.py` passes.
+- [x] `grep -r "code-monkey\|sprint-executor\|ad-hoc-executor\|technical-lead\|project-manager\|code-reviewer" clasi/plugin/agents/ --include="*.md" --include="*.yaml" | grep -v old/` returns no matches as delegation targets.
 
 ## Implementation Plan
 

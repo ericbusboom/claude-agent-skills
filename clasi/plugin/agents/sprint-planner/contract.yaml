@@ -107,21 +107,7 @@ returns:
         type: array
         items: { type: string }
 
-delegates_to:
-  - agent: architect
-    when: >
-      After use cases are written, to produce the architecture
-      update for this sprint.
-
-  - agent: architecture-reviewer
-    when: >
-      After architect produces architecture-update.md, to validate
-      consistency and quality before proceeding to tickets.
-
-  - agent: technical-lead
-    when: >
-      After architecture is reviewed and approved, to decompose
-      the sprint scope into sequenced implementation tickets.
+delegates_to: []
 
 allowed_tools:
   - Read

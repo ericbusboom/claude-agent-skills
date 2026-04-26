@@ -59,20 +59,11 @@ class TestContractSchema:
 
 
 # All expected agent names (directory names in clasi/plugin/agents/)
+# Only the three active agents — old agents live in clasi/plugin/agents/old/
 ALL_AGENTS = [
     "team-lead",
     "sprint-planner",
-    "sprint-executor",
-    "ad-hoc-executor",
-    "sprint-reviewer",
-    "todo-worker",
-    "project-manager",
-    "project-architect",
-    "architect",
-    "architecture-reviewer",
     "programmer",
-    "code-reviewer",
-    "technical-lead",
 ]
 
 

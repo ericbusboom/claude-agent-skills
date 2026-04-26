@@ -73,15 +73,21 @@ class TestAgentProperties:
         assert "Write" in tools
 
     def test_delegates_to_from_contract(self, project):
-        agent = project.get_agent("sprint-planner")
+        agent = project.get_agent("team-lead")
         delegates = agent.delegates_to
         assert isinstance(delegates, list)
         assert len(delegates) > 0
         agent_names = [d["agent"] for d in delegates]
-        assert "architect" in agent_names
+        assert "sprint-planner" in agent_names
+        assert "programmer" in agent_names
 
     def test_delegates_to_empty_for_task_worker(self, project):
         agent = project.get_agent("programmer")
+        delegates = agent.delegates_to
+        assert delegates == []
+
+    def test_delegates_to_empty_for_sprint_planner(self, project):
+        agent = project.get_agent("sprint-planner")
         delegates = agent.delegates_to
         assert delegates == []
 
