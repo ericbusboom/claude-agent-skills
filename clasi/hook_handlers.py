@@ -849,6 +849,33 @@ def _next_log_number(log_dir: Path) -> int:
 # ---------------------------------------------------------------------------
 
 
+def handle_codex_plan_to_todo(payload: dict) -> None:
+    """Convert a Codex plan tag in last_assistant_message to a CLASI TODO.
+
+    Reads ``last_assistant_message`` from the payload, extracts the content
+    between ``<proposed_plan>`` and ``</proposed_plan>`` tags, and calls
+    ``plan_to_todo_from_text`` to write a pending TODO file.
+
+    Always exits 0 — the Codex Stop hook fires after the session has ended,
+    so there is nothing to block.
+    """
+    import re
+
+    from clasi.plan_to_todo import plan_to_todo_from_text
+
+    message = payload.get("last_assistant_message", "")
+    match = re.search(r"<proposed_plan>(.*?)</proposed_plan>", message, re.DOTALL)
+    if not match:
+        sys.exit(0)
+
+    plan_text = match.group(1).strip()
+    todo_dir = Path("docs/clasi/todo")
+    result = plan_to_todo_from_text(plan_text, todo_dir)
+    if result:
+        print(f"CLASI: Codex plan saved as TODO: {result}")
+    sys.exit(0)
+
+
 def handle_plan_to_todo(payload: dict) -> None:
     """Convert the most recent plan file to a CLASI TODO.
 
@@ -932,6 +959,7 @@ def handle_hook(event: str) -> None:
         "task-completed": handle_task_completed,
         "mcp-guard": handle_mcp_guard,
         "plan-to-todo": handle_plan_to_todo,
+        "codex-plan-to-todo": handle_codex_plan_to_todo,
         "commit-check": handle_commit_check,
     }
 

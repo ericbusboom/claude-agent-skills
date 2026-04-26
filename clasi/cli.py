@@ -3,6 +3,8 @@ CLI entry point for CLASI.
 
 Subcommands:
     clasi init [target]             — Initialize a repo for CLASI
+    clasi install [target]          — Synonym for clasi init
+    clasi uninstall [target]        — Remove CLASI platform integration files
     clasi mcp                       — Run the MCP server (stdio)
     clasi tool plan-to-todo         — Convert plan file to TODO
     clasi version                   — Show the current project version
@@ -24,16 +26,44 @@ def cli():
 @cli.command()
 @click.argument("target", default=".", type=click.Path(exists=True))
 @click.option("--plugin", is_flag=True, help="Install as a Claude Code plugin instead of project-local .claude/ content.")
-def init(target, plugin):
+@click.option("--claude", "install_claude", is_flag=True, default=False,
+              help="Install Claude platform integration.")
+@click.option("--codex", "install_codex", is_flag=True, default=False,
+              help="Install Codex platform integration.")
+def init(target, plugin, install_claude, install_codex):
     """Initialize a repository for the CLASI SE process.
 
-    By default, copies skills, agents, and hooks into the project's
-    .claude/ directory (project-local mode). With --plugin, registers
-    the CLASI plugin with Claude Code (plugin mode).
+    By default (no --claude or --codex flag), behavior depends on context:
+
+    \b
+    - Interactive (TTY): inspects advisory platform signals and prompts the
+      user to choose Claude, Codex, or both, with a recommended default.
+    - Non-interactive (no TTY, e.g. scripts/CI): defaults to Claude-only for
+      backward compatibility.
+
+    With --claude and/or --codex, installs the selected platform(s) without
+    prompting.  With --plugin, registers the CLASI plugin with Claude Code
+    (plugin mode).
     """
     from clasi.init_command import run_init
 
-    run_init(target, plugin_mode=plugin)
+    run_init(target, plugin_mode=plugin, claude=install_claude, codex=install_codex)
+
+
+# Register 'install' as a synonym for 'init' — same callback, same options.
+cli.add_command(init, name="install")
+
+
+@cli.command()
+@click.argument("target", default=".", type=click.Path(exists=True))
+@click.option("--claude", "uninstall_claude", is_flag=True, default=False,
+              help="Remove Claude platform integration.")
+@click.option("--codex", "uninstall_codex", is_flag=True, default=False,
+              help="Remove Codex platform integration.")
+def uninstall(target, uninstall_claude, uninstall_codex):
+    """Remove CLASI-managed platform integration files."""
+    from clasi.uninstall_command import run_uninstall
+    run_uninstall(target, claude=uninstall_claude, codex=uninstall_codex)
 
 
 @cli.group()
@@ -163,15 +193,27 @@ def mcp():
             "task-completed",
             "mcp-guard",
             "plan-to-todo",
+            "codex-plan-to-todo",
             "commit-check",
         ]
     ),
 )
 def hook(event):
-    """Handle a Claude Code hook event.
+    """Handle a hook event from Claude Code or Codex.
 
     Reads hook payload from stdin (JSON), delegates to the appropriate
     handler in clasi.hooks, and exits with the correct code.
+
+    Valid events:
+      role-guard          PreToolUse: enforce write-scope rules by agent tier.
+      subagent-start      SubagentStart: log subagent lifecycle start.
+      subagent-stop       SubagentStop: append transcript to subagent log.
+      task-created        TaskCreated: log parallel-task lifecycle start.
+      task-completed      TaskCompleted: append transcript to task log.
+      mcp-guard           PreToolUse: block team-lead from direct MCP writes.
+      plan-to-todo        PostToolUse(ExitPlanMode): save Claude plan as TODO.
+      codex-plan-to-todo  Stop(Codex): extract <proposed_plan> and save as TODO.
+      commit-check        PostToolUse(Bash): remind to bump version on master.
     """
     from clasi.hook_handlers import handle_hook
 
