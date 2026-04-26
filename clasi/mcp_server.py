@@ -137,7 +137,6 @@ class Clasi:
         # Import tool modules to register their tools with the server
         import clasi.tools.process_tools  # noqa: F401
         import clasi.tools.artifact_tools  # noqa: F401
-        import clasi.tools.dispatch_tools  # noqa: F401
 
         tool_count = len(self.server._tool_manager._tools)
         logger.info("  tools registered: %d", tool_count)
