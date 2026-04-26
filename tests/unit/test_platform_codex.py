@@ -13,6 +13,7 @@ except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 
 from clasi.platforms.codex import (
+    _ACTIVE_AGENTS,
     _CLASI_HOOK_COMMAND,
     _CLASI_STOP_HOOK_OLD,
     _CLASI_STOP_HOOK_WRAPPER,
@@ -377,3 +378,105 @@ def test_codex_uninstall_handles_old_format_gracefully(project: Path) -> None:
     # Should not raise; old flat entry should be removed.
     uninstall(project)
     assert not hooks_path.exists(), "hooks.json should be deleted after old entry removed"
+
+
+# ---------------------------------------------------------------------------
+# Sub-agent TOML install / uninstall tests
+# ---------------------------------------------------------------------------
+
+
+def test_install_agents_creates_toml_files(project: Path) -> None:
+    """install() creates .codex/agents/<name>.toml for all active agents.
+
+    Verifies:
+    - All three TOML files exist after install.
+    - Each file round-trips through tomllib.loads without error.
+    - Required fields (name, description, developer_instructions) are present.
+    - name is a non-empty string.
+    - developer_instructions is a non-empty string.
+    - description is a string (may be empty).
+    """
+    install(project, _MCP_CONFIG)
+
+    for agent_name in _ACTIVE_AGENTS:
+        toml_path = project / ".codex" / "agents" / f"{agent_name}.toml"
+        assert toml_path.exists(), f".codex/agents/{agent_name}.toml must exist after install"
+
+        raw = toml_path.read_text(encoding="utf-8")
+        # Round-trip parse — must not raise.
+        data = tomllib.loads(raw)
+
+        # Required fields must be present.
+        assert "name" in data, f"{agent_name}.toml must contain 'name'"
+        assert "description" in data, f"{agent_name}.toml must contain 'description'"
+        assert "developer_instructions" in data, (
+            f"{agent_name}.toml must contain 'developer_instructions'"
+        )
+
+        # Type and non-empty checks.
+        assert isinstance(data["name"], str) and data["name"], (
+            f"{agent_name}.toml: 'name' must be a non-empty string"
+        )
+        assert isinstance(data["description"], str), (
+            f"{agent_name}.toml: 'description' must be a string"
+        )
+        assert isinstance(data["developer_instructions"], str) and data["developer_instructions"], (
+            f"{agent_name}.toml: 'developer_instructions' must be a non-empty string"
+        )
+
+        # developer_instructions must not contain the YAML frontmatter block.
+        assert not data["developer_instructions"].startswith("---"), (
+            f"{agent_name}.toml: 'developer_instructions' must not start with frontmatter '---'"
+        )
+
+
+def test_uninstall_agents_removes_toml_files(project: Path) -> None:
+    """install then uninstall removes all .codex/agents/<name>.toml files.
+
+    Also verifies the .codex/agents/ directory is removed when empty.
+    """
+    install(project, _MCP_CONFIG)
+
+    # Confirm files exist before uninstall.
+    for agent_name in _ACTIVE_AGENTS:
+        assert (project / ".codex" / "agents" / f"{agent_name}.toml").exists()
+
+    uninstall(project)
+
+    for agent_name in _ACTIVE_AGENTS:
+        toml_path = project / ".codex" / "agents" / f"{agent_name}.toml"
+        assert not toml_path.exists(), (
+            f".codex/agents/{agent_name}.toml must be removed by uninstall"
+        )
+
+    # Directory should be gone when empty.
+    agents_dir = project / ".codex" / "agents"
+    assert not agents_dir.exists(), ".codex/agents/ must be removed when empty after uninstall"
+
+
+def test_uninstall_agents_preserves_user_files(project: Path) -> None:
+    """uninstall() does not remove user-added files in .codex/agents/."""
+    install(project, _MCP_CONFIG)
+
+    # Add a user file alongside the CLASI-owned TOML files.
+    agents_dir = project / ".codex" / "agents"
+    user_file = agents_dir / "my-custom-agent.toml"
+    user_file.write_text(
+        'name = "my-custom-agent"\ndescription = "custom"\ndeveloper_instructions = "do stuff"\n',
+        encoding="utf-8",
+    )
+
+    uninstall(project)
+
+    # CLASI files must be gone.
+    for agent_name in _ACTIVE_AGENTS:
+        toml_path = agents_dir / f"{agent_name}.toml"
+        assert not toml_path.exists(), (
+            f".codex/agents/{agent_name}.toml must be removed by uninstall"
+        )
+
+    # User file must still be present.
+    assert user_file.exists(), "User-added .codex/agents/my-custom-agent.toml must be preserved"
+
+    # Directory must still exist (user file is in it).
+    assert agents_dir.exists(), ".codex/agents/ must not be removed when user files remain"

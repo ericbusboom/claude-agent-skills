@@ -5,6 +5,7 @@ Handles all Codex-specific file operations:
 - Writing .codex/config.toml with [mcp_servers.clasi] and codex_hooks
 - Writing .codex/hooks.json with a Stop hook entry
 - Installing .agents/skills/se/SKILL.md from the bundled plugin
+- Writing .codex/agents/<name>.toml sub-agent definitions
 
 Public interface::
 
@@ -198,6 +199,80 @@ def _install_skills(target: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# .codex/agents/<name>.toml sub-agent helpers
+#
+# Known limitation: developer_instructions is the agent.md body verbatim.
+# Some Claude-Code-specific phrasing (e.g., "dispatch via Agent tool") is
+# present in the instructions but does not apply on Codex. A translation layer
+# that strips or adapts Claude-specific constructs is deferred to a future sprint.
+# ---------------------------------------------------------------------------
+
+_ACTIVE_AGENTS = ["team-lead", "sprint-planner", "programmer"]
+
+
+def _install_agents(target: Path) -> None:
+    """Write .codex/agents/<name>.toml for each active CLASI agent.
+
+    Reads plugin/agents/<name>/agent.md, extracts frontmatter (description,
+    title) and body, then writes a TOML file with the fields required by the
+    Codex sub-agent spec (https://developers.openai.com/codex/subagents):
+    name, description, developer_instructions.
+    """
+    from clasi.frontmatter import read_document
+
+    agents_dir = target / ".codex" / "agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+
+    for agent_name in _ACTIVE_AGENTS:
+        agent_md = _PLUGIN_DIR / "agents" / agent_name / "agent.md"
+        if not agent_md.exists():
+            click.echo(
+                f"  Warning: plugin/agents/{agent_name}/agent.md not found, skipping"
+            )
+            continue
+
+        fm, body = read_document(agent_md)
+
+        data = {
+            "name": fm.get("name", agent_name),
+            "description": fm.get("description", ""),
+            # Body is the markdown content after the frontmatter block, stripped
+            # of leading/trailing whitespace.
+            "developer_instructions": body.strip(),
+        }
+
+        dest = agents_dir / f"{agent_name}.toml"
+        dest.write_text(tomli_w.dumps(data), encoding="utf-8")
+        click.echo(f"  Wrote: .codex/agents/{agent_name}.toml")
+
+
+def _uninstall_agents(target: Path) -> None:
+    """Remove .codex/agents/<name>.toml for each active CLASI agent.
+
+    Only removes the CLASI-owned TOML files. User-added files in
+    .codex/agents/ are preserved. The directory is removed only if it is
+    empty after the CLASI files are deleted.
+    """
+    agents_dir = target / ".codex" / "agents"
+    if not agents_dir.exists():
+        click.echo("  Skipped: .codex/agents/ (not found)")
+        return
+
+    for agent_name in _ACTIVE_AGENTS:
+        dest = agents_dir / f"{agent_name}.toml"
+        if dest.exists():
+            dest.unlink()
+            click.echo(f"  Removed: .codex/agents/{agent_name}.toml")
+        else:
+            click.echo(f"  Skipped: .codex/agents/{agent_name}.toml (not found)")
+
+    # Remove the directory only if it is now empty (no user files remain).
+    if agents_dir.exists() and not any(agents_dir.iterdir()):
+        agents_dir.rmdir()
+        click.echo("  Removed: .codex/agents/ (empty)")
+
+
+# ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
 
@@ -233,6 +308,10 @@ def install(target: Path, mcp_config: dict) -> None:
 
     click.echo("Codex skills:")
     _install_skills(target)
+    click.echo()
+
+    click.echo("Codex agents:")
+    _install_agents(target)
     click.echo()
 
 
@@ -353,6 +432,11 @@ def uninstall(target: Path) -> None:
             click.echo("  Removed: .agents/ (empty)")
     else:
         click.echo("  Skipped: .agents/skills/ (not found)")
+
+    # --- .codex/agents/ ---
+    click.echo()
+    click.echo("Codex agents:")
+    _uninstall_agents(target)
 
     click.echo()
     click.echo("Done! Codex platform integration removed.")

@@ -1,7 +1,7 @@
 ---
 id: '004'
 title: Add .codex/agents/<name>.toml sub-agent install and uninstall
-status: todo
+status: done
 use-cases:
   - SUC-004
   - SUC-005
@@ -29,18 +29,18 @@ tool"). A translation layer is deferred to a future sprint.
 
 ## Acceptance Criteria
 
-- [ ] After `clasi install --codex`, `.codex/agents/team-lead.toml`,
+- [x] After `clasi install --codex`, `.codex/agents/team-lead.toml`,
       `.codex/agents/sprint-planner.toml`, and `.codex/agents/programmer.toml` exist in
       the target directory.
-- [ ] Each TOML file round-trip parses via `tomllib.loads` (no parse errors).
-- [ ] Each TOML file contains `name` (string, non-empty), `description` (string, may
+- [x] Each TOML file round-trip parses via `tomllib.loads` (no parse errors).
+- [x] Each TOML file contains `name` (string, non-empty), `description` (string, may
       be empty), and `developer_instructions` (string, non-empty) fields.
-- [ ] `developer_instructions` is the agent.md body with YAML frontmatter stripped.
-- [ ] `description` falls back to `""` if absent from frontmatter.
-- [ ] After `clasi uninstall --codex`, the three TOML files are removed.
-- [ ] Uninstall does not remove user-added TOML files in `.codex/agents/`.
-- [ ] If `.codex/agents/` is empty after uninstall, the directory is removed.
-- [ ] Unit tests cover install (TOML shape assertions) and uninstall (file removal,
+- [x] `developer_instructions` is the agent.md body with YAML frontmatter stripped.
+- [x] `description` falls back to `""` if absent from frontmatter.
+- [x] After `clasi uninstall --codex`, the three TOML files are removed.
+- [x] Uninstall does not remove user-added TOML files in `.codex/agents/`.
+- [x] If `.codex/agents/` is empty after uninstall, the directory is removed.
+- [x] Unit tests cover install (TOML shape assertions) and uninstall (file removal,
       user-file preservation).
 
 ## Implementation Plan
