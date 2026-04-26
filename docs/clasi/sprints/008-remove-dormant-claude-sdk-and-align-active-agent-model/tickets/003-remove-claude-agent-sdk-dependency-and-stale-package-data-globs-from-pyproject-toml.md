@@ -1,11 +1,14 @@
 ---
-id: "003"
-title: "Remove claude-agent-sdk dependency and stale package-data globs from pyproject.toml"
-status: todo
-use-cases: ["SUC-005"]
-depends-on: ["001", "002"]
-github-issue: ""
-todo: ""
+id: '003'
+title: Remove claude-agent-sdk dependency and stale package-data globs from pyproject.toml
+status: done
+use-cases:
+- SUC-005
+depends-on:
+- '001'
+- '002'
+github-issue: ''
+todo: ''
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
@@ -34,11 +37,11 @@ glob correctly covers all active content and is retained.
 
 ## Acceptance Criteria
 
-- [ ] `claude-agent-sdk` is absent from `[project.dependencies]` in `pyproject.toml`.
-- [ ] The seven stale globs listed above are removed from `[tool.setuptools.package-data]`.
-- [ ] `"plugin/**/*"` glob is still present and unchanged.
-- [ ] `uv lock` runs without error after the change.
-- [ ] `uv run pytest` passes; commit the updated `uv.lock`.
+- [x] `claude-agent-sdk` is absent from `[project.dependencies]` in `pyproject.toml`.
+- [x] The seven stale globs listed above are removed from `[tool.setuptools.package-data]`.
+- [x] `"plugin/**/*"` glob is still present and unchanged.
+- [x] `uv lock` runs without error after the change.
+- [x] `uv run pytest` passes; commit the updated `uv.lock`.
 
 ## Implementation Plan
 
