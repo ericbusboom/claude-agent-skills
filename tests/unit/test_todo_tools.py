@@ -451,10 +451,11 @@ class TestCloseSprintTodoHandling:
 
         mock_run.side_effect = [
             _ok(0, "all tests passed"),  # pytest
+            _ok(0),  # git add -A (version bump)
+            _ok(0),  # git commit (version bump)
+            _ok(0, ""),  # git status --porcelain .clasi.db (clean)
             _ok(0),  # git rev-parse --verify branch (merge check)
-            _ok(1),  # git merge-base --is-ancestor (not yet merged)
-            _ok(0),  # git checkout master
-            _ok(0),  # git merge --no-ff
+            _ok(0),  # git merge-base --is-ancestor (already merged)
             _ok(0),  # git push --tags
             _ok(0),  # git rev-parse --verify branch (delete check)
             _ok(0),  # git branch -d

@@ -1090,11 +1090,36 @@ def _close_sprint_full(
 
     completed_steps.append("version_bump")
 
+    # ── Step 5b: Commit .clasi.db if still dirty after version_bump ──
+    db_file = project.root / "docs" / "clasi" / ".clasi.db"
+    if db_file.exists():
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain", str(db_file)],
+            capture_output=True, text=True, cwd=str(project.root),
+        )
+        if status_result.stdout.strip():  # non-empty means dirty/staged
+            # Verify we're on the sprint branch before committing
+            head_result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True, text=True, cwd=str(project.root),
+            )
+            head_branch = head_result.stdout.strip()
+            if head_branch == branch_name:
+                subprocess.run(
+                    ["git", "add", str(db_file)],
+                    cwd=str(project.root), capture_output=True, text=True,
+                )
+                subprocess.run(
+                    ["git", "commit", "-m", "chore: update .clasi.db"],
+                    cwd=str(project.root), capture_output=True, text=True,
+                )
+
     # ── Step 6: Git merge ──
     merged = False
     branch_exists = False
     # Use a Sprint wrapper pointing to the archived location for git operations
     archived_sprint = Sprint(new_path, project)
+    merge_error_result: Optional[str] = None
     try:
         merge_result = archived_sprint.merge_branch(main_branch)
         branch_exists = merge_result["branch_exists"]
@@ -1106,7 +1131,7 @@ def _close_sprint_full(
         )
         if db.path.exists():
             db.write_recovery_state(sprint_id, "merge", conflicted, error_msg)
-        return json.dumps({
+        merge_error_result = json.dumps({
             "status": "error",
             "error": {
                 "step": "merge",
@@ -1120,6 +1145,16 @@ def _close_sprint_full(
             "completed_steps": completed_steps,
             "remaining_steps": [s for s in all_steps if s not in completed_steps],
         }, indent=2)
+    finally:
+        # Release lock regardless of merge outcome (idempotent: no-op if already released)
+        if db.path.exists():
+            try:
+                db.release_lock(sprint_id)
+            except ValueError:
+                pass  # Already released (success path releases in db_update)
+
+    if merge_error_result is not None:
+        return merge_error_result
 
     completed_steps.append("merge")
 

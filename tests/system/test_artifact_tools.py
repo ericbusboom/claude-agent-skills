@@ -687,13 +687,19 @@ class TestCloseSprintFull:
         update_ticket_status(ticket["path"], "done")
         move_ticket_to_done(ticket["path"])
 
-        # Mock subprocess calls: pytest, git rev-parse (merge check),
-        # git merge-base, git checkout, git merge, git push,
-        # git rev-parse (delete check), git branch -d
+        # Mock subprocess calls: pytest, git add -A (version bump), git commit (version bump),
+        # git status --porcelain (.clasi.db guard, clean→no-op), git rev-parse --verify branch
+        # (merge check), git merge-base --is-ancestor, git rebase, git checkout master,
+        # git merge --no-ff, git push --tags, git rev-parse --verify branch (delete check),
+        # git branch -d
         mock_run.side_effect = [
             self._make_subprocess_result(0, "all tests passed"),  # pytest
+            self._make_subprocess_result(0),  # git add -A (version bump)
+            self._make_subprocess_result(0),  # git commit (version bump)
+            self._make_subprocess_result(0, ""),  # git status --porcelain .clasi.db (clean)
             self._make_subprocess_result(0),  # git rev-parse --verify branch (merge check)
             self._make_subprocess_result(1),  # git merge-base --is-ancestor (not yet merged)
+            self._make_subprocess_result(0),  # git rebase master sprint/001-sprint
             self._make_subprocess_result(0),  # git checkout master
             self._make_subprocess_result(0),  # git merge --no-ff
             self._make_subprocess_result(0),  # git push --tags
@@ -746,6 +752,7 @@ class TestCloseSprintFull:
             self._make_subprocess_result(0, "all tests passed"),  # pytest
             self._make_subprocess_result(0),  # git add -A (version bump)
             self._make_subprocess_result(0),  # git commit (version bump)
+            self._make_subprocess_result(0, ""),  # git status --porcelain .clasi.db (clean)
             self._make_subprocess_result(0),  # git rev-parse --verify
             self._make_subprocess_result(1),  # git merge-base (not ancestor)
             self._make_subprocess_result(0),  # git rebase master sprint/001-sprint
@@ -785,6 +792,7 @@ class TestCloseSprintFull:
             self._make_subprocess_result(0, "all passed"),  # pytest
             self._make_subprocess_result(0),  # git add -A (version bump)
             self._make_subprocess_result(0),  # git commit (version bump)
+            self._make_subprocess_result(0, ""),  # git status --porcelain .clasi.db (clean)
             self._make_subprocess_result(1),  # git rev-parse --verify (branch gone, merge check)
             self._make_subprocess_result(0),  # git push --tags
             self._make_subprocess_result(1),  # git rev-parse --verify (branch gone, delete check)
@@ -825,6 +833,7 @@ class TestCloseSprintFull:
             self._make_subprocess_result(0, "all passed"),  # pytest
             self._make_subprocess_result(0),  # git add -A (version bump)
             self._make_subprocess_result(0),  # git commit (version bump)
+            self._make_subprocess_result(0, ""),  # git status --porcelain .clasi.db (clean)
             self._make_subprocess_result(1),  # git rev-parse --verify (merge: branch gone)
             self._make_subprocess_result(0),  # git push --tags
             self._make_subprocess_result(1),  # git rev-parse --verify (delete: branch gone)
@@ -852,6 +861,7 @@ class TestCloseSprintFull:
             self._make_subprocess_result(0),  # pytest
             self._make_subprocess_result(0),  # git add -A (version bump)
             self._make_subprocess_result(0),  # git commit (version bump)
+            self._make_subprocess_result(0, ""),  # git status --porcelain .clasi.db (clean)
             self._make_subprocess_result(1),  # git rev-parse --verify (merge: branch gone)
             self._make_subprocess_result(0),  # git push --tags
             self._make_subprocess_result(1),  # git rev-parse --verify (delete: branch gone)
@@ -892,6 +902,7 @@ class TestCloseSprintFull:
             self._make_subprocess_result(0),  # pytest
             self._make_subprocess_result(0),  # git add -A (version bump)
             self._make_subprocess_result(0),  # git commit (version bump)
+            self._make_subprocess_result(0, ""),  # git status --porcelain .clasi.db (clean)
             self._make_subprocess_result(1),  # git rev-parse --verify (merge: branch gone)
             self._make_subprocess_result(0),  # git push --tags
             self._make_subprocess_result(1),  # git rev-parse --verify (delete: branch gone)
@@ -903,3 +914,170 @@ class TestCloseSprintFull:
         # Recovery state should be cleared
         recovery = get_recovery_state(db_path)
         assert recovery is None
+
+
+class TestCloseSprintLockAndDbGuard:
+    """Tests for .clasi.db commit guard (step 5b) and lock release on merge failure."""
+
+    def _make_subprocess_result(self, returncode=0, stdout="", stderr=""):
+        result = MagicMock()
+        result.returncode = returncode
+        result.stdout = stdout
+        result.stderr = stderr
+        return result
+
+    @patch("subprocess.run")
+    def test_dirty_db_guard_commits_when_versioning_disabled(self, mock_run, work_dir):
+        """Guard stages and commits .clasi.db when dirty and versioning is manual."""
+        # Disable versioning so no version bump subprocess calls happen
+        settings_dir = work_dir / "docs" / "clasi"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.yaml").write_text("version_trigger: manual\n")
+
+        create_sprint("Sprint")
+        _advance_to_executing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        update_ticket_status(ticket["path"], "done")
+        move_ticket_to_done(ticket["path"])
+
+        # Call sequence (no version bump with manual trigger):
+        # pytest, git status --porcelain (dirty), git rev-parse --abbrev-ref HEAD
+        # (on sprint branch), git add .clasi.db, git commit,
+        # git rev-parse --verify (branch gone), git push --tags (skipped),
+        # git rev-parse --verify (delete, branch gone)
+        mock_run.side_effect = [
+            self._make_subprocess_result(0, ""),        # pytest (pass)
+            self._make_subprocess_result(0, " M docs/clasi/.clasi.db\n"),  # git status --porcelain (dirty)
+            self._make_subprocess_result(0, "sprint/001-sprint\n"),  # git rev-parse --abbrev-ref HEAD
+            self._make_subprocess_result(0),            # git add .clasi.db
+            self._make_subprocess_result(0),            # git commit
+            self._make_subprocess_result(1),            # git rev-parse --verify (branch gone)
+            self._make_subprocess_result(1),            # git rev-parse --verify (delete, branch gone)
+        ]
+
+        result = json.loads(close_sprint("001", branch_name="sprint/001-sprint"))
+        assert result["status"] == "success"
+
+        # Verify that git add and git commit were called with the .clasi.db path
+        calls = mock_run.call_args_list
+        db_path_str = str(work_dir / "docs" / "clasi" / ".clasi.db")
+        add_calls = [c for c in calls if c.args[0][:2] == ["git", "add"] and db_path_str in c.args[0]]
+        commit_calls = [c for c in calls if c.args[0][:3] == ["git", "commit", "-m"] and "chore: update .clasi.db" in c.args[0]]
+        assert len(add_calls) == 1, "Expected one git add .clasi.db call"
+        assert len(commit_calls) == 1, "Expected one git commit chore: update .clasi.db call"
+
+    @patch("clasi.tools.artifact_tools.create_version_tag")
+    @patch("clasi.tools.artifact_tools.compute_next_version", return_value="0.20260329.1")
+    @patch("subprocess.run")
+    def test_dirty_db_guard_is_noop_when_versioning_cleans_it(
+        self, mock_run, mock_ver, mock_tag, work_dir
+    ):
+        """Guard is a no-op when git status shows .clasi.db is clean (version bump committed it)."""
+        create_sprint("Sprint")
+        _advance_to_executing(work_dir, "001")
+        (work_dir / "pyproject.toml").write_text(
+            '[project]\nname = "test"\nversion = "0.0.0"\n'
+        )
+        ticket = json.loads(create_ticket("001", "Task"))
+        update_ticket_status(ticket["path"], "done")
+        move_ticket_to_done(ticket["path"])
+
+        # Call sequence (with version bump):
+        # pytest, git add -A (version bump), git commit (version bump),
+        # git status --porcelain (empty = clean, guard is no-op),
+        # git rev-parse --verify (branch gone), git push --tags, git rev-parse --verify (delete)
+        mock_run.side_effect = [
+            self._make_subprocess_result(0),        # pytest
+            self._make_subprocess_result(0),        # git add -A (version bump)
+            self._make_subprocess_result(0),        # git commit (version bump)
+            self._make_subprocess_result(0, ""),    # git status --porcelain (clean)
+            self._make_subprocess_result(1),        # git rev-parse --verify (branch gone)
+            self._make_subprocess_result(0),        # git push --tags
+            self._make_subprocess_result(1),        # git rev-parse --verify (delete, gone)
+        ]
+
+        result = json.loads(close_sprint("001", branch_name="sprint/001-sprint"))
+        assert result["status"] == "success"
+
+        # Verify no git add .clasi.db or "chore: update .clasi.db" commit was made
+        calls = mock_run.call_args_list
+        db_path_str = str(work_dir / "docs" / "clasi" / ".clasi.db")
+        db_add_calls = [c for c in calls if c.args[0][:2] == ["git", "add"] and db_path_str in c.args[0]]
+        db_commit_calls = [c for c in calls if c.args[0][:3] == ["git", "commit", "-m"] and "chore: update .clasi.db" in c.args[0]]
+        assert len(db_add_calls) == 0, "Guard should not run git add .clasi.db when tree is clean"
+        assert len(db_commit_calls) == 0, "Guard should not commit .clasi.db when tree is clean"
+
+    @patch("subprocess.run")
+    def test_lock_released_after_merge_failure(self, mock_run, work_dir):
+        """Execution lock is released in finally block even when merge raises RuntimeError."""
+        # Disable versioning for a simpler call sequence
+        settings_dir = work_dir / "docs" / "clasi"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.yaml").write_text("version_trigger: manual\n")
+
+        create_sprint("Sprint")
+        _advance_to_executing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        update_ticket_status(ticket["path"], "done")
+        move_ticket_to_done(ticket["path"])
+
+        db_path = work_dir / "docs" / "clasi" / ".clasi.db"
+
+        # Verify lock is held before close_sprint (lock is a dict when held, None when not)
+        state_before = get_sprint_state(str(db_path), "001")
+        assert state_before["lock"] is not None
+
+        # Call sequence (no version bump):
+        # pytest, git status --porcelain (clean), git rev-parse --verify (branch exists),
+        # git merge-base (not ancestor), git rebase (fails with non-zero) -> abort,
+        # (merge raises RuntimeError, finally block runs release_lock)
+        mock_run.side_effect = [
+            self._make_subprocess_result(0, ""),    # pytest (pass)
+            self._make_subprocess_result(0, ""),    # git status --porcelain (clean)
+            self._make_subprocess_result(0),        # git rev-parse --verify (branch exists)
+            self._make_subprocess_result(1),        # git merge-base (not ancestor)
+            self._make_subprocess_result(1, "", "conflict during rebase"),  # git rebase (fails)
+            self._make_subprocess_result(0),        # git rebase --abort
+        ]
+
+        result = json.loads(close_sprint("001", branch_name="sprint/001-sprint"))
+        assert result["status"] == "error"
+        assert result["error"]["step"] == "merge"
+
+        # The execution lock MUST be released even though merge failed
+        state_after = get_sprint_state(str(db_path), "001")
+        assert state_after["lock"] is None, "Lock must be released after merge failure"
+
+    @patch("subprocess.run")
+    def test_db_guard_skipped_when_not_on_sprint_branch(self, mock_run, work_dir):
+        """Guard does not commit .clasi.db when HEAD is not the sprint branch."""
+        # Disable versioning for a simpler call sequence
+        settings_dir = work_dir / "docs" / "clasi"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        (settings_dir / "settings.yaml").write_text("version_trigger: manual\n")
+
+        create_sprint("Sprint")
+        _advance_to_executing(work_dir, "001")
+        ticket = json.loads(create_ticket("001", "Task"))
+        update_ticket_status(ticket["path"], "done")
+        move_ticket_to_done(ticket["path"])
+
+        # db is dirty but HEAD is not the sprint branch (e.g. accidentally on master)
+        mock_run.side_effect = [
+            self._make_subprocess_result(0, ""),        # pytest (pass)
+            self._make_subprocess_result(0, " M docs/clasi/.clasi.db\n"),  # git status --porcelain (dirty)
+            self._make_subprocess_result(0, "master\n"),  # git rev-parse --abbrev-ref HEAD (wrong branch)
+            # Guard skipped — no git add or git commit for .clasi.db
+            self._make_subprocess_result(1),            # git rev-parse --verify (branch gone)
+            self._make_subprocess_result(1),            # git rev-parse --verify (delete, branch gone)
+        ]
+
+        result = json.loads(close_sprint("001", branch_name="sprint/001-sprint"))
+        # close_sprint still succeeds (guard just doesn't commit)
+        assert result["status"] == "success"
+
+        # Verify no targeted .clasi.db commit was made
+        calls = mock_run.call_args_list
+        db_path_str = str(work_dir / "docs" / "clasi" / ".clasi.db")
+        db_commit_calls = [c for c in calls if c.args[0][:3] == ["git", "commit", "-m"] and "chore: update .clasi.db" in c.args[0]]
+        assert len(db_commit_calls) == 0, "Guard must not commit when not on sprint branch"
