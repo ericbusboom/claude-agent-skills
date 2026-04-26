@@ -186,15 +186,27 @@ def mcp():
             "task-completed",
             "mcp-guard",
             "plan-to-todo",
+            "codex-plan-to-todo",
             "commit-check",
         ]
     ),
 )
 def hook(event):
-    """Handle a Claude Code hook event.
+    """Handle a hook event from Claude Code or Codex.
 
     Reads hook payload from stdin (JSON), delegates to the appropriate
     handler in clasi.hooks, and exits with the correct code.
+
+    Valid events:
+      role-guard          PreToolUse: enforce write-scope rules by agent tier.
+      subagent-start      SubagentStart: log subagent lifecycle start.
+      subagent-stop       SubagentStop: append transcript to subagent log.
+      task-created        TaskCreated: log parallel-task lifecycle start.
+      task-completed      TaskCompleted: append transcript to task log.
+      mcp-guard           PreToolUse: block team-lead from direct MCP writes.
+      plan-to-todo        PostToolUse(ExitPlanMode): save Claude plan as TODO.
+      codex-plan-to-todo  Stop(Codex): extract <proposed_plan> and save as TODO.
+      commit-check        PostToolUse(Bash): remind to bump version on master.
     """
     from clasi.hook_handlers import handle_hook
 
