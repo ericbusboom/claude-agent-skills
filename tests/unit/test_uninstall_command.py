@@ -272,9 +272,10 @@ def test_uninstall_does_not_touch_docs_clasi(both_installed: Path) -> None:
     """Uninstall never removes docs/clasi/ or its contents."""
     project = both_installed
 
-    # Create a docs/clasi/todo directory with a file
+    # Create a docs/clasi/todo directory with a user file alongside the
+    # AGENTS.md that install already created.
     todo_dir = project / "docs" / "clasi" / "todo"
-    todo_dir.mkdir(parents=True)
+    todo_dir.mkdir(parents=True, exist_ok=True)
     todo_file = todo_dir / "sample-todo.md"
     todo_file.write_text("---\nstatus: pending\n---\n# A TODO\n", encoding="utf-8")
 

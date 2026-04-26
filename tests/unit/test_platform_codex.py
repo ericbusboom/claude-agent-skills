@@ -18,7 +18,8 @@ from clasi.platforms.codex import (
     _CLASI_SRC_RULES,
     _CLASI_STOP_HOOK_OLD,
     _CLASI_STOP_HOOK_WRAPPER,
-    _DOCS_CLASI_RULES,
+    _build_docs_clasi_content,
+    _build_todo_dir_content,
     install,
     uninstall,
 )
@@ -547,8 +548,8 @@ def test_install_rules_creates_agents_md_files(project: Path) -> None:
         "clasi/AGENTS.md must not start with YAML frontmatter"
     )
 
-    # Content must match the module-level constants exactly.
-    assert docs_content == _DOCS_CLASI_RULES
+    # Content must match the builder output exactly.
+    assert docs_content == _build_docs_clasi_content()
     assert src_content == _CLASI_SRC_RULES
 
 
@@ -808,3 +809,38 @@ def test_codex_install_end_to_end(tmp_path: Path) -> None:
         assert "description:" in fm_block, (
             f".agents/skills/{skill_name}/SKILL.md frontmatter must have 'description:'"
         )
+
+
+# ---------------------------------------------------------------------------
+# Ticket 007: full clasi-artifacts content + docs/clasi/todo/AGENTS.md
+# ---------------------------------------------------------------------------
+
+
+def test_docs_clasi_agents_md_has_full_clasi_artifacts_content(tmp_path: Path) -> None:
+    """docs/clasi/AGENTS.md must contain the active-sprint check and phase check."""
+    install(tmp_path, _MCP_CONFIG)
+
+    content = (tmp_path / "docs" / "clasi" / "AGENTS.md").read_text(encoding="utf-8")
+    # The full clasi-artifacts rule includes these concepts.
+    assert "active sprint" in content.lower() or "list_sprints" in content
+    assert "phase" in content.lower() or "ticketing" in content.lower()
+    assert "MCP" in content or "mcp" in content.lower()
+
+
+def test_docs_clasi_todo_agents_md_created(tmp_path: Path) -> None:
+    """docs/clasi/todo/AGENTS.md must be written by codex install."""
+    install(tmp_path, _MCP_CONFIG)
+
+    todo_agents = tmp_path / "docs" / "clasi" / "todo" / "AGENTS.md"
+    assert todo_agents.exists(), "docs/clasi/todo/AGENTS.md must exist after install"
+    content = todo_agents.read_text(encoding="utf-8")
+    assert "todo" in content.lower() or "move_todo_to_done" in content
+
+
+def test_docs_clasi_todo_agents_md_removed_on_uninstall(tmp_path: Path) -> None:
+    """docs/clasi/todo/AGENTS.md must be removed on uninstall."""
+    install(tmp_path, _MCP_CONFIG)
+    uninstall(tmp_path)
+    assert not (tmp_path / "docs" / "clasi" / "todo" / "AGENTS.md").exists(), (
+        "docs/clasi/todo/AGENTS.md must be removed by uninstall"
+    )

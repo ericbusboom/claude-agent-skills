@@ -28,6 +28,7 @@ from clasi.platforms._rules import (
     GIT_COMMITS_BODY,
     MCP_REQUIRED_BODY,
     SOURCE_CODE_BODY,
+    TODO_DIR_BODY,
 )
 
 try:
@@ -273,9 +274,25 @@ _ACTIVE_AGENTS = ["team-lead", "sprint-planner", "programmer"]
 # alternative — Codex reads the closest file upward in the directory tree.
 # ---------------------------------------------------------------------------
 
-_DOCS_CLASI_RULES = CLASI_ARTIFACTS_BODY
-
 _CLASI_SRC_RULES = SOURCE_CODE_BODY
+
+
+def _build_docs_clasi_content() -> str:
+    """Build the full content for docs/clasi/AGENTS.md.
+
+    Wraps the complete CLASI_ARTIFACTS_BODY (active-sprint check, phase check,
+    and MCP-tools-only instruction) with a section header.
+    """
+    return f"# CLASI SE Process Rules\n\n{CLASI_ARTIFACTS_BODY}\n"
+
+
+def _build_todo_dir_content() -> str:
+    """Build the content for docs/clasi/todo/AGENTS.md.
+
+    Wraps TODO_DIR_BODY with a section header so Codex agents working in
+    docs/clasi/todo/ receive the instruction to use CLASI tooling.
+    """
+    return f"# CLASI TODO Rules\n\n{TODO_DIR_BODY}\n"
 
 
 def _install_agents(target: Path) -> None:
@@ -346,7 +363,7 @@ def _uninstall_agents(target: Path) -> None:
 
 
 def _install_rules(target: Path) -> None:
-    """Write nested AGENTS.md rule files at docs/clasi/ and clasi/.
+    """Write nested AGENTS.md rule files at docs/clasi/, docs/clasi/todo/, and clasi/.
 
     These files provide path-scoped guidance for Codex agents operating in
     those directories, mirroring the intent of Claude's .claude/rules/ files.
@@ -355,8 +372,13 @@ def _install_rules(target: Path) -> None:
     """
     docs_clasi = target / "docs" / "clasi"
     docs_clasi.mkdir(parents=True, exist_ok=True)
-    (docs_clasi / "AGENTS.md").write_text(_DOCS_CLASI_RULES, encoding="utf-8")
+    (docs_clasi / "AGENTS.md").write_text(_build_docs_clasi_content(), encoding="utf-8")
     click.echo("  Wrote: docs/clasi/AGENTS.md")
+
+    docs_clasi_todo = target / "docs" / "clasi" / "todo"
+    docs_clasi_todo.mkdir(parents=True, exist_ok=True)
+    (docs_clasi_todo / "AGENTS.md").write_text(_build_todo_dir_content(), encoding="utf-8")
+    click.echo("  Wrote: docs/clasi/todo/AGENTS.md")
 
     clasi_src = target / "clasi"
     clasi_src.mkdir(parents=True, exist_ok=True)
@@ -367,7 +389,7 @@ def _install_rules(target: Path) -> None:
 def _uninstall_rules(target: Path) -> None:
     """Remove nested AGENTS.md rule files written by _install_rules.
 
-    Non-destructive: if either file does not exist, the removal is skipped
+    Non-destructive: if any file does not exist, the removal is skipped
     without error.
     """
     docs_clasi_md = target / "docs" / "clasi" / "AGENTS.md"
@@ -376,6 +398,13 @@ def _uninstall_rules(target: Path) -> None:
         click.echo("  Removed: docs/clasi/AGENTS.md")
     else:
         click.echo("  Skipped: docs/clasi/AGENTS.md (not found)")
+
+    docs_clasi_todo_md = target / "docs" / "clasi" / "todo" / "AGENTS.md"
+    if docs_clasi_todo_md.exists():
+        docs_clasi_todo_md.unlink()
+        click.echo("  Removed: docs/clasi/todo/AGENTS.md")
+    else:
+        click.echo("  Skipped: docs/clasi/todo/AGENTS.md (not found)")
 
     clasi_src_md = target / "clasi" / "AGENTS.md"
     if clasi_src_md.exists():
