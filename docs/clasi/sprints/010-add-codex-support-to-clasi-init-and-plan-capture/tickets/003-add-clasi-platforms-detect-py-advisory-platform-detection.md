@@ -1,7 +1,7 @@
 ---
 id: "003"
 title: "Add clasi/platforms/detect.py — advisory platform detection"
-status: todo
+status: done
 use-cases:
   - SUC-006
   - SUC-009
@@ -24,21 +24,21 @@ This ticket can run in parallel with ticket 002 since it creates a new file only
 
 ## Acceptance Criteria
 
-- [ ] `clasi/platforms/detect.py` exists.
-- [ ] The module defines a `PlatformSignals` dataclass with at least:
+- [x] `clasi/platforms/detect.py` exists.
+- [x] The module defines a `PlatformSignals` dataclass with at least:
       `claude_score: int`, `codex_score: int`, `recommendation: str`
       (values: `"claude"`, `"codex"`, or `"both"`).
-- [ ] `detect_platforms(target: Path) -> PlatformSignals` is the public function.
-- [ ] Detection inspects:
+- [x] `detect_platforms(target: Path) -> PlatformSignals` is the public function.
+- [x] Detection inspects:
   - Project files: presence of `.claude/`, `CLAUDE.md`, `.codex/`, `.agents/skills/`,
     `AGENTS.md` under `target`.
   - Installed commands: `claude`, `codex` (via `shutil.which`).
   - User config directories: `~/.claude`, `~/.codex`.
   - Environment variable names only: `ANTHROPIC_API_KEY`, `CLAUDE_*`, `OPENAI_API_KEY`,
     `CODEX_*`. Values are never read or printed.
-- [ ] `detect_platforms` is side-effect-free (read-only, no file writes, no network calls,
+- [x] `detect_platforms` is side-effect-free (read-only, no file writes, no network calls,
       no running subprocesses beyond `shutil.which`).
-- [ ] Tests in `tests/unit/test_platform_detect.py` cover:
+- [x] Tests in `tests/unit/test_platform_detect.py` cover:
   - Claude-only signals → `recommendation == "claude"`.
   - Codex-only signals → `recommendation == "codex"`.
   - Both signals → `recommendation == "both"`.
