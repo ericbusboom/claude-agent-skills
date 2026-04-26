@@ -324,10 +324,21 @@ def uninstall(target: Path) -> None:
                 if not agent_dir.is_dir():
                     continue
                 target_agent = agents_dir / agent_dir.name
-                if target_agent.exists():
-                    import shutil
-                    shutil.rmtree(target_agent)
+                if not target_agent.exists():
+                    continue
+                # Install copies *.md from plugin/agents/<name>/ — mirror that.
+                for plugin_md in agent_dir.glob("*.md"):
+                    target_md = target_agent / plugin_md.name
+                    if target_md.exists():
+                        target_md.unlink()
+                if not any(target_agent.iterdir()):
+                    target_agent.rmdir()
                     click.echo(f"  Removed: .claude/agents/{agent_dir.name}/")
+                else:
+                    click.echo(
+                        f"  Partial: .claude/agents/{agent_dir.name}/ "
+                        f"(removed CLASI .md files; user files preserved)"
+                    )
 
     # --- .claude/rules/ ---
     rules_dir = target / ".claude" / "rules"
