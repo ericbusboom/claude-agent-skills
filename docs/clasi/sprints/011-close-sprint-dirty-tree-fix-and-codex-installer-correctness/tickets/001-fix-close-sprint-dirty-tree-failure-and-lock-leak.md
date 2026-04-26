@@ -1,7 +1,7 @@
 ---
 id: '001'
 title: Fix close_sprint dirty-tree failure and lock leak
-status: todo
+status: done
 use-cases:
   - SUC-001
   - SUC-002
@@ -33,16 +33,16 @@ This ticket fixes both issues in `clasi/tools/artifact_tools.py` in
 
 ## Acceptance Criteria
 
-- [ ] `close_sprint` completes without "You have unstaged changes" error when
+- [x] `close_sprint` completes without "You have unstaged changes" error when
       `docs/clasi/.clasi.db` is git-tracked and dirty after `db_update`.
-- [ ] After a simulated merge failure the execution lock is not held (verified by
+- [x] After a simulated merge failure the execution lock is not held (verified by
       inspecting DB state in tests).
-- [ ] The `.clasi.db` commit guard only runs if the file appears as `modified` in
+- [x] The `.clasi.db` commit guard only runs if the file appears as `modified` in
       `git status --porcelain`; it is a no-op when the file is gitignored or clean.
-- [ ] The guard asserts that `HEAD` is the sprint branch before committing (guards
+- [x] The guard asserts that `HEAD` is the sprint branch before committing (guards
       against accidental commits on main).
-- [ ] All existing `close_sprint` tests continue to pass.
-- [ ] New tests cover: (a) dirty `.clasi.db` scenario with versioning disabled, (b)
+- [x] All existing `close_sprint` tests continue to pass.
+- [x] New tests cover: (a) dirty `.clasi.db` scenario with versioning disabled, (b)
       dirty `.clasi.db` scenario with versioning enabled, (c) lock release after
       simulated merge failure.
 
