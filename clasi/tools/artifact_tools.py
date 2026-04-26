@@ -95,6 +95,61 @@ def _is_ticket_done(ticket_ref: str) -> bool:
         return False
 
 
+def _any_ticket_suppresses_todo(ticket_refs: list[str], todo_filename: str) -> bool:
+    """Return True if any referencing ticket has completes_todo: false for the given TODO.
+
+    Iterates over all ticket references (as 'sprint_id-ticket_id' strings) and
+    calls ``Ticket.completes_todo_for(todo_filename)`` on each one that can be
+    loaded.  If any ticket returns ``False``, archival should be suppressed.
+
+    Returns False (do not suppress) if no tickets can be loaded or all return True.
+    """
+    for ticket_ref in ticket_refs:
+        parts = ticket_ref.split("-", 1)
+        if len(parts) != 2:
+            continue
+        sprint_id, ticket_id = parts
+        try:
+            sprint = get_project().get_sprint(sprint_id)
+            ticket = sprint.get_ticket(ticket_id)
+        except ValueError:
+            continue
+        if not ticket.completes_todo_for(todo_filename):
+            return True
+    return False
+
+
+def _todo_is_deferred(sprint: Sprint, todo_filename: str) -> bool:
+    """Return True if a TODO is intentionally deferred by a ticket in this sprint.
+
+    A TODO is considered deferred when at least one ticket in ``sprint`` that
+    lists ``todo_filename`` in its ``todo`` frontmatter field has
+    ``completes_todo: false`` for that filename.
+
+    This is used by the close_sprint precondition check: if every ticket that
+    references the TODO has ``completes_todo: true`` (or absent), the TODO
+    should have been archived and its in-progress state is an error.  But if
+    any ticket deliberately set ``completes_todo: false``, the TODO is expected
+    to remain in-progress for future sprints, and the precondition should allow
+    the sprint to close.
+
+    Returns False (not deferred) if no tickets in the sprint reference the TODO,
+    or if all referencing tickets have ``completes_todo: true`` (default).
+    """
+    for location in [sprint.tickets_dir, sprint.tickets_done_dir]:
+        if not location.exists():
+            continue
+        for ticket_file in sorted(location.glob("*.md")):
+            ticket = Ticket(ticket_file, sprint)
+            todo_ref = ticket.todo_ref
+            if todo_ref is None:
+                continue
+            linked = [todo_ref] if isinstance(todo_ref, str) else list(todo_ref)
+            if todo_filename not in linked:
+                continue
+            if not ticket.completes_todo_for(todo_filename):
+                return True
+    return False
 
 
 # --- Create tools (ticket 008) ---
@@ -585,8 +640,11 @@ def move_ticket_to_done(path: str) -> str:
             # Check if ALL referencing tickets are done
             all_done = all(_is_ticket_done(ref_ticket_id) for ref_ticket_id in ref_tickets)
             if all_done and ref_tickets:
-                todo.move_to_done()
-                completed_todos.append(todo_filename)
+                # Check if any referencing ticket suppresses archival for this TODO
+                any_suppressed = _any_ticket_suppresses_todo(ref_tickets, todo_filename)
+                if not any_suppressed:
+                    todo.move_to_done()
+                    completed_todos.append(todo_filename)
         if completed_todos:
             result["completed_todos"] = completed_todos
 
@@ -683,7 +741,9 @@ def _close_sprint_legacy(sprint_id: str) -> str:
                     # Self-repair: move to done/
                     todo.move_to_done()
                 else:
-                    unresolved_todos.append(todo_file.name)
+                    # Check if intentionally deferred by a ticket in this sprint
+                    if not _todo_is_deferred(sprint, todo_file.name):
+                        unresolved_todos.append(todo_file.name)
 
     # Also check legacy pending TODOs tagged with this sprint
     moved_todos: list[str] = []
@@ -824,7 +884,12 @@ def _close_sprint_full(
                     todo.move_to_done()
                     repairs.append(f"moved TODO {todo_file.name} to done/")
                 else:
-                    # TODO still in-progress — unrepairable
+                    # TODO still in-progress — check if intentionally deferred
+                    if _todo_is_deferred(sprint, todo_file.name):
+                        # At least one ticket in this sprint has completes_todo: false
+                        # for this TODO — it spans future sprints; allow close to proceed
+                        continue
+                    # TODO is unresolved and not deferred — unrepairable
                     error_msg = f"TODO {todo_file.name} is still in-progress for sprint {sprint_id}"
                     if db.path.exists():
                         db.write_recovery_state(
