@@ -52,36 +52,6 @@ class TestInitCommand:
         assert result2.exit_code == 0
 
 
-class TestTodoSplitCommand:
-    def test_no_files_to_split(self, tmp_path):
-        todo_dir = tmp_path / "todo"
-        todo_dir.mkdir()
-        runner = CliRunner()
-        result = runner.invoke(cli, ["todo-split", str(todo_dir)])
-        assert result.exit_code == 0
-        assert "No files needed splitting" in result.output
-
-    def test_splits_multi_heading_file(self, tmp_path):
-        todo_dir = tmp_path / "todo"
-        todo_dir.mkdir()
-        (todo_dir / "multi.md").write_text(
-            "# First Thing\n\nDetails.\n\n# Second Thing\n\nMore details.\n"
-        )
-        runner = CliRunner()
-        result = runner.invoke(cli, ["todo-split", str(todo_dir)])
-        assert result.exit_code == 0
-        assert "TODO split results" in result.output
-        # Original file should be deleted, two new files created
-        assert not (todo_dir / "multi.md").exists()
-        assert (todo_dir / "first-thing.md").is_file()
-        assert (todo_dir / "second-thing.md").is_file()
-
-    def test_nonexistent_directory_fails(self):
-        runner = CliRunner()
-        result = runner.invoke(cli, ["todo-split", "/nonexistent/path"])
-        assert result.exit_code != 0
-
-
 class TestMcpCommand:
     def test_mcp_calls_run_server(self):
         with patch(

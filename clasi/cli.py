@@ -4,9 +4,7 @@ CLI entry point for CLASI.
 Subcommands:
     clasi init [target]             — Initialize a repo for CLASI
     clasi mcp                       — Run the MCP server (stdio)
-    clasi tool todo-split           — Split multi-heading TODO files
     clasi tool plan-to-todo         — Convert plan file to TODO
-    clasi todo-split                — Alias for tool todo-split
     clasi version                   — Show the current project version
     clasi version bump              — Bump version, update files, tag
 """
@@ -43,27 +41,6 @@ def tool():
     """Utility tools for CLASI workflows."""
 
 
-@tool.command("todo-split")
-@click.argument("todo_dir", default="docs/clasi/todo", type=click.Path(exists=True))
-def tool_todo_split(todo_dir):
-    """Split multi-heading TODO files into individual files.
-
-    Scans the TODO directory for markdown files with multiple level-1
-    headings and splits each into a separate file.
-    """
-    from pathlib import Path
-
-    from clasi.todo_split import split_todo_files
-
-    actions = split_todo_files(Path(todo_dir))
-    if actions:
-        click.echo("TODO split results:")
-        for action in actions:
-            click.echo(action)
-    else:
-        click.echo("No files needed splitting.")
-
-
 @tool.command("plan-to-todo")
 @click.option("--plans-dir", default=None, type=click.Path(), help="Override plans directory (default: ~/.claude/plans).")
 @click.option("--todo-dir", default="docs/clasi/todo", type=click.Path(), help="TODO output directory.")
@@ -84,24 +61,6 @@ def tool_plan_to_todo(plans_dir, todo_dir):
         click.echo(f"CLASI: Plan saved as TODO: {result}")
     else:
         click.echo("No plan file found to convert.")
-
-
-# Keep top-level alias for backwards compatibility
-@cli.command("todo-split")
-@click.argument("todo_dir", default="docs/clasi/todo", type=click.Path(exists=True))
-def todo_split(todo_dir):
-    """Split multi-heading TODO files (alias for 'tool todo-split')."""
-    from pathlib import Path
-
-    from clasi.todo_split import split_todo_files
-
-    actions = split_todo_files(Path(todo_dir))
-    if actions:
-        click.echo("TODO split results:")
-        for action in actions:
-            click.echo(action)
-    else:
-        click.echo("No files needed splitting.")
 
 
 @cli.group(invoke_without_command=True)

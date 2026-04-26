@@ -4,7 +4,19 @@ from pathlib import Path
 from typing import Optional
 
 from clasi.templates import slugify
-from clasi.todo_split import _unique_path
+
+
+def _unique_path(directory: Path, slug: str) -> Path:
+    """Return a unique .md path in directory, appending a number if needed."""
+    candidate = directory / f"{slug}.md"
+    if not candidate.exists():
+        return candidate
+    n = 2
+    while True:
+        candidate = directory / f"{slug}-{n}.md"
+        if not candidate.exists():
+            return candidate
+        n += 1
 
 
 def plan_to_todo(

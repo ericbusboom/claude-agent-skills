@@ -207,7 +207,6 @@ AI agent is busy with other work.
 **File format:**
 - One markdown file per idea (descriptive filename, e.g., `versioning.md`).
 - Each file has a single level-1 heading (`# Title`) followed by description.
-- Files with multiple level-1 headings should be split using `clasi todo-split`.
 
 **Lifecycle:**
 1. **Capture**: Create a `.md` file in `docs/clasi/todo/` with the idea.
