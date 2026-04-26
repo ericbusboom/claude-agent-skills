@@ -548,3 +548,151 @@ def test_uninstall_rules_no_error_if_missing(project: Path) -> None:
     """uninstall() on a directory with no nested rule files raises no errors."""
     # Neither docs/clasi/AGENTS.md nor clasi/AGENTS.md exists — must not raise.
     uninstall(project)
+
+
+# ---------------------------------------------------------------------------
+# test_codex_install_end_to_end — canonical round-trip correctness check
+# ---------------------------------------------------------------------------
+
+
+def test_codex_install_end_to_end(tmp_path: Path) -> None:
+    """End-to-end install correctness: round-trip parse every emitted file.
+
+    Calls install() against a fresh directory and validates each artifact
+    via its actual spec parser (tomllib or json.loads), not substring matching.
+    This is the canonical regression guard — it catches any change that
+    silently breaks another artifact's shape.
+    """
+    mcp_config = {"command": "clasi", "args": ["mcp"]}
+    install(tmp_path, mcp_config=mcp_config)
+
+    # ------------------------------------------------------------------
+    # .codex/config.toml — parse with tomllib, assert mcp_servers.clasi
+    # ------------------------------------------------------------------
+    config_path = tmp_path / ".codex" / "config.toml"
+    assert config_path.exists(), ".codex/config.toml must exist after install"
+    config = tomllib.loads(config_path.read_text(encoding="utf-8"))
+    assert "mcp_servers" in config, "config.toml must have [mcp_servers] table"
+    assert "clasi" in config["mcp_servers"], "config.toml must have [mcp_servers.clasi]"
+    assert config["mcp_servers"]["clasi"] == mcp_config, (
+        "mcp_servers.clasi must equal the supplied mcp_config exactly"
+    )
+
+    # ------------------------------------------------------------------
+    # .codex/hooks.json — parse with json.loads, assert wrapper Stop hook
+    # ------------------------------------------------------------------
+    hooks_path = tmp_path / ".codex" / "hooks.json"
+    assert hooks_path.exists(), ".codex/hooks.json must exist after install"
+    hooks = json.loads(hooks_path.read_text(encoding="utf-8"))
+    assert "hooks" in hooks, "hooks.json must have top-level 'hooks' key"
+    assert "Stop" in hooks["hooks"], "hooks.json must have hooks.Stop list"
+    stop_list = hooks["hooks"]["Stop"]
+    assert len(stop_list) >= 1, "Stop list must have at least one entry"
+    wrapper = stop_list[0]
+    assert isinstance(wrapper, dict), "First Stop entry must be a dict (wrapper)"
+    assert "hooks" in wrapper, "Wrapper must have a 'hooks' key"
+    inner_list = wrapper["hooks"]
+    assert isinstance(inner_list, list) and len(inner_list) >= 1, (
+        "Wrapper hooks must be a non-empty list"
+    )
+    stop_hook = inner_list[0]
+    assert stop_hook["type"] == "command", "Handler type must be 'command'"
+    assert stop_hook["command"] == "clasi hook codex-plan-to-todo", (
+        "Handler command must be 'clasi hook codex-plan-to-todo'"
+    )
+    assert "timeout" in stop_hook, "Handler must have 'timeout' key"
+    assert "args" not in stop_hook, "'args' key must be absent from handler"
+
+    # ------------------------------------------------------------------
+    # .codex/agents/team-lead.toml — parse with tomllib, assert required fields
+    # ------------------------------------------------------------------
+    agent_path = tmp_path / ".codex" / "agents" / "team-lead.toml"
+    assert agent_path.exists(), ".codex/agents/team-lead.toml must exist after install"
+    agent = tomllib.loads(agent_path.read_text(encoding="utf-8"))
+    assert "name" in agent, "team-lead.toml must have 'name'"
+    assert isinstance(agent["name"], str) and agent["name"], (
+        "'name' must be a non-empty string"
+    )
+    assert "description" in agent, "team-lead.toml must have 'description'"
+    assert isinstance(agent["description"], str), "'description' must be a string"
+    assert "developer_instructions" in agent, (
+        "team-lead.toml must have 'developer_instructions'"
+    )
+    assert isinstance(agent["developer_instructions"], str) and agent["developer_instructions"], (
+        "'developer_instructions' must be a non-empty string"
+    )
+
+    # ------------------------------------------------------------------
+    # AGENTS.md (root) — marker block present; /se line absent
+    # ------------------------------------------------------------------
+    agents_md_path = tmp_path / "AGENTS.md"
+    assert agents_md_path.exists(), "AGENTS.md must exist after install"
+    agents_md = agents_md_path.read_text(encoding="utf-8")
+    assert "<!-- CLASI:START -->" in agents_md, "AGENTS.md must contain CLASI marker start"
+    assert "<!-- CLASI:END -->" in agents_md, "AGENTS.md must contain CLASI marker end"
+    assert "CLASI" in agents_md, "AGENTS.md must mention CLASI"
+    assert "run `/se`" not in agents_md, (
+        "AGENTS.md must not contain the 'run `/se`' dispatcher line (ticket 003)"
+    )
+    assert "Available skills: run" not in agents_md, (
+        "AGENTS.md must not contain the 'Available skills: run /se for a list' line"
+    )
+
+    # ------------------------------------------------------------------
+    # docs/clasi/AGENTS.md — MCP content present
+    # ------------------------------------------------------------------
+    docs_clasi_path = tmp_path / "docs" / "clasi" / "AGENTS.md"
+    assert docs_clasi_path.exists(), "docs/clasi/AGENTS.md must exist after install"
+    docs_rules = docs_clasi_path.read_text(encoding="utf-8")
+    assert "MCP" in docs_rules or "clasi" in docs_rules.lower(), (
+        "docs/clasi/AGENTS.md must contain MCP or CLASI MCP reference"
+    )
+
+    # ------------------------------------------------------------------
+    # clasi/AGENTS.md — in-progress or ticket content present
+    # ------------------------------------------------------------------
+    src_rules_path = tmp_path / "clasi" / "AGENTS.md"
+    assert src_rules_path.exists(), "clasi/AGENTS.md must exist after install"
+    src_rules = src_rules_path.read_text(encoding="utf-8")
+    assert "ticket" in src_rules.lower() or "in-progress" in src_rules, (
+        "clasi/AGENTS.md must mention 'ticket' or 'in-progress'"
+    )
+
+    # ------------------------------------------------------------------
+    # .agents/skills/<name>/SKILL.md (26 skills) — all present with frontmatter
+    # ------------------------------------------------------------------
+    from clasi.platforms.codex import _PLUGIN_DIR
+
+    plugin_skills = _PLUGIN_DIR / "skills"
+    expected_skills = [
+        d.name for d in sorted(plugin_skills.iterdir())
+        if d.is_dir() and (d / "SKILL.md").exists()
+    ]
+    assert len(expected_skills) == 26, (
+        f"Expected 26 skills in plugin, found {len(expected_skills)}"
+    )
+    for skill_name in expected_skills:
+        skill_path = tmp_path / ".agents" / "skills" / skill_name / "SKILL.md"
+        assert skill_path.exists(), (
+            f".agents/skills/{skill_name}/SKILL.md must exist after install"
+        )
+        skill_text = skill_path.read_text(encoding="utf-8")
+        assert skill_text.startswith("---"), (
+            f".agents/skills/{skill_name}/SKILL.md must have YAML frontmatter"
+        )
+        # Parse frontmatter: lines between the first pair of --- delimiters.
+        lines = skill_text.splitlines()
+        end_fm = next(
+            (i for i, line in enumerate(lines[1:], start=1) if line.strip() == "---"),
+            None,
+        )
+        assert end_fm is not None, (
+            f".agents/skills/{skill_name}/SKILL.md: YAML frontmatter not closed"
+        )
+        fm_block = "\n".join(lines[1:end_fm])
+        assert "name:" in fm_block, (
+            f".agents/skills/{skill_name}/SKILL.md frontmatter must have 'name:'"
+        )
+        assert "description:" in fm_block, (
+            f".agents/skills/{skill_name}/SKILL.md frontmatter must have 'description:'"
+        )
