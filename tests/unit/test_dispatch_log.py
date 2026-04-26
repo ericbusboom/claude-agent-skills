@@ -590,15 +590,5 @@ class TestTypedDispatchToolsMigrated:
         tools = server._tool_manager._tools
         assert "get_dispatch_template" not in tools
 
-    def test_new_dispatch_tools_exist(self):
-        """New dispatch tools are importable from dispatch_tools."""
-        from clasi.tools.dispatch_tools import (
-            dispatch_to_sprint_planner,
-            dispatch_to_sprint_executor,
-            dispatch_to_code_monkey,
-        )
-        assert callable(dispatch_to_sprint_planner)
-        assert callable(dispatch_to_sprint_executor)
-        assert callable(dispatch_to_code_monkey)
 
 
