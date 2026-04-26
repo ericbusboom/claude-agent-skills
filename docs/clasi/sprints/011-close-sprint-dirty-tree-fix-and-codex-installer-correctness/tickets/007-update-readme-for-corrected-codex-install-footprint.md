@@ -1,7 +1,7 @@
 ---
 id: '007'
 title: Update README for corrected Codex install footprint
-status: todo
+status: done
 use-cases:
   - SUC-003
   - SUC-004
@@ -23,16 +23,16 @@ was shipped in sprint 010. The README should accurately describe what `clasi ins
 
 ## Acceptance Criteria
 
-- [ ] README Codex install section lists all emitted files:
+- [x] README Codex install section lists all emitted files:
       `.codex/config.toml`, `.codex/hooks.json`, `.codex/agents/*.toml`,
       `AGENTS.md` (root), `docs/clasi/AGENTS.md`, `clasi/AGENTS.md`,
       `.agents/skills/*/SKILL.md`.
-- [ ] README documents the repo-local hooks.json firing limitation
+- [x] README documents the repo-local hooks.json firing limitation
       (openai/codex#17532) with the workaround (manual copy to `~/.codex/hooks.json`).
-- [ ] README mentions the three installed sub-agents (team-lead, sprint-planner,
+- [x] README mentions the three installed sub-agents (team-lead, sprint-planner,
       programmer) and where their TOML files live.
-- [ ] README does not reference the old flat hooks.json format.
-- [ ] `uv run pytest` passes (README changes do not break tests).
+- [x] README does not reference the old flat hooks.json format.
+- [x] `uv run pytest` passes (README changes do not break tests).
 
 ## Implementation Plan
 
