@@ -209,6 +209,43 @@ def _install_skills(target: Path) -> None:
 
 _ACTIVE_AGENTS = ["team-lead", "sprint-planner", "programmer"]
 
+# ---------------------------------------------------------------------------
+# Nested AGENTS.md rule content
+#
+# These are plain prose instruction files owned entirely by the Codex installer.
+# They are NOT marker-managed sections — the installer writes them in full and
+# the uninstaller removes them by exact path.
+#
+# Rationale: Codex has no path-scoped rule equivalent to Claude's .claude/rules/
+# directory. Nested AGENTS.md files at subdirectory roots are the closest
+# alternative — Codex reads the closest file upward in the directory tree.
+# ---------------------------------------------------------------------------
+
+_DOCS_CLASI_RULES = """\
+# CLASI SE Process Rules
+
+Before doing any SE process work in this directory:
+
+1. Verify the CLASI MCP server is running by calling get_version().
+   If the call fails, stop and report the issue.
+2. Use CLASI MCP tools for all sprint, ticket, and TODO operations.
+   Do not create sprint directories, tickets, or TODO files manually.
+3. Do not create planning artifacts (sprint.md, usecases.md,
+   architecture-update.md, ticket files) outside the MCP tools.
+"""
+
+_CLASI_SRC_RULES = """\
+# CLASI Source Code Rules
+
+Before modifying source code or tests in this directory:
+
+1. You must have a ticket in `in-progress` status, or the stakeholder
+   said "out of process".
+2. If you have a ticket, follow the execute-ticket skill for the full
+   implementation flow.
+3. Run the project test suite after making changes.
+"""
+
 
 def _install_agents(target: Path) -> None:
     """Write .codex/agents/<name>.toml for each active CLASI agent.
@@ -273,6 +310,51 @@ def _uninstall_agents(target: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Nested AGENTS.md rule file helpers
+# ---------------------------------------------------------------------------
+
+
+def _install_rules(target: Path) -> None:
+    """Write nested AGENTS.md rule files at docs/clasi/ and clasi/.
+
+    These files provide path-scoped guidance for Codex agents operating in
+    those directories, mirroring the intent of Claude's .claude/rules/ files.
+    Each file is written in full (not marker-managed) and owned by the
+    Codex installer.
+    """
+    docs_clasi = target / "docs" / "clasi"
+    docs_clasi.mkdir(parents=True, exist_ok=True)
+    (docs_clasi / "AGENTS.md").write_text(_DOCS_CLASI_RULES, encoding="utf-8")
+    click.echo("  Wrote: docs/clasi/AGENTS.md")
+
+    clasi_src = target / "clasi"
+    clasi_src.mkdir(parents=True, exist_ok=True)
+    (clasi_src / "AGENTS.md").write_text(_CLASI_SRC_RULES, encoding="utf-8")
+    click.echo("  Wrote: clasi/AGENTS.md")
+
+
+def _uninstall_rules(target: Path) -> None:
+    """Remove nested AGENTS.md rule files written by _install_rules.
+
+    Non-destructive: if either file does not exist, the removal is skipped
+    without error.
+    """
+    docs_clasi_md = target / "docs" / "clasi" / "AGENTS.md"
+    if docs_clasi_md.exists():
+        docs_clasi_md.unlink()
+        click.echo("  Removed: docs/clasi/AGENTS.md")
+    else:
+        click.echo("  Skipped: docs/clasi/AGENTS.md (not found)")
+
+    clasi_src_md = target / "clasi" / "AGENTS.md"
+    if clasi_src_md.exists():
+        clasi_src_md.unlink()
+        click.echo("  Removed: clasi/AGENTS.md")
+    else:
+        click.echo("  Skipped: clasi/AGENTS.md (not found)")
+
+
+# ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
 
@@ -312,6 +394,10 @@ def install(target: Path, mcp_config: dict) -> None:
 
     click.echo("Codex agents:")
     _install_agents(target)
+    click.echo()
+
+    click.echo("Nested rule files:")
+    _install_rules(target)
     click.echo()
 
 
@@ -437,6 +523,11 @@ def uninstall(target: Path) -> None:
     click.echo()
     click.echo("Codex agents:")
     _uninstall_agents(target)
+
+    # --- Nested AGENTS.md rule files ---
+    click.echo()
+    click.echo("Nested rule files:")
+    _uninstall_rules(target)
 
     click.echo()
     click.echo("Done! Codex platform integration removed.")

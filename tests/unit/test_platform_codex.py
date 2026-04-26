@@ -15,8 +15,10 @@ except ImportError:
 from clasi.platforms.codex import (
     _ACTIVE_AGENTS,
     _CLASI_HOOK_COMMAND,
+    _CLASI_SRC_RULES,
     _CLASI_STOP_HOOK_OLD,
     _CLASI_STOP_HOOK_WRAPPER,
+    _DOCS_CLASI_RULES,
     install,
     uninstall,
 )
@@ -480,3 +482,69 @@ def test_uninstall_agents_preserves_user_files(project: Path) -> None:
 
     # Directory must still exist (user file is in it).
     assert agents_dir.exists(), ".codex/agents/ must not be removed when user files remain"
+
+
+# ---------------------------------------------------------------------------
+# Nested AGENTS.md rule file tests
+# ---------------------------------------------------------------------------
+
+
+def test_install_rules_creates_agents_md_files(project: Path) -> None:
+    """install() creates docs/clasi/AGENTS.md and clasi/AGENTS.md with correct content.
+
+    Verifies:
+    - Both files exist after install.
+    - docs/clasi/AGENTS.md contains SE process content (MCP server mention).
+    - clasi/AGENTS.md contains source-code rule content (ticket status mention).
+    - Neither file contains Claude-Code-specific metadata (YAML frontmatter).
+    """
+    install(project, _MCP_CONFIG)
+
+    docs_clasi_md = project / "docs" / "clasi" / "AGENTS.md"
+    assert docs_clasi_md.exists(), "docs/clasi/AGENTS.md should exist after install"
+    docs_content = docs_clasi_md.read_text(encoding="utf-8")
+    assert "MCP" in docs_content, "docs/clasi/AGENTS.md must mention MCP server"
+    assert "CLASI MCP" in docs_content, "docs/clasi/AGENTS.md must reference CLASI MCP tools"
+    # No YAML frontmatter (Claude-specific metadata).
+    assert not docs_content.startswith("---"), (
+        "docs/clasi/AGENTS.md must not start with YAML frontmatter"
+    )
+
+    clasi_src_md = project / "clasi" / "AGENTS.md"
+    assert clasi_src_md.exists(), "clasi/AGENTS.md should exist after install"
+    src_content = clasi_src_md.read_text(encoding="utf-8")
+    assert "in-progress" in src_content, (
+        "clasi/AGENTS.md must mention ticket in-progress status"
+    )
+    assert not src_content.startswith("---"), (
+        "clasi/AGENTS.md must not start with YAML frontmatter"
+    )
+
+    # Content must match the module-level constants exactly.
+    assert docs_content == _DOCS_CLASI_RULES
+    assert src_content == _CLASI_SRC_RULES
+
+
+def test_uninstall_rules_removes_files(project: Path) -> None:
+    """install then uninstall removes both nested AGENTS.md rule files."""
+    install(project, _MCP_CONFIG)
+
+    docs_clasi_md = project / "docs" / "clasi" / "AGENTS.md"
+    clasi_src_md = project / "clasi" / "AGENTS.md"
+
+    # Confirm files exist before uninstall.
+    assert docs_clasi_md.exists()
+    assert clasi_src_md.exists()
+
+    uninstall(project)
+
+    assert not docs_clasi_md.exists(), (
+        "docs/clasi/AGENTS.md must be removed by uninstall"
+    )
+    assert not clasi_src_md.exists(), "clasi/AGENTS.md must be removed by uninstall"
+
+
+def test_uninstall_rules_no_error_if_missing(project: Path) -> None:
+    """uninstall() on a directory with no nested rule files raises no errors."""
+    # Neither docs/clasi/AGENTS.md nor clasi/AGENTS.md exists — must not raise.
+    uninstall(project)

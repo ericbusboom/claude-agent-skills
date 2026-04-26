@@ -1,7 +1,7 @@
 ---
 id: '005'
 title: Implement nested AGENTS.md rule files for Codex
-status: todo
+status: done
 use-cases:
   - SUC-007
 depends-on: []
@@ -34,18 +34,18 @@ removes them by exact path.
 
 ## Acceptance Criteria
 
-- [ ] After `clasi install --codex`, `docs/clasi/AGENTS.md` and `clasi/AGENTS.md` exist
+- [x] After `clasi install --codex`, `docs/clasi/AGENTS.md` and `clasi/AGENTS.md` exist
       in the target directory.
-- [ ] `docs/clasi/AGENTS.md` contains SE process rule content mentioning MCP server and
+- [x] `docs/clasi/AGENTS.md` contains SE process rule content mentioning MCP server and
       CLASI MCP tools.
-- [ ] `clasi/AGENTS.md` contains source-code rule content mentioning ticket status
+- [x] `clasi/AGENTS.md` contains source-code rule content mentioning ticket status
       requirements.
-- [ ] Neither file contains Claude-Code-specific syntax (e.g., no YAML frontmatter, no
+- [x] Neither file contains Claude-Code-specific syntax (e.g., no YAML frontmatter, no
       rule-file-specific metadata).
-- [ ] After `clasi uninstall --codex`, both files are removed.
-- [ ] Uninstall is non-destructive: if either file does not exist, uninstall skips it
+- [x] After `clasi uninstall --codex`, both files are removed.
+- [x] Uninstall is non-destructive: if either file does not exist, uninstall skips it
       without error.
-- [ ] Unit tests cover install (file existence and content substring checks) and uninstall
+- [x] Unit tests cover install (file existence and content substring checks) and uninstall
       (removal).
 
 ## Implementation Plan
