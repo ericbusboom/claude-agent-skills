@@ -1,14 +1,14 @@
 ---
 id: '006'
 title: End-to-end Codex install correctness tests
-status: todo
+status: done
 use-cases:
-  - SUC-008
+- SUC-008
 depends-on:
-  - '002'
-  - '003'
-  - '004'
-  - '005'
+- '002'
+- '003'
+- '004'
+- '005'
 github-issue: ''
 todo: ''
 ---
@@ -28,23 +28,23 @@ This ticket depends on tickets 002, 003, 004, and 005 being implemented first.
 
 ## Acceptance Criteria
 
-- [ ] A single test function `test_codex_install_end_to_end` (or equivalent) calls
+- [x] A single test function `test_codex_install_end_to_end` (or equivalent) calls
       `codex.install(tmp_path, mcp_config={"command": "clasi", "args": ["mcp"]})` and
       then validates:
-  - [ ] `.codex/config.toml` — parses via `tomllib.loads`; `data["mcp_servers"]["clasi"]`
+  - [x] `.codex/config.toml` — parses via `tomllib.loads`; `data["mcp_servers"]["clasi"]`
         is present and equals the supplied `mcp_config`.
-  - [ ] `.codex/hooks.json` — parses via `json.loads`; `data["hooks"]["Stop"][0]["hooks"][0]`
+  - [x] `.codex/hooks.json` — parses via `json.loads`; `data["hooks"]["Stop"][0]["hooks"][0]`
         has `type == "command"` and `command == "clasi hook codex-plan-to-todo"` and
         `"timeout"` key present; `"args"` key absent.
-  - [ ] `.codex/agents/team-lead.toml` — parses via `tomllib.loads`; has `name`,
+  - [x] `.codex/agents/team-lead.toml` — parses via `tomllib.loads`; has `name`,
         `description`, `developer_instructions` keys; `developer_instructions` is
         non-empty.
-  - [ ] `AGENTS.md` — file exists; CLASI marker section present; `/se` substring absent.
-  - [ ] `docs/clasi/AGENTS.md` — exists; contains "MCP" or "CLASI MCP" text.
-  - [ ] `clasi/AGENTS.md` — exists; contains "ticket" or "in-progress" text.
-- [ ] All assertions pass in a single offline test run (no network access).
-- [ ] Test runs in under 5 seconds.
-- [ ] `uv run pytest` passes.
+  - [x] `AGENTS.md` — file exists; CLASI marker section present; `/se` substring absent.
+  - [x] `docs/clasi/AGENTS.md` — exists; contains "MCP" or "CLASI MCP" text.
+  - [x] `clasi/AGENTS.md` — exists; contains "ticket" or "in-progress" text.
+- [x] All assertions pass in a single offline test run (no network access).
+- [x] Test runs in under 5 seconds.
+- [x] `uv run pytest` passes.
 
 ## Implementation Plan
 
