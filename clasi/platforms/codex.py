@@ -88,51 +88,34 @@ _CLASI_HOOK_COMMAND = "clasi hook codex-plan-to-todo"
 # ---------------------------------------------------------------------------
 
 
-def _write_agents_md(target: Path) -> None:
-    """Write or update AGENTS.md with the CLASI marker block."""
-    from clasi.platforms._markers import write_section
-
-    write_section(target / "AGENTS.md", entry_point=_CODEX_ENTRY_POINT)
-
-
-# ---------------------------------------------------------------------------
-# Global rules block on root AGENTS.md
-# ---------------------------------------------------------------------------
-
-
 def _build_global_rules_content() -> str:
-    """Build the content for the global-scope rules block on root AGENTS.md."""
+    """Render the global-scope rules content appended to the entry-point block.
+
+    These are the rules with `paths: ["**"]` on the Claude side
+    (mcp-required + git-commits). Codex has no native path-scoped rule
+    mechanism, so global-scope rules ride along inside the same single
+    CLASI block on root AGENTS.md as the entry-point sentence.
+    """
     return (
-        "# Global CLASI Rules\n\n"
-        "## MCP Server Required\n\n"
+        "## Global Rules\n\n"
+        "### MCP Server Required\n\n"
         f"{MCP_REQUIRED_BODY}\n"
-        "## Git Commits\n\n"
+        "### Git Commits\n\n"
         f"{GIT_COMMITS_BODY}"
     )
 
 
-def _install_global_rules(target: Path) -> None:
-    """Write the global-rules named block on root AGENTS.md.
+def _write_agents_md(target: Path) -> None:
+    """Write or update AGENTS.md with a single CLASI marker block.
 
-    Uses the RULES block name so the marker is distinct from the entry-point
-    block (CLASI:START/END).  Content is sourced from _rules.py constants.
+    The block contains the entry-point sentence followed by the
+    global-scope rules. One block, one purpose: tell the agent who they
+    are and what global guardrails apply.
     """
-    from clasi.platforms._markers import write_named_section
+    from clasi.platforms._markers import write_section
 
-    content = _build_global_rules_content()
-    write_named_section(target / "AGENTS.md", "RULES", content)
-    click.echo("  Wrote: AGENTS.md (global rules block)")
-
-
-def _uninstall_global_rules(target: Path) -> None:
-    """Strip the global-rules named block from root AGENTS.md.
-
-    Only removes the CLASI:RULES:START/END block; the entry-point block
-    (CLASI:START/END) is left intact.
-    """
-    from clasi.platforms._markers import strip_named_section
-
-    strip_named_section(target / "AGENTS.md", "RULES")
+    body = f"{_CODEX_ENTRY_POINT}\n\n{_build_global_rules_content()}"
+    write_section(target / "AGENTS.md", entry_point=body)
 
 
 # ---------------------------------------------------------------------------
@@ -438,7 +421,6 @@ def install(target: Path, mcp_config: dict) -> None:
     """
     click.echo("AGENTS.md:")
     _write_agents_md(target)
-    _install_global_rules(target)
     click.echo()
 
     click.echo("Codex config:")
@@ -488,7 +470,6 @@ def uninstall(target: Path) -> None:
     # --- AGENTS.md ---
     from clasi.platforms._markers import strip_section
     strip_section(target / "AGENTS.md")
-    _uninstall_global_rules(target)
 
     # --- .codex/config.toml ---
     config_path = target / ".codex" / "config.toml"
