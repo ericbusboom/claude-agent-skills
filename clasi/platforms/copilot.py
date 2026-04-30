@@ -22,6 +22,7 @@ import shutil
 from pathlib import Path
 
 import click
+import yaml
 
 from clasi.platforms import _links
 from clasi.platforms._markers import strip_section, write_section
@@ -244,25 +245,64 @@ def _uninstall_path_rules(target: Path) -> None:
             click.echo(f"  Skipped: .github/instructions/{fname} (not found)")
 
 
+_AGENT_NAMES = ["team-lead", "sprint-planner", "programmer"]
+
+
 def _install_agents(target: Path, copy: bool = False) -> None:
     """Write .github/agents/<n>.agent.md for each active CLASI agent.
 
-    Stub — implemented in ticket 009.
+    Reads plugin/agents/<name>/agent.md, maps frontmatter to the Copilot
+    agent schema (``description`` required; ``name`` optional), and writes
+    the body verbatim.  The directory ``.github/agents/`` is created if absent.
     """
-    # TODO(013-009): write .github/agents/<name>.agent.md from
-    #   plugin/agents/<name>/agent.md, transforming frontmatter to Copilot
-    #   schema (description required; drop Claude-specific fields).
-    click.echo("  [stub] .github/agents/ (ticket 009)")
+    from clasi.frontmatter import read_document
+
+    agents_dir = target / ".github" / "agents"
+    agents_dir.mkdir(parents=True, exist_ok=True)
+
+    for agent_name in _AGENT_NAMES:
+        agent_md = _PLUGIN_DIR / "agents" / agent_name / "agent.md"
+        if not agent_md.exists():
+            click.echo(
+                f"  Warning: plugin/agents/{agent_name}/agent.md not found, skipping"
+            )
+            continue
+
+        fm, body = read_document(agent_md)
+
+        description = fm.get("description", f"CLASI {agent_name} agent")
+        copilot_fm: dict = {"name": fm.get("name", agent_name), "description": description}
+
+        content = "---\n" + yaml.dump(copilot_fm, default_flow_style=False) + "---\n\n" + body
+        dest = agents_dir / f"{agent_name}.agent.md"
+        dest.write_text(content, encoding="utf-8")
+        click.echo(f"  Wrote: .github/agents/{agent_name}.agent.md")
 
 
 def _uninstall_agents(target: Path) -> None:
     """Remove CLASI .agent.md files from .github/agents/.
 
-    Stub — implemented in ticket 009.
+    Only removes the CLASI-owned .agent.md files by name.  User-created files
+    in ``.github/agents/`` are preserved.  The directory is removed only if it
+    is empty after the CLASI files are deleted.
     """
-    # TODO(013-009): remove each CLASI-owned .agent.md by name; rmdir
-    #   .github/agents/ if empty.
-    click.echo("  [stub] uninstall .github/agents/ (ticket 009)")
+    agents_dir = target / ".github" / "agents"
+    if not agents_dir.exists():
+        click.echo("  Skipped: .github/agents/ (not found)")
+        return
+
+    for agent_name in _AGENT_NAMES:
+        dest = agents_dir / f"{agent_name}.agent.md"
+        if dest.exists():
+            dest.unlink()
+            click.echo(f"  Removed: .github/agents/{agent_name}.agent.md")
+        else:
+            click.echo(f"  Skipped: .github/agents/{agent_name}.agent.md (not found)")
+
+    # Remove the directory only if it is now empty (no user files remain).
+    if agents_dir.exists() and not any(agents_dir.iterdir()):
+        agents_dir.rmdir()
+        click.echo("  Removed: .github/agents/ (empty)")
 
 
 def _install_vscode_mcp(target: Path, mcp_config: dict) -> None:
