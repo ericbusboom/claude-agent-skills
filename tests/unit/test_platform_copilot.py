@@ -385,3 +385,166 @@ def test_uninstall_path_rules_does_not_rmdir(tmp_path: Path) -> None:
 def test_uninstall_path_rules_no_install(tmp_path: Path) -> None:
     """`_uninstall_path_rules` on a fresh directory must not raise."""
     copilot._uninstall_path_rules(tmp_path)  # no prior install, must not raise
+
+
+# ---------------------------------------------------------------------------
+# _install_agents / _uninstall_agents — ticket 009
+# ---------------------------------------------------------------------------
+
+_CLASI_AGENT_NAMES = ["team-lead", "sprint-planner", "programmer"]
+
+
+def test_install_agents_creates_agents_dir(tmp_path: Path) -> None:
+    """`_install_agents` must create .github/agents/ if absent."""
+    copilot._install_agents(tmp_path)
+    assert (tmp_path / ".github" / "agents").is_dir()
+
+
+def test_install_agents_creates_all_agent_files(tmp_path: Path) -> None:
+    """`_install_agents` must write one .agent.md file per CLASI agent."""
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        assert (agents_dir / f"{name}.agent.md").exists(), (
+            f"Expected {name}.agent.md to be created"
+        )
+
+
+def test_install_agents_valid_yaml_frontmatter(tmp_path: Path) -> None:
+    """Each .agent.md must have parseable YAML frontmatter."""
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        content = (agents_dir / f"{name}.agent.md").read_text(encoding="utf-8")
+        parts = content.split("---", maxsplit=2)
+        assert len(parts) >= 3, f"{name}.agent.md: expected YAML frontmatter delimiters"
+        fm = yaml.safe_load(parts[1])
+        assert fm is not None, f"{name}.agent.md: frontmatter must not be empty"
+
+
+def test_install_agents_description_present(tmp_path: Path) -> None:
+    """Each .agent.md frontmatter must have a non-empty `description` field."""
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        content = (agents_dir / f"{name}.agent.md").read_text(encoding="utf-8")
+        parts = content.split("---", maxsplit=2)
+        fm = yaml.safe_load(parts[1])
+        assert "description" in fm, f"{name}.agent.md: missing 'description' in frontmatter"
+        assert fm["description"], f"{name}.agent.md: description must be non-empty"
+
+
+def test_install_agents_description_from_source(tmp_path: Path) -> None:
+    """Each .agent.md description must match the source plugin agent.md description."""
+    from clasi.frontmatter import read_document
+    from clasi.platforms.copilot import _PLUGIN_DIR
+
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        source_md = _PLUGIN_DIR / "agents" / name / "agent.md"
+        if not source_md.exists():
+            continue
+        source_fm, _ = read_document(source_md)
+        expected_desc = source_fm.get("description", f"CLASI {name} agent")
+
+        content = (agents_dir / f"{name}.agent.md").read_text(encoding="utf-8")
+        parts = content.split("---", maxsplit=2)
+        fm = yaml.safe_load(parts[1])
+        assert fm["description"] == expected_desc, (
+            f"{name}.agent.md: description mismatch"
+        )
+
+
+def test_install_agents_body_non_empty(tmp_path: Path) -> None:
+    """Each .agent.md body (after frontmatter) must be non-empty."""
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        content = (agents_dir / f"{name}.agent.md").read_text(encoding="utf-8")
+        parts = content.split("---", maxsplit=2)
+        assert len(parts) >= 3, f"{name}.agent.md: expected frontmatter block"
+        body = parts[2].strip()
+        assert body, f"{name}.agent.md: body must be non-empty"
+
+
+def test_install_agents_body_from_source(tmp_path: Path) -> None:
+    """Each .agent.md body must match the source plugin agent.md body."""
+    from clasi.frontmatter import read_document
+    from clasi.platforms.copilot import _PLUGIN_DIR
+
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        source_md = _PLUGIN_DIR / "agents" / name / "agent.md"
+        if not source_md.exists():
+            continue
+        _, source_body = read_document(source_md)
+
+        content = (agents_dir / f"{name}.agent.md").read_text(encoding="utf-8")
+        parts = content.split("---", maxsplit=2)
+        file_body = parts[2]
+        # Source body is included verbatim (may have leading newline stripped)
+        assert source_body.strip() in file_body, (
+            f"{name}.agent.md: body does not match source"
+        )
+
+
+def test_install_agents_idempotent(tmp_path: Path) -> None:
+    """`_install_agents` called twice must not raise and files remain consistent."""
+    copilot._install_agents(tmp_path)
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        assert (agents_dir / f"{name}.agent.md").exists()
+
+
+def test_uninstall_agents_removes_clasi_files(tmp_path: Path) -> None:
+    """`_uninstall_agents` must remove all CLASI-written .agent.md files."""
+    copilot._install_agents(tmp_path)
+    copilot._uninstall_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    for name in _CLASI_AGENT_NAMES:
+        assert not (agents_dir / f"{name}.agent.md").exists(), (
+            f"{name}.agent.md should be removed after uninstall"
+        )
+
+
+def test_uninstall_agents_preserves_user_files(tmp_path: Path) -> None:
+    """`_uninstall_agents` must not remove user-created files in .github/agents/."""
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    user_file = agents_dir / "my-custom-agent.md"
+    user_file.write_text("# User agent\n", encoding="utf-8")
+
+    copilot._uninstall_agents(tmp_path)
+
+    assert user_file.exists(), "User-created file must not be removed by uninstall"
+
+
+def test_uninstall_agents_removes_empty_dir(tmp_path: Path) -> None:
+    """`_uninstall_agents` must remove .github/agents/ if it becomes empty."""
+    copilot._install_agents(tmp_path)
+    copilot._uninstall_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    assert not agents_dir.exists(), (
+        ".github/agents/ should be removed when it is empty after uninstall"
+    )
+
+
+def test_uninstall_agents_preserves_nonempty_dir(tmp_path: Path) -> None:
+    """`_uninstall_agents` must NOT remove .github/agents/ if user files remain."""
+    copilot._install_agents(tmp_path)
+    agents_dir = tmp_path / ".github" / "agents"
+    (agents_dir / "user.agent.md").write_text("# user\n", encoding="utf-8")
+
+    copilot._uninstall_agents(tmp_path)
+
+    assert agents_dir.exists(), (
+        ".github/agents/ must remain when user files are present"
+    )
+
+
+def test_uninstall_agents_no_install(tmp_path: Path) -> None:
+    """`_uninstall_agents` on a fresh directory must not raise."""
+    copilot._uninstall_agents(tmp_path)  # no prior install, must not raise

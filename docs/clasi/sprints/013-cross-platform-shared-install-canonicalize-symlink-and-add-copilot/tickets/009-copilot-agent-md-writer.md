@@ -1,12 +1,12 @@
 ---
-id: "013-009"
-title: "Copilot: .github/agents/<n>.agent.md writer"
-status: todo
-sprint: "013"
+id: 013-009
+title: 'Copilot: .github/agents/<n>.agent.md writer'
+status: done
+sprint: '013'
 use-cases:
-  - SUC-005
+- SUC-005
 depends-on:
-  - "013-006"
+- 013-006
 ---
 
 # 013-009: Copilot: `.github/agents/<n>.agent.md` writer
@@ -35,20 +35,20 @@ Copilot schema, write `<copilot-frontmatter>\n\n<body>`.
 
 ## Acceptance Criteria
 
-- [ ] After `_install_agents(target)`, `.github/agents/` contains one `.agent.md` file
+- [x] After `_install_agents(target)`, `.github/agents/` contains one `.agent.md` file
       per active CLASI agent (team-lead, sprint-planner, programmer).
-- [ ] Each file has valid YAML frontmatter with a `description` field.
-- [ ] `description` is sourced from the agent's `plugin/agents/<name>/agent.md`
+- [x] Each file has valid YAML frontmatter with a `description` field.
+- [x] `description` is sourced from the agent's `plugin/agents/<name>/agent.md`
       frontmatter (or a reasonable fallback if absent in the source).
-- [ ] The body (after the frontmatter block) is the agent Markdown content from
+- [x] The body (after the frontmatter block) is the agent Markdown content from
       `plugin/agents/<name>/agent.md`.
-- [ ] Files parse cleanly as Markdown with YAML frontmatter.
-- [ ] `_uninstall_agents(target)` removes the per-agent files. User-created files in
+- [x] Files parse cleanly as Markdown with YAML frontmatter.
+- [x] `_uninstall_agents(target)` removes the per-agent files. User-created files in
       `.github/agents/` are preserved. Directory `rmdir`-if-empty.
-- [ ] Tests: round-trip parse frontmatter of each emitted file; assert `description`
+- [x] Tests: round-trip parse frontmatter of each emitted file; assert `description`
       present; assert body non-empty. Uninstall precision (only CLASI-written files
       removed; user file preserved).
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 
