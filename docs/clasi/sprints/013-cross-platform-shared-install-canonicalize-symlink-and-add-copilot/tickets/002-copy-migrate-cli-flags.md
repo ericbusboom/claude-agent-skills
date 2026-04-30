@@ -1,10 +1,10 @@
 ---
-id: "013-002"
-title: "Add --copy and --migrate flags to clasi init and clasi uninstall CLI"
-status: todo
-sprint: "013"
+id: 013-002
+title: Add --copy and --migrate flags to clasi init and clasi uninstall CLI
+status: done
+sprint: '013'
 use-cases:
-  - SUC-003
+- SUC-003
 depends-on: []
 ---
 
@@ -26,19 +26,19 @@ as the `install()` / `uninstall()` call sites in `init_command.py`.
 
 ## Acceptance Criteria
 
-- [ ] `clasi init --copy` is accepted without error.
-- [ ] `clasi init --migrate` is accepted without error.
-- [ ] `clasi uninstall --copy` is accepted without error.
-- [ ] The `copy` boolean is threaded to `claude.install(target, mcp_config, copy=copy)`,
+- [x] `clasi init --copy` is accepted without error.
+- [x] `clasi init --migrate` is accepted without error.
+- [x] `clasi uninstall --copy` is accepted without error.
+- [x] The `copy` boolean is threaded to `claude.install(target, mcp_config, copy=copy)`,
       `codex.install(target, mcp_config, copy=copy)` (add the kwarg even if codex.py
       does not yet use it). Copilot wiring added in ticket 011.
-- [ ] The `migrate` boolean is threaded to installer call sites (platform installers
+- [x] The `migrate` boolean is threaded to installer call sites (platform installers
       will read it in their own tickets; stubbing the parameter is sufficient here).
-- [ ] The interactive platform prompt is updated to note that Copilot is available as
+- [x] The interactive platform prompt is updated to note that Copilot is available as
       a platform option (even if the `--copilot` wiring is completed in ticket 011);
       this is a placeholder update to avoid a double-touch of the prompt logic.
-- [ ] Existing behavior with no new flags is unchanged (all existing tests pass).
-- [ ] `python -m pytest --no-cov` green.
+- [x] Existing behavior with no new flags is unchanged (all existing tests pass).
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 

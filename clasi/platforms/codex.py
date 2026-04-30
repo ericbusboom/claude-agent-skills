@@ -402,7 +402,12 @@ def _uninstall_rules(target: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def install(target: Path, mcp_config: dict) -> None:
+def install(
+    target: Path,
+    mcp_config: dict,
+    copy: bool = False,
+    migrate: bool = False,
+) -> None:
     """Install the Codex platform integration into *target*.
 
     Performs the Codex-specific steps only:
@@ -418,6 +423,12 @@ def install(target: Path, mcp_config: dict) -> None:
         target: Resolved Path to the target project root.
         mcp_config: The MCP server command dict (written into .codex/config.toml
             under [mcp_servers.clasi]).
+        copy: If True, use file copy instead of symlink for alias operations.
+            Accepted for forward-compatibility; wired to ``_links.link_or_copy``
+            in a later ticket.  Currently a no-op.
+        migrate: If True, convert legacy direct-copy installs to symlinks.
+            Accepted for forward-compatibility; wired in a later ticket.
+            Currently a no-op.
     """
     click.echo("AGENTS.md:")
     _write_agents_md(target)
@@ -444,7 +455,7 @@ def install(target: Path, mcp_config: dict) -> None:
     click.echo()
 
 
-def uninstall(target: Path) -> None:
+def uninstall(target: Path, copy: bool = False) -> None:
     """Remove the Codex platform integration from *target*.
 
     Reverses each Codex-managed artifact:
@@ -463,6 +474,9 @@ def uninstall(target: Path) -> None:
 
     Args:
         target: Resolved Path to the target project root.
+        copy: If True, alias removal uses file-copy semantics.  Accepted for
+            parity with ``clasi uninstall --copy``; wired to
+            ``_links.unlink_alias`` in a later ticket.  Currently a no-op.
     """
     click.echo(f"Uninstalling Codex platform integration from {target}")
     click.echo()

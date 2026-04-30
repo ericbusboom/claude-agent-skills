@@ -213,3 +213,96 @@ class TestInstallSynonym:
         assert result.exit_code == 0, result.output
         assert _has_claude_artifacts(tmp_path)
         assert _has_codex_artifacts(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# --copy and --migrate flag tests
+# ---------------------------------------------------------------------------
+
+class TestCopyFlag:
+    """--copy flag is accepted without error and does not break installs."""
+
+    def test_init_copy_flag_accepted(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--copy", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+
+    def test_init_no_copy_flag_accepted(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--no-copy", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+
+    def test_init_copy_with_claude_flag(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--claude", "--copy", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert _has_claude_artifacts(tmp_path)
+
+    def test_init_copy_with_codex_flag(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--codex", "--copy", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert _has_codex_artifacts(tmp_path)
+
+    def test_init_copy_with_both_flags(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--claude", "--codex", "--copy", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert _has_claude_artifacts(tmp_path)
+        assert _has_codex_artifacts(tmp_path)
+
+    def test_install_synonym_copy_flag_accepted(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["install", "--copy", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+
+    def test_run_init_copy_kwarg_accepted(self, tmp_path):
+        target = tmp_path / "repo"
+        target.mkdir()
+        run_init(str(target), copy=True)
+        assert _has_claude_artifacts(target)
+
+    def test_run_init_no_copy_kwarg_accepted(self, tmp_path):
+        target = tmp_path / "repo"
+        target.mkdir()
+        run_init(str(target), copy=False)
+        assert _has_claude_artifacts(target)
+
+
+class TestMigrateFlag:
+    """--migrate flag is accepted without error and does not break installs."""
+
+    def test_init_migrate_flag_accepted(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--migrate", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+
+    def test_init_migrate_with_claude_flag(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--claude", "--migrate", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert _has_claude_artifacts(tmp_path)
+
+    def test_init_migrate_with_codex_flag(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init", "--codex", "--migrate", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+        assert _has_codex_artifacts(tmp_path)
+
+    def test_install_synonym_migrate_flag_accepted(self, tmp_path):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["install", "--migrate", str(tmp_path)])
+        assert result.exit_code == 0, result.output
+
+    def test_run_init_migrate_kwarg_accepted(self, tmp_path):
+        target = tmp_path / "repo"
+        target.mkdir()
+        run_init(str(target), migrate=True)
+        assert _has_claude_artifacts(target)
+
+    def test_run_init_copy_and_migrate_coexist(self, tmp_path):
+        """--copy and --migrate can both be passed without error."""
+        target = tmp_path / "repo"
+        target.mkdir()
+        run_init(str(target), copy=True, migrate=True)
+        assert _has_claude_artifacts(target)

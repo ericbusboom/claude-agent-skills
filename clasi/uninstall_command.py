@@ -71,7 +71,12 @@ def _prompt_uninstall(target: Path) -> str:
         )
 
 
-def run_uninstall(target: str, claude: bool = False, codex: bool = False) -> None:
+def run_uninstall(
+    target: str,
+    claude: bool = False,
+    codex: bool = False,
+    copy: bool = False,
+) -> None:
     """Remove CLASI platform integration files from *target*.
 
     Parameters
@@ -82,6 +87,11 @@ def run_uninstall(target: str, claude: bool = False, codex: bool = False) -> Non
         If True, run the Claude platform uninstaller.
     codex:
         If True, run the Codex platform uninstaller.
+    copy:
+        If True, alias operations use file-copy removal semantics.
+        In practice ``_links.unlink_alias`` handles both symlinks and
+        regular files identically, so this flag is surfaced for parity
+        with ``clasi init --copy`` and passed through to the uninstallers.
     """
     target_path = Path(target).resolve()
     interactive = sys.stdin.isatty() and sys.stdout.isatty()
@@ -99,8 +109,8 @@ def run_uninstall(target: str, claude: bool = False, codex: bool = False) -> Non
 
     if claude:
         from clasi.platforms.claude import uninstall as claude_uninstall
-        claude_uninstall(target_path)
+        claude_uninstall(target_path, copy=copy)
 
     if codex:
         from clasi.platforms.codex import uninstall as codex_uninstall
-        codex_uninstall(target_path)
+        codex_uninstall(target_path, copy=copy)
