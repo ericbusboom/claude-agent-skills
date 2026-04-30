@@ -146,7 +146,8 @@ class TestNonInteractivePath:
             run_init(str(target))
 
         assert not (target / ".codex").exists()
-        assert not (target / "AGENTS.md").exists()
+        # AGENTS.md IS created by Claude install (authoritative instruction file).
+        assert (target / "AGENTS.md").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +255,9 @@ class TestCliNonInteractive:
         assert not (tmp_path / ".codex").exists()
 
     def test_cli_default_no_flags_no_codex(self, tmp_path):
-        """CliRunner (no TTY) with no flags → Codex artifacts absent."""
+        """CliRunner (no TTY) with no flags → Codex .codex/ absent; AGENTS.md present."""
         runner = CliRunner()
         runner.invoke(cli, ["init", str(tmp_path)])
-        assert not (tmp_path / "AGENTS.md").exists()
+        assert not (tmp_path / ".codex").exists()
+        # AGENTS.md IS created by Claude install (authoritative instruction file).
+        assert (tmp_path / "AGENTS.md").exists()

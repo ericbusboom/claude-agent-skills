@@ -8,6 +8,7 @@ Unit tests for the refactored claude.py skills install:
 - Uninstall precision: alias removed, canonical preserved
 - Migrate happy path: existing direct-copy → symlink
 - Migrate conflict: existing file with different content is left intact
+- CLAUDE.md symlink to AGENTS.md (ticket 013-004)
 """
 from __future__ import annotations
 
@@ -328,3 +329,134 @@ class TestIdempotency:
         alias = tmp_path / ".claude" / "skills" / name / "SKILL.md"
         assert alias.exists()
         assert not alias.is_symlink()
+
+
+# ---------------------------------------------------------------------------
+# CLAUDE.md → AGENTS.md symlink (ticket 013-004)
+# ---------------------------------------------------------------------------
+
+
+class TestClaudeMdSymlink:
+    """CLAUDE.md is a symlink (or copy) pointing at AGENTS.md."""
+
+    def test_agents_md_created_by_install(self, tmp_path: Path) -> None:
+        """install() writes AGENTS.md with the CLASI marker block."""
+        claude_mod.install(tmp_path, mcp_config={})
+        agents_md = tmp_path / "AGENTS.md"
+        assert agents_md.exists(), "AGENTS.md must be created by install"
+        assert "CLASI:START" in agents_md.read_text(encoding="utf-8")
+
+    def test_claude_md_is_symlink_by_default(self, tmp_path: Path) -> None:
+        """Default install: CLAUDE.md is a symlink pointing at AGENTS.md."""
+        claude_mod.install(tmp_path, mcp_config={})
+        claude_md = tmp_path / "CLAUDE.md"
+        assert claude_md.is_symlink(), "CLAUDE.md must be a symlink"
+        assert claude_md.resolve() == (tmp_path / "AGENTS.md").resolve()
+
+    def test_claude_md_is_regular_file_in_copy_mode(self, tmp_path: Path) -> None:
+        """install(copy=True): CLAUDE.md is a regular file with AGENTS.md content."""
+        claude_mod.install(tmp_path, mcp_config={}, copy=True)
+        claude_md = tmp_path / "CLAUDE.md"
+        agents_md = tmp_path / "AGENTS.md"
+        assert claude_md.exists()
+        assert not claude_md.is_symlink(), "CLAUDE.md must be a regular file in copy mode"
+        assert claude_md.read_bytes() == agents_md.read_bytes()
+
+    def test_both_files_exist_claude_only_install(self, tmp_path: Path) -> None:
+        """clasi init --claude (no codex): both AGENTS.md and CLAUDE.md exist."""
+        claude_mod.install(tmp_path, mcp_config={})
+        assert (tmp_path / "AGENTS.md").exists()
+        assert (tmp_path / "CLAUDE.md").exists()
+
+    def test_matching_regular_file_replaced_by_symlink(self, tmp_path: Path) -> None:
+        """If CLAUDE.md exists as a regular file with matching AGENTS.md content,
+        re-running install converts it to a symlink."""
+        # First install — creates symlink
+        claude_mod.install(tmp_path, mcp_config={})
+        agents_md = tmp_path / "AGENTS.md"
+        claude_md = tmp_path / "CLAUDE.md"
+
+        # Simulate legacy state: replace symlink with a regular file copy
+        claude_md.unlink()
+        claude_md.write_bytes(agents_md.read_bytes())
+        assert not claude_md.is_symlink()
+
+        # Re-install — should convert to symlink
+        claude_mod.install(tmp_path, mcp_config={})
+        assert claude_md.is_symlink(), "Matching regular file must be converted to symlink"
+        assert claude_md.resolve() == agents_md.resolve()
+
+    def test_conflict_aborts_and_preserves_claude_md(self, tmp_path: Path) -> None:
+        """If CLAUDE.md is a regular file with different content, install is aborted."""
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text("# User authored content\n", encoding="utf-8")
+        original_content = claude_md.read_bytes()
+
+        claude_mod.install(tmp_path, mcp_config={})
+
+        # CLAUDE.md must be unchanged (not overwritten)
+        assert claude_md.read_bytes() == original_content, (
+            "Conflicting CLAUDE.md must not be overwritten"
+        )
+        assert not claude_md.is_symlink(), "Conflicting CLAUDE.md must remain a regular file"
+
+    def test_install_twice_symlink_idempotent(self, tmp_path: Path) -> None:
+        """Running install twice keeps CLAUDE.md as a symlink to AGENTS.md."""
+        claude_mod.install(tmp_path, mcp_config={})
+        claude_mod.install(tmp_path, mcp_config={})
+
+        claude_md = tmp_path / "CLAUDE.md"
+        agents_md = tmp_path / "AGENTS.md"
+        assert claude_md.is_symlink()
+        assert claude_md.resolve() == agents_md.resolve()
+
+
+class TestClaudeMdUninstall:
+    """Uninstall behavior for CLAUDE.md alias and AGENTS.md canonical."""
+
+    def test_uninstall_removes_claude_md(self, tmp_path: Path) -> None:
+        """uninstall() removes the CLAUDE.md symlink."""
+        claude_mod.install(tmp_path, mcp_config={})
+        claude_mod.uninstall(tmp_path)
+        assert not (tmp_path / "CLAUDE.md").exists(), "CLAUDE.md must be removed"
+
+    def test_uninstall_strips_agents_md_when_codex_absent(self, tmp_path: Path) -> None:
+        """uninstall() strips the CLASI block from AGENTS.md when Codex is not installed."""
+        claude_mod.install(tmp_path, mcp_config={})
+        # No .codex/ directory — Claude-only install
+        claude_mod.uninstall(tmp_path)
+
+        agents_md = tmp_path / "AGENTS.md"
+        # AGENTS.md should be gone (it contained only the CLASI block)
+        # OR its CLASI block should be stripped if user content was present.
+        if agents_md.exists():
+            assert "CLASI:START" not in agents_md.read_text(encoding="utf-8"), (
+                "CLASI block must be removed from AGENTS.md when Codex is absent"
+            )
+
+    def test_uninstall_preserves_agents_md_block_when_codex_installed(
+        self, tmp_path: Path
+    ) -> None:
+        """uninstall() leaves AGENTS.md block intact when Codex is also installed."""
+        claude_mod.install(tmp_path, mcp_config={})
+
+        # Simulate Codex being installed by creating .codex/
+        codex_dir = tmp_path / ".codex"
+        codex_dir.mkdir()
+
+        claude_mod.uninstall(tmp_path)
+
+        agents_md = tmp_path / "AGENTS.md"
+        assert agents_md.exists(), "AGENTS.md must survive uninstall when Codex is present"
+        assert "CLASI:START" in agents_md.read_text(encoding="utf-8"), (
+            "CLASI block in AGENTS.md must be preserved when Codex is present"
+        )
+
+    def test_uninstall_removes_copy_mode_claude_md(self, tmp_path: Path) -> None:
+        """uninstall() removes a copy-mode CLAUDE.md regular file."""
+        claude_mod.install(tmp_path, mcp_config={}, copy=True)
+        claude_md = tmp_path / "CLAUDE.md"
+        assert claude_md.exists() and not claude_md.is_symlink()
+
+        claude_mod.uninstall(tmp_path)
+        assert not claude_md.exists(), "Copy-mode CLAUDE.md must be removed by uninstall"

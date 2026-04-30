@@ -1,14 +1,14 @@
 ---
-id: "013-004"
-title: "Refactor claude.py CLAUDE.md write to symlink AGENTS.md"
-status: todo
-sprint: "013"
+id: 013-004
+title: Refactor claude.py CLAUDE.md write to symlink AGENTS.md
+status: done
+sprint: '013'
 use-cases:
-  - SUC-002
-  - SUC-007
+- SUC-002
+- SUC-007
 depends-on:
-  - "013-001"
-  - "013-002"
+- 013-001
+- 013-002
 ---
 
 # 013-004: Refactor `claude.py` `CLAUDE.md` write to symlink `AGENTS.md`
@@ -36,25 +36,25 @@ Claude platform is being uninstalled.
 
 ## Acceptance Criteria
 
-- [ ] After `clasi init --claude`, `CLAUDE.md` is a symlink to `AGENTS.md`.
-- [ ] After `clasi init --claude --copy`, `CLAUDE.md` is a regular file with content
+- [x] After `clasi init --claude`, `CLAUDE.md` is a symlink to `AGENTS.md`.
+- [x] After `clasi init --claude --copy`, `CLAUDE.md` is a regular file with content
       identical to `AGENTS.md`.
-- [ ] `clasi init --claude` without `--codex` writes `AGENTS.md` and creates the
+- [x] `clasi init --claude` without `--codex` writes `AGENTS.md` and creates the
       `CLAUDE.md` symlink. Both files exist.
-- [ ] `clasi uninstall --claude` removes `CLAUDE.md` (symlink or copy). `AGENTS.md`
+- [x] `clasi uninstall --claude` removes `CLAUDE.md` (symlink or copy). `AGENTS.md`
       remains.
-- [ ] If `CLAUDE.md` exists as a regular file matching `AGENTS.md` content, re-running
+- [x] If `CLAUDE.md` exists as a regular file matching `AGENTS.md` content, re-running
       `clasi init --claude` converts it to a symlink (or leaves the identical copy in
       `--copy` mode).
-- [ ] If `CLAUDE.md` exists as a regular file NOT matching `AGENTS.md` content, install
+- [x] If `CLAUDE.md` exists as a regular file NOT matching `AGENTS.md` content, install
       exits with a clear error message suggesting `--migrate`.
-- [ ] `clasi uninstall --claude` strips the Claude entry-point block from `AGENTS.md`
+- [x] `clasi uninstall --claude` strips the Claude entry-point block from `AGENTS.md`
       only when Codex is not installed (`.codex/` absent).
-- [ ] All existing `CLAUDE.md`-related tests are updated and pass.
-- [ ] New tests cover: symlink creation, copy mode, conflict detection, uninstall
+- [x] All existing `CLAUDE.md`-related tests are updated and pass.
+- [x] New tests cover: symlink creation, copy mode, conflict detection, uninstall
       (symlink removed, AGENTS.md preserved), mixed-platform uninstall (AGENTS.md
       block preserved when Codex still installed).
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 
