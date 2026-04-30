@@ -228,7 +228,12 @@ def _create_rules(target: Path) -> bool:
 # Public interface
 # ---------------------------------------------------------------------------
 
-def install(target: Path, mcp_config: dict) -> None:
+def install(
+    target: Path,
+    mcp_config: dict,
+    copy: bool = False,
+    migrate: bool = False,
+) -> None:
     """Install the Claude platform integration into *target*.
 
     Performs the Claude-specific steps only:
@@ -244,6 +249,12 @@ def install(target: Path, mcp_config: dict) -> None:
         target: Resolved Path to the target project root.
         mcp_config: The MCP server command dict (unused here; kept for
             interface symmetry with future platform modules that may need it).
+        copy: If True, use file copy instead of symlink for alias operations.
+            Passed through to ``_links.link_or_copy`` when that helper is wired
+            in (ticket 003/004).  Currently a no-op in direct writes.
+        migrate: If True, convert legacy direct-copy installs to symlinks via
+            ``_links.migrate_to_symlink``.  Wired in ticket 003/004; currently
+            accepted and ignored for forward-compatibility.
     """
     # Copy plugin content (skills, agents, hooks/settings.json)
     _install_plugin_content(target)
@@ -265,7 +276,7 @@ def install(target: Path, mcp_config: dict) -> None:
     click.echo()
 
 
-def uninstall(target: Path) -> None:
+def uninstall(target: Path, copy: bool = False) -> None:
     """Remove the Claude platform integration from *target*.
 
     Reverses each Claude-managed artifact:
@@ -284,6 +295,9 @@ def uninstall(target: Path) -> None:
 
     Args:
         target: Resolved Path to the target project root.
+        copy: If True, alias removal uses file-copy semantics.  Accepted for
+            parity with ``clasi uninstall --copy``; wired to
+            ``_links.unlink_alias`` in ticket 003/004.  Currently a no-op.
     """
     click.echo(f"Uninstalling Claude platform integration from {target}")
     click.echo()

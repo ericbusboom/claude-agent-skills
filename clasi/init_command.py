@@ -53,9 +53,10 @@ def _detect_mcp_command(target: Path) -> dict:
 def _prompt_platform(recommendation: str) -> str:
     """Prompt the user to choose a platform and return the choice string.
 
-    Displays the three options with a recommended default derived from
+    Displays the four options with a recommended default derived from
     *recommendation* (``"claude"``, ``"codex"``, or ``"both"``).  Returns
-    one of those three strings based on the user's numeric selection.
+    one of those strings based on the user's numeric selection.  Copilot
+    is listed as an option; full wiring is completed in ticket 011.
 
     Only call this function when running interactively (TTY attached).
     """
@@ -65,7 +66,10 @@ def _prompt_platform(recommendation: str) -> str:
     default_num = _rec_to_default.get(recommendation, "1")
     rec_label = {"1": "Claude", "2": "Codex", "3": "Both"}[default_num]
 
-    click.echo(f"Install for: [1] Claude  [2] Codex  [3] Both  (recommended: {rec_label})")
+    click.echo(
+        f"Install for: [1] Claude  [2] Codex  [3] Both  "
+        f"(Copilot: use --copilot, coming soon)  (recommended: {rec_label})"
+    )
     raw = click.prompt(
         "Choice",
         default=default_num,
@@ -110,6 +114,8 @@ def run_init(
     plugin_mode: bool = False,
     claude: bool = False,
     codex: bool = False,
+    copy: bool = False,
+    migrate: bool = False,
 ) -> None:
     """Initialize a repository for the CLASI SE process.
 
@@ -125,6 +131,8 @@ def run_init(
         plugin_mode: If True, run in plugin mode instead of project-local mode.
         claude: If True, run the Claude platform installer.
         codex: If True, run the Codex platform installer.
+        copy: If True, use file copy instead of symlink for alias operations.
+        migrate: If True, convert legacy direct-copy installs to symlinks.
     """
     from clasi.platforms.claude import install as claude_install
     from clasi.platforms.codex import install as codex_install
@@ -160,11 +168,11 @@ def run_init(
     else:
         if claude:
             # Project-local mode: delegate all Claude-specific steps to the platform module.
-            claude_install(target_path, mcp_config)
+            claude_install(target_path, mcp_config, copy=copy, migrate=migrate)
 
         if codex:
             # Codex platform install.
-            codex_install(target_path, mcp_config)
+            codex_install(target_path, mcp_config, copy=copy, migrate=migrate)
 
     # Configure MCP server in .mcp.json at project root (shared setup).
     click.echo("MCP server configuration:")

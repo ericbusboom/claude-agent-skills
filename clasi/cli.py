@@ -30,7 +30,11 @@ def cli():
               help="Install Claude platform integration.")
 @click.option("--codex", "install_codex", is_flag=True, default=False,
               help="Install Codex platform integration.")
-def init(target, plugin, install_claude, install_codex):
+@click.option("--copy/--no-copy", default=False,
+              help="Use file copy instead of symlink for alias operations.")
+@click.option("--migrate", is_flag=True, default=False,
+              help="Convert legacy direct-copy installs to symlinks.")
+def init(target, plugin, install_claude, install_codex, copy, migrate):
     """Initialize a repository for the CLASI SE process.
 
     By default (no --claude or --codex flag), behavior depends on context:
@@ -43,11 +47,20 @@ def init(target, plugin, install_claude, install_codex):
 
     With --claude and/or --codex, installs the selected platform(s) without
     prompting.  With --plugin, registers the CLASI plugin with Claude Code
-    (plugin mode).
+    (plugin mode).  With --copy, alias operations use file copy instead of
+    symlink (useful on Windows without Developer Mode).  With --migrate,
+    converts legacy direct-copy installs to symlinks.
     """
     from clasi.init_command import run_init
 
-    run_init(target, plugin_mode=plugin, claude=install_claude, codex=install_codex)
+    run_init(
+        target,
+        plugin_mode=plugin,
+        claude=install_claude,
+        codex=install_codex,
+        copy=copy,
+        migrate=migrate,
+    )
 
 
 # Register 'install' as a synonym for 'init' — same callback, same options.
@@ -60,10 +73,12 @@ cli.add_command(init, name="install")
               help="Remove Claude platform integration.")
 @click.option("--codex", "uninstall_codex", is_flag=True, default=False,
               help="Remove Codex platform integration.")
-def uninstall(target, uninstall_claude, uninstall_codex):
+@click.option("--copy/--no-copy", default=False,
+              help="Use file copy removal instead of symlink removal for alias operations.")
+def uninstall(target, uninstall_claude, uninstall_codex, copy):
     """Remove CLASI-managed platform integration files."""
     from clasi.uninstall_command import run_uninstall
-    run_uninstall(target, claude=uninstall_claude, codex=uninstall_codex)
+    run_uninstall(target, claude=uninstall_claude, codex=uninstall_codex, copy=copy)
 
 
 @cli.group()

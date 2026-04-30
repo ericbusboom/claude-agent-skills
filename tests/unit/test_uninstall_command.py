@@ -331,3 +331,56 @@ def test_cli_uninstall_help(project: Path) -> None:
     assert result.exit_code == 0
     assert "--claude" in result.output
     assert "--codex" in result.output
+
+
+# ---------------------------------------------------------------------------
+# --copy flag on uninstall
+# ---------------------------------------------------------------------------
+
+
+def test_cli_uninstall_copy_flag_accepted(both_installed: Path) -> None:
+    """CLI `clasi uninstall --copy --claude` is accepted without error."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["uninstall", str(both_installed), "--claude", "--copy"])
+    assert result.exit_code == 0, f"Expected exit 0, got: {result.output}"
+    _claude_artifacts_absent(both_installed)
+
+
+def test_cli_uninstall_no_copy_flag_accepted(both_installed: Path) -> None:
+    """CLI `clasi uninstall --no-copy --claude` is accepted without error."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["uninstall", str(both_installed), "--claude", "--no-copy"])
+    assert result.exit_code == 0, f"Expected exit 0, got: {result.output}"
+    _claude_artifacts_absent(both_installed)
+
+
+def test_cli_uninstall_copy_flag_with_codex(both_installed: Path) -> None:
+    """CLI `clasi uninstall --copy --codex` is accepted without error."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["uninstall", str(both_installed), "--codex", "--copy"])
+    assert result.exit_code == 0, f"Expected exit 0, got: {result.output}"
+    _codex_artifacts_absent(both_installed)
+
+
+def test_run_uninstall_copy_kwarg_accepted(both_installed: Path) -> None:
+    """run_uninstall() accepts copy=True without error."""
+    from clasi.uninstall_command import run_uninstall
+
+    run_uninstall(str(both_installed), claude=True, codex=False, copy=True)
+    _claude_artifacts_absent(both_installed)
+
+
+def test_run_uninstall_no_copy_kwarg_accepted(both_installed: Path) -> None:
+    """run_uninstall() accepts copy=False (default) without error."""
+    from clasi.uninstall_command import run_uninstall
+
+    run_uninstall(str(both_installed), claude=True, codex=False, copy=False)
+    _claude_artifacts_absent(both_installed)
+
+
+def test_cli_uninstall_help_mentions_copy(project: Path) -> None:
+    """CLI `clasi uninstall --help` mentions --copy flag."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["uninstall", "--help"])
+    assert result.exit_code == 0
+    assert "--copy" in result.output
