@@ -190,14 +190,17 @@ class TestRunInit:
         assert "mcp__clasi__*" in data["permissions"]["allow"]
         assert data["other"] == "kept"
 
-    def test_does_not_create_agents_md(self, target_dir):
+    def test_creates_agents_md_with_clasi_block(self, target_dir):
+        """Claude install writes AGENTS.md (the authoritative instruction file)."""
         target_dir.mkdir()
         run_init(str(target_dir))
 
         agents_md = target_dir / "AGENTS.md"
-        assert not agents_md.exists()
+        assert agents_md.exists(), "AGENTS.md must be created by Claude install"
+        assert "CLASI:START" in agents_md.read_text(encoding="utf-8")
 
-    def test_does_not_modify_existing_agents_md(self, target_dir):
+    def test_appends_clasi_block_to_existing_agents_md(self, target_dir):
+        """Claude install appends the CLASI block when AGENTS.md already exists."""
         target_dir.mkdir()
         existing = "# My Agents\n\nCustom content.\n"
         (target_dir / "AGENTS.md").write_text(existing, encoding="utf-8")
@@ -205,7 +208,9 @@ class TestRunInit:
         run_init(str(target_dir))
 
         content = (target_dir / "AGENTS.md").read_text(encoding="utf-8")
-        assert content == existing
+        # User content must be preserved AND CLASI block appended
+        assert "Custom content." in content
+        assert "CLASI:START" in content
 
     def test_creates_todo_directories(self, target_dir):
         target_dir.mkdir()
@@ -587,27 +592,25 @@ class TestPlatformsClaude:
             assert "<!-- CLASI:START -->" not in content
             assert "<!-- CLASI:END -->" not in content
 
-    def test_uninstall_preserves_user_content_in_claude_md(self, tmp_path):
-        """User content outside the CLASI block survives uninstall."""
+    def test_uninstall_removes_claude_md_symlink(self, tmp_path):
+        """uninstall() removes the CLAUDE.md symlink; AGENTS.md content is stripped."""
         target = tmp_path / "repo"
         target.mkdir()
         mcp_config = _detect_mcp_command(target)
         claude_install(target, mcp_config)
 
         claude_md = target / "CLAUDE.md"
-        existing = claude_md.read_text(encoding="utf-8")
-        claude_md.write_text(
-            "# My Project\n\nHand-written notes.\n\n" + existing,
-            encoding="utf-8",
-        )
+        agents_md = target / "AGENTS.md"
+        # After install, CLAUDE.md must be a symlink
+        assert claude_md.is_symlink(), "CLAUDE.md must be a symlink after install"
 
         claude_uninstall(target)
 
-        assert claude_md.exists()
-        content = claude_md.read_text(encoding="utf-8")
-        assert "# My Project" in content
-        assert "Hand-written notes." in content
-        assert "<!-- CLASI:START -->" not in content
+        # CLAUDE.md (the symlink) must be gone
+        assert not claude_md.exists(), "CLAUDE.md symlink must be removed by uninstall"
+        # AGENTS.md CLASI block must be stripped (no Codex installed)
+        if agents_md.exists():
+            assert "<!-- CLASI:START -->" not in agents_md.read_text(encoding="utf-8")
 
     def test_uninstall_removes_rule_files(self, tmp_path):
         """uninstall() deletes CLASI-managed rule files."""

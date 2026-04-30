@@ -75,15 +75,51 @@ _CLAUDE_ENTRY_POINT = (
 )
 
 
-def _write_claude_md(target: Path) -> bool:
-    """Write or update CLAUDE.md with the CLASI section."""
+def _write_claude_md(target: Path, copy: bool = False) -> bool:
+    """Write AGENTS.md with the CLASI section and create CLAUDE.md as an alias.
+
+    AGENTS.md becomes the authoritative project-instructions file.
+    CLAUDE.md is a symlink (or copy when *copy* is True) pointing at AGENTS.md.
+
+    Conflict guard:
+      - If CLAUDE.md already exists as a regular file (not a symlink to AGENTS.md)
+        and its content differs from AGENTS.md, install is aborted with an error
+        message and this function returns False.
+      - If the content matches, the regular file is replaced by the alias.
+
+    Returns True if AGENTS.md was written/updated, False on conflict abort.
+    """
     from clasi.platforms._markers import write_section
 
-    return write_section(
-        target / "CLAUDE.md",
+    agents_md = target / "AGENTS.md"
+    claude_md = target / "CLAUDE.md"
+
+    # 1. Write/update AGENTS.md
+    write_section(
+        agents_md,
         entry_point=_CLAUDE_ENTRY_POINT,
         legacy_match_substr="team-lead/agent.md",
     )
+
+    # 2. Conflict guard: existing regular file that is not already our alias
+    if claude_md.exists() and not claude_md.is_symlink():
+        if claude_md.read_bytes() != agents_md.read_bytes():
+            click.echo(
+                "  Error: CLAUDE.md exists with different content. "
+                "Use --migrate to convert."
+            )
+            return False
+        # Content matches — remove so link_or_copy can replace it
+        claude_md.unlink()
+
+    # 3. Create alias (or replace stale symlink pointing elsewhere)
+    if claude_md.is_symlink():
+        claude_md.unlink()
+
+    result = _links.link_or_copy(agents_md, claude_md, copy=copy)
+    verb = "Symlinked" if result == "symlink" else "Copied"
+    click.echo(f"  {verb}: CLAUDE.md -> AGENTS.md")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -296,9 +332,9 @@ def install(
     # Copy plugin content (skills, agents, hooks/settings.json)
     _install_plugin_content(target, copy=copy, migrate=migrate)
 
-    # Write CLAUDE.md
-    click.echo("CLAUDE.md:")
-    _write_claude_md(target)
+    # Write AGENTS.md and create CLAUDE.md alias
+    click.echo("CLAUDE.md / AGENTS.md:")
+    _write_claude_md(target, copy=copy)
     click.echo()
 
     # Add MCP permission to .claude/settings.local.json
@@ -339,9 +375,17 @@ def uninstall(target: Path, copy: bool = False) -> None:
     click.echo(f"Uninstalling Claude platform integration from {target}")
     click.echo()
 
-    # --- CLAUDE.md ---
+    # --- CLAUDE.md (alias) ---
+    _links.unlink_alias(target / "CLAUDE.md")
+    click.echo("  Removed: CLAUDE.md (alias)")
+
+    # --- AGENTS.md (canonical) ---
+    # Strip the CLASI block only if Codex is NOT installed; if Codex is present
+    # it owns the AGENTS.md block and will clean it up on its own uninstall.
     from clasi.platforms._markers import strip_section
-    strip_section(target / "CLAUDE.md")
+    codex_installed = (target / ".codex").exists()
+    if not codex_installed:
+        strip_section(target / "AGENTS.md")
 
     # --- .claude/skills/ (alias only — canonical .agents/skills/ is preserved) ---
     skills_dir = target / ".claude" / "skills"

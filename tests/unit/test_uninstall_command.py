@@ -129,11 +129,14 @@ def test_uninstall_codex_only_removes_codex_artifacts(both_installed: Path) -> N
     # Codex artifacts gone
     _codex_artifacts_absent(project)
 
-    # Claude CLAUDE.md CLASI section still present
+    # CLAUDE.md symlink still exists (Claude was not uninstalled).
+    # Note: CLAUDE.md is a symlink to AGENTS.md; Codex uninstall strips AGENTS.md,
+    # so the underlying content may have the CLASI block removed — but the symlink
+    # itself (Claude's artifact) must survive Codex-only uninstall.
     claude_md = project / "CLAUDE.md"
-    assert claude_md.exists(), "CLAUDE.md should still exist"
-    content = claude_md.read_text(encoding="utf-8")
-    assert "<!-- CLASI:START -->" in content, "Claude CLASI section should remain"
+    assert claude_md.is_symlink() or claude_md.exists(), (
+        "CLAUDE.md should still exist (symlink) after Codex-only uninstall"
+    )
 
     # Claude rules still present
     rules_dir = project / ".claude" / "rules"
@@ -230,20 +233,29 @@ def test_uninstall_never_installed_is_noop(project: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_uninstall_claude_md_user_section_preserved(project: Path) -> None:
-    """CLAUDE.md user content outside the CLASI block survives --claude uninstall."""
+def test_uninstall_agents_md_user_content_preserved_on_claude_uninstall(
+    project: Path,
+) -> None:
+    """User content in AGENTS.md outside the CLASI block survives --claude uninstall."""
+    # Write user content to AGENTS.md first; install appends the CLASI block.
     user_section = "# My Project Notes\n\nThis is user-owned content.\n"
-    claude_md = project / "CLAUDE.md"
-    claude_md.write_text(user_section, encoding="utf-8")
+    agents_md = project / "AGENTS.md"
+    agents_md.write_text(user_section, encoding="utf-8")
 
     claude_install(project, _MCP_CONFIG)
+
+    # After install, AGENTS.md has user content + CLASI block
+    content = agents_md.read_text(encoding="utf-8")
+    assert "My Project Notes" in content
+    assert "<!-- CLASI:START -->" in content
 
     from clasi.uninstall_command import run_uninstall
     run_uninstall(str(project), claude=True, codex=False)
 
-    assert claude_md.exists(), "CLAUDE.md should still exist when user content present"
-    content = claude_md.read_text(encoding="utf-8")
-    assert "My Project Notes" in content
+    # AGENTS.md must still exist with user content; CLASI block stripped.
+    assert agents_md.exists(), "AGENTS.md should still exist when user content is present"
+    content = agents_md.read_text(encoding="utf-8")
+    assert "My Project Notes" in content, "User content must survive uninstall"
     assert "user-owned content" in content
     assert "<!-- CLASI:START -->" not in content
     assert "<!-- CLASI:END -->" not in content
