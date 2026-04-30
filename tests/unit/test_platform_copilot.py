@@ -548,3 +548,127 @@ def test_uninstall_agents_preserves_nonempty_dir(tmp_path: Path) -> None:
 def test_uninstall_agents_no_install(tmp_path: Path) -> None:
     """`_uninstall_agents` on a fresh directory must not raise."""
     copilot._uninstall_agents(tmp_path)  # no prior install, must not raise
+
+
+# ---------------------------------------------------------------------------
+# _install_vscode_mcp / _uninstall_vscode_mcp — ticket 010
+# ---------------------------------------------------------------------------
+
+_MCP_CONFIG = {"command": "clasi", "args": ["mcp"]}
+
+
+def test_install_vscode_mcp_fresh_creates_file(tmp_path: Path) -> None:
+    """`_install_vscode_mcp` on a clean target creates .vscode/mcp.json."""
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    mcp_path = tmp_path / ".vscode" / "mcp.json"
+    assert mcp_path.exists(), ".vscode/mcp.json must be created on fresh install"
+
+
+def test_install_vscode_mcp_fresh_content(tmp_path: Path) -> None:
+    """Fresh install must write servers.clasi equal to mcp_config."""
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    data = json.loads((tmp_path / ".vscode" / "mcp.json").read_text(encoding="utf-8"))
+    assert "servers" in data
+    assert data["servers"]["clasi"] == _MCP_CONFIG
+
+
+def test_install_vscode_mcp_creates_vscode_dir(tmp_path: Path) -> None:
+    """`_install_vscode_mcp` must create .vscode/ if it does not exist."""
+    assert not (tmp_path / ".vscode").exists()
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    assert (tmp_path / ".vscode").is_dir()
+
+
+def test_install_vscode_mcp_merge_preserves_user_keys(tmp_path: Path) -> None:
+    """Install into an existing file must preserve user-owned keys."""
+    vscode_dir = tmp_path / ".vscode"
+    vscode_dir.mkdir()
+    existing = {
+        "servers": {"my-server": {"command": "my-cmd", "args": []}},
+        "inputs": [{"id": "my-input", "type": "promptString"}],
+    }
+    (vscode_dir / "mcp.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+
+    data = json.loads((vscode_dir / "mcp.json").read_text(encoding="utf-8"))
+    # clasi entry added
+    assert data["servers"]["clasi"] == _MCP_CONFIG
+    # user server preserved
+    assert "my-server" in data["servers"]
+    assert data["servers"]["my-server"] == existing["servers"]["my-server"]
+    # top-level user key preserved
+    assert data["inputs"] == existing["inputs"]
+
+
+def test_install_vscode_mcp_corrupt_json_skips(tmp_path: Path) -> None:
+    """If .vscode/mcp.json is corrupt JSON, the file must not be modified."""
+    vscode_dir = tmp_path / ".vscode"
+    vscode_dir.mkdir()
+    bad_content = "{not valid json"
+    (vscode_dir / "mcp.json").write_text(bad_content, encoding="utf-8")
+
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+
+    # File must be unchanged
+    assert (vscode_dir / "mcp.json").read_text(encoding="utf-8") == bad_content
+
+
+def test_install_vscode_mcp_idempotent(tmp_path: Path) -> None:
+    """Calling `_install_vscode_mcp` twice must produce the same file."""
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    first = (tmp_path / ".vscode" / "mcp.json").read_text(encoding="utf-8")
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    second = (tmp_path / ".vscode" / "mcp.json").read_text(encoding="utf-8")
+    assert first == second
+
+
+def test_uninstall_vscode_mcp_removes_clasi_key(tmp_path: Path) -> None:
+    """`_uninstall_vscode_mcp` must remove servers.clasi from the file."""
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    copilot._uninstall_vscode_mcp(tmp_path)
+    data = json.loads((tmp_path / ".vscode" / "mcp.json").read_text(encoding="utf-8"))
+    assert "clasi" not in data.get("servers", {})
+
+
+def test_uninstall_vscode_mcp_preserves_other_servers(tmp_path: Path) -> None:
+    """`_uninstall_vscode_mcp` must preserve other entries in servers."""
+    vscode_dir = tmp_path / ".vscode"
+    vscode_dir.mkdir()
+    existing = {
+        "servers": {
+            "my-server": {"command": "my-cmd"},
+            "clasi": _MCP_CONFIG,
+        }
+    }
+    (vscode_dir / "mcp.json").write_text(json.dumps(existing), encoding="utf-8")
+
+    copilot._uninstall_vscode_mcp(tmp_path)
+
+    data = json.loads((vscode_dir / "mcp.json").read_text(encoding="utf-8"))
+    assert "clasi" not in data["servers"]
+    assert "my-server" in data["servers"]
+
+
+def test_uninstall_vscode_mcp_no_file_noop(tmp_path: Path) -> None:
+    """`_uninstall_vscode_mcp` on a fresh directory must not raise."""
+    copilot._uninstall_vscode_mcp(tmp_path)  # no file, must not raise
+
+
+def test_uninstall_vscode_mcp_does_not_delete_vscode_dir(tmp_path: Path) -> None:
+    """`_uninstall_vscode_mcp` must not delete the .vscode/ directory."""
+    copilot._install_vscode_mcp(tmp_path, _MCP_CONFIG)
+    copilot._uninstall_vscode_mcp(tmp_path)
+    assert (tmp_path / ".vscode").is_dir(), ".vscode/ must remain after uninstall"
+
+
+def test_uninstall_vscode_mcp_corrupt_json_skips(tmp_path: Path) -> None:
+    """If .vscode/mcp.json is corrupt on uninstall, file must not be modified."""
+    vscode_dir = tmp_path / ".vscode"
+    vscode_dir.mkdir()
+    bad_content = "{not valid json"
+    (vscode_dir / "mcp.json").write_text(bad_content, encoding="utf-8")
+
+    copilot._uninstall_vscode_mcp(tmp_path)
+
+    assert (vscode_dir / "mcp.json").read_text(encoding="utf-8") == bad_content

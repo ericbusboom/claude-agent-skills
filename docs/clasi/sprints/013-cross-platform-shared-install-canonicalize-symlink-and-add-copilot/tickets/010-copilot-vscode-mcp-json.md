@@ -1,7 +1,7 @@
 ---
 id: "013-010"
 title: "Copilot: .vscode/mcp.json JSON-merge writer"
-status: todo
+status: done
 sprint: "013"
 use-cases:
   - SUC-005
@@ -37,20 +37,20 @@ shape based on VS Code docs is `{"servers": {"clasi": {"command": "clasi",
 
 ## Acceptance Criteria
 
-- [ ] After `_install_vscode_mcp(target, mcp_config)` on a clean target, `.vscode/mcp.json`
+- [x] After `_install_vscode_mcp(target, mcp_config)` on a clean target, `.vscode/mcp.json`
       exists with `servers.clasi` set to `mcp_config`.
-- [ ] After `_install_vscode_mcp` on an existing `.vscode/mcp.json` with user content,
+- [x] After `_install_vscode_mcp` on an existing `.vscode/mcp.json` with user content,
       the user content is preserved and `servers.clasi` is added/updated.
-- [ ] If `.vscode/mcp.json` is corrupt JSON, an error is printed and the file is not
+- [x] If `.vscode/mcp.json` is corrupt JSON, an error is printed and the file is not
       modified.
-- [ ] After `_uninstall_vscode_mcp(target)`, `servers.clasi` is removed from
+- [x] After `_uninstall_vscode_mcp(target)`, `servers.clasi` is removed from
       `.vscode/mcp.json`. Other keys in `servers` are preserved.
-- [ ] `.vscode/` directory is created if absent on install.
-- [ ] `.vscode/` directory is NOT deleted on uninstall (user may have other VS Code
+- [x] `.vscode/` directory is created if absent on install.
+- [x] `.vscode/` directory is NOT deleted on uninstall (user may have other VS Code
       config there).
-- [ ] Tests: fresh install (file created), merge into existing (user keys preserved),
+- [x] Tests: fresh install (file created), merge into existing (user keys preserved),
       corrupt-JSON guard (file unchanged), uninstall (key removed, other keys intact).
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 

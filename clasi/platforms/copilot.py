@@ -18,6 +18,7 @@ Those remain in init_command.py.
 
 from __future__ import annotations
 
+import json
 import shutil
 from pathlib import Path
 
@@ -308,22 +309,65 @@ def _uninstall_agents(target: Path) -> None:
 def _install_vscode_mcp(target: Path, mcp_config: dict) -> None:
     """Merge the CLASI server entry into .vscode/mcp.json.
 
-    Stub — implemented in ticket 010.
+    - If the file does not exist: create it with ``{"servers": {"clasi": mcp_config}}``.
+    - If it exists and parses as JSON: merge ``servers.clasi``, preserving all
+      other keys at every level.
+    - If it exists but cannot be parsed (corrupt JSON): log an error and skip;
+      never overwrite user content.
+
+    Idempotent: if ``servers.clasi`` already matches *mcp_config*, the file is
+    not rewritten.
     """
-    # TODO(013-010): create or merge .vscode/mcp.json with
-    #   {"servers": {"clasi": mcp_config}}.  Parse-fail guard: log error and
-    #   skip; never overwrite user content.
-    click.echo("  [stub] .vscode/mcp.json (ticket 010)")
+    vscode_dir = target / ".vscode"
+    vscode_dir.mkdir(parents=True, exist_ok=True)
+    mcp_path = vscode_dir / "mcp.json"
+
+    if mcp_path.exists():
+        try:
+            data = json.loads(mcp_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            click.echo("  Error: .vscode/mcp.json is not valid JSON; skipping.")
+            return
+    else:
+        data = {}
+
+    servers = data.setdefault("servers", {})
+
+    # Idempotency check — skip write if nothing would change.
+    if servers.get("clasi") == mcp_config:
+        click.echo("  .vscode/mcp.json already up to date.")
+        return
+
+    servers["clasi"] = mcp_config
+    mcp_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    click.echo("  Wrote: .vscode/mcp.json")
 
 
 def _uninstall_vscode_mcp(target: Path) -> None:
     """Remove the CLASI entry from .vscode/mcp.json.
 
-    Stub — implemented in ticket 010.
+    Strips ``servers.clasi`` from the file, preserving all other keys.
+    If the file does not exist, this is a no-op.  If the file is corrupt JSON,
+    logs an error and skips.  The ``.vscode/`` directory is never deleted.
     """
-    # TODO(013-010): remove servers.clasi from .vscode/mcp.json; delete the
-    #   key but preserve the rest of the file.
-    click.echo("  [stub] uninstall .vscode/mcp.json (ticket 010)")
+    mcp_path = target / ".vscode" / "mcp.json"
+    if not mcp_path.exists():
+        return
+
+    try:
+        data = json.loads(mcp_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        click.echo("  Error: .vscode/mcp.json is not valid JSON; skipping.")
+        return
+
+    servers = data.get("servers", {})
+    if "clasi" not in servers:
+        click.echo("  .vscode/mcp.json: clasi entry not found; nothing to remove.")
+        return
+
+    del servers["clasi"]
+    mcp_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    click.echo("  Removed clasi from .vscode/mcp.json")
 
 
 def _print_cloud_mcp_notice(mcp_config: dict) -> None:
