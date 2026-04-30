@@ -1,13 +1,13 @@
 ---
-id: "013-007"
-title: "Copilot: .github/copilot-instructions.md writer"
-status: todo
-sprint: "013"
+id: 013-007
+title: 'Copilot: .github/copilot-instructions.md writer'
+status: done
+sprint: '013'
 use-cases:
-  - SUC-005
-  - SUC-008
+- SUC-005
+- SUC-008
 depends-on:
-  - "013-006"
+- 013-006
 ---
 
 # 013-007: Copilot: `.github/copilot-instructions.md` writer
@@ -31,23 +31,23 @@ instructions footprint and has no dependencies on other subsections).
 
 ## Acceptance Criteria
 
-- [ ] After `_install_global_instructions(target)`, `.github/copilot-instructions.md`
+- [x] After `_install_global_instructions(target)`, `.github/copilot-instructions.md`
       exists with a CLASI marker block containing the entry-point sentence and global
       rules content.
-- [ ] Re-running `_install_global_instructions` on an existing file preserves user
+- [x] Re-running `_install_global_instructions` on an existing file preserves user
       content outside the marker block.
-- [ ] The entry-point sentence references `.github/agents/team-lead.agent.md`.
-- [ ] After `_uninstall_global_instructions(target)`, the CLASI marker block is stripped.
+- [x] The entry-point sentence references `.github/agents/team-lead.agent.md`.
+- [x] After `_uninstall_global_instructions(target)`, the CLASI marker block is stripped.
       User content outside the block is preserved. The file is not deleted.
-- [ ] `_print_cloud_mcp_notice(mcp_config)` prints to stdout:
+- [x] `_print_cloud_mcp_notice(mcp_config)` prints to stdout:
   - A header line: "Copilot Cloud Coding Agent MCP (manual step required):"
   - The GitHub Settings URL pattern for the repo.
   - The exact JSON snippet to paste.
-- [ ] `install()` calls `_print_cloud_mcp_notice` after all install steps.
-- [ ] Tests cover: file creation, marker block content, re-install idempotency (user
+- [x] `install()` calls `_print_cloud_mcp_notice` after all install steps.
+- [x] Tests cover: file creation, marker block content, re-install idempotency (user
       content preserved), uninstall (block stripped, user content preserved), cloud
       notice output.
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 

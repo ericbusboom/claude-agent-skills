@@ -24,11 +24,20 @@ from pathlib import Path
 import click
 
 from clasi.platforms import _links
-from clasi.platforms import _markers  # noqa: F401 — imported for future stubs
-from clasi.platforms import _rules  # noqa: F401 — imported for future stubs
+from clasi.platforms._markers import strip_section, write_section
+from clasi.platforms._rules import GIT_COMMITS_BODY, MCP_REQUIRED_BODY
 
 # The plugin directory is bundled inside the clasi package.
 _PLUGIN_DIR = Path(__file__).parent.parent / "plugin"
+
+# ---------------------------------------------------------------------------
+# Copilot entry-point sentence
+# ---------------------------------------------------------------------------
+
+_COPILOT_ENTRY_POINT = (
+    "Read `.github/agents/team-lead.agent.md` at session start "
+    "and follow the team-lead role definition."
+)
 
 
 # ---------------------------------------------------------------------------
@@ -150,21 +159,32 @@ def _uninstall_skills(target: Path) -> None:
 def _install_global_instructions(target: Path, copy: bool = False) -> None:
     """Write .github/copilot-instructions.md with the CLASI marker section.
 
-    Stub — implemented in ticket 007.
+    Creates or updates the marker block inside the file, preserving any
+    user content outside the block.  The block contains:
+    - Entry-point sentence pointing at .github/agents/team-lead.agent.md
+    - Global-scope rules: MCP Required and Git Commits (from _rules.py)
     """
-    # TODO(013-007): write .github/copilot-instructions.md using
-    #   _markers.write_section with the CLASI entry-point and global rules.
-    click.echo("  [stub] .github/copilot-instructions.md (ticket 007)")
+    path = target / ".github" / "copilot-instructions.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = (
+        f"{_COPILOT_ENTRY_POINT}\n\n"
+        "## Global Rules\n\n"
+        "### MCP Server Required\n\n"
+        f"{MCP_REQUIRED_BODY}\n"
+        "### Git Commits\n\n"
+        f"{GIT_COMMITS_BODY}"
+    )
+    write_section(path, entry_point=body)
 
 
 def _uninstall_global_instructions(target: Path) -> None:
     """Remove the CLASI block from .github/copilot-instructions.md.
 
-    Stub — implemented in ticket 007.
+    Strips the CLASI marker block, preserving user content outside it.
+    The file is deleted only if it becomes empty after the strip.
     """
-    # TODO(013-007): strip the CLASI marker block from
-    #   .github/copilot-instructions.md.
-    click.echo("  [stub] uninstall .github/copilot-instructions.md (ticket 007)")
+    path = target / ".github" / "copilot-instructions.md"
+    strip_section(path)
 
 
 def _install_path_rules(target: Path) -> None:
@@ -229,14 +249,27 @@ def _uninstall_vscode_mcp(target: Path) -> None:
 
 
 def _print_cloud_mcp_notice(mcp_config: dict) -> None:
-    """Print a post-install notice for cloud MCP configuration.
+    """Print a post-install notice for Copilot Cloud Coding Agent MCP setup.
 
-    Stub — implemented in ticket 010 or as a standalone note.
+    GitHub Copilot Cloud Coding Agent cannot read a committed .vscode/mcp.json
+    — the MCP server must be registered via GitHub repository Settings.  This
+    function emits the JSON snippet the user would paste into
+    Settings → Copilot → MCP.
     """
-    # TODO(013-010): emit a clear post-install message explaining that
-    #   cloud Copilot Coding Agent cannot commit MCP config and the user
-    #   must configure it manually in the GitHub Copilot settings UI.
-    click.echo("  [stub] cloud MCP notice (ticket 010)")
+    import json
+
+    servers_entry = {"clasi": mcp_config}
+    snippet = json.dumps({"servers": servers_entry}, indent=2)
+
+    click.echo("Copilot Cloud Coding Agent MCP (manual step required):")
+    click.echo(
+        "  Go to: https://github.com/<owner>/<repo>/settings/copilot/mcp-servers"
+    )
+    click.echo("  Paste the following JSON snippet into the MCP configuration UI:")
+    click.echo()
+    for line in snippet.splitlines():
+        click.echo(f"    {line}")
+    click.echo()
 
 
 # ---------------------------------------------------------------------------
@@ -254,11 +287,11 @@ def install(
 
     Performs the Copilot-specific steps in order:
     1. Write canonical .agents/skills/ content and create .github/skills/ alias.
-    2. Write .github/copilot-instructions.md (stub; ticket 007).
+    2. Write .github/copilot-instructions.md (ticket 007).
     3. Write .github/instructions/<n>.instructions.md (stub; ticket 008).
     4. Write .github/agents/<n>.agent.md (stub; ticket 009).
     5. Merge .vscode/mcp.json (stub; ticket 010).
-    6. Print cloud MCP notice (stub; ticket 010).
+    6. Print cloud MCP notice (ticket 007).
 
     Shared scaffolding (TODO dirs, log dir, .mcp.json) is handled by the
     caller (init_command.run_init).
