@@ -123,6 +123,103 @@ def _write_claude_md(target: Path, copy: bool = False) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Migration helpers
+# ---------------------------------------------------------------------------
+
+def _migrate_claude(target: Path) -> dict:
+    """Convert legacy direct-copy installs to symlinks (pre-install migration pass).
+
+    Iterates over every expected alias path — one per bundled skill plus
+    ``CLAUDE.md`` — and calls ``_links.migrate_to_symlink`` on each.
+    Results are aggregated into a summary dict and printed via ``click.echo``.
+
+    The skill canonicals are written to ``.agents/skills/<n>/SKILL.md`` before
+    migration so that ``migrate_to_symlink`` can do the byte-for-byte content
+    comparison.  ``AGENTS.md`` is written before comparing ``CLAUDE.md``.
+
+    Parameters
+    ----------
+    target:
+        Resolved path to the target project root.
+
+    Returns
+    -------
+    dict
+        ``{"migrated": int, "conflict": int, "skipped": int}`` counts.
+    """
+    from clasi.platforms._markers import write_section
+
+    counts: dict = {"migrated": 0, "conflict": 0, "skipped": 0}
+
+    if not _PLUGIN_DIR.exists():
+        return counts
+
+    # --- Skills ---
+    plugin_skills = _PLUGIN_DIR / "skills"
+    if plugin_skills.exists():
+        for skill_dir in sorted(plugin_skills.iterdir()):
+            if not skill_dir.is_dir():
+                continue
+            skill_src = skill_dir / "SKILL.md"
+            if not skill_src.exists():
+                continue
+
+            # Write canonical so migrate_to_symlink can compare bytes.
+            canonical = target / ".agents" / "skills" / skill_dir.name / "SKILL.md"
+            canonical.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(skill_src, canonical)
+
+            alias = target / ".claude" / "skills" / skill_dir.name / "SKILL.md"
+            result = _links.migrate_to_symlink(canonical, alias)
+
+            alias_rel = f".claude/skills/{skill_dir.name}/SKILL.md"
+            if result == "migrated":
+                click.echo(f"  Migrated: {alias_rel} -> symlink")
+                counts["migrated"] += 1
+            elif result == "conflict":
+                click.echo(
+                    f"  Warning: {alias_rel} has different content — "
+                    "skipping (investigate and resolve manually)"
+                )
+                counts["conflict"] += 1
+            else:
+                # "already-symlink" or "not-found" — silent skip
+                counts["skipped"] += 1
+
+    # --- CLAUDE.md ---
+    agents_md = target / "AGENTS.md"
+    claude_md = target / "CLAUDE.md"
+
+    # Write AGENTS.md so we can compare against it.
+    write_section(
+        agents_md,
+        entry_point=_CLAUDE_ENTRY_POINT,
+        legacy_match_substr="team-lead/agent.md",
+    )
+
+    result = _links.migrate_to_symlink(agents_md, claude_md)
+    if result == "migrated":
+        click.echo("  Migrated: CLAUDE.md -> symlink")
+        counts["migrated"] += 1
+    elif result == "conflict":
+        click.echo(
+            "  Warning: CLAUDE.md has different content — "
+            "skipping (investigate and resolve manually)"
+        )
+        counts["conflict"] += 1
+    else:
+        # "already-symlink" or "not-found" — silent skip
+        counts["skipped"] += 1
+
+    click.echo(
+        f"Migration complete: {counts['migrated']} converted, "
+        f"{counts['conflict']} conflicts, "
+        f"{counts['skipped']} skipped."
+    )
+    return counts
+
+
+# ---------------------------------------------------------------------------
 # Plugin content helpers
 # ---------------------------------------------------------------------------
 
@@ -326,10 +423,20 @@ def install(
             interface symmetry with future platform modules that may need it).
         copy: If True, use file copy instead of symlink for alias operations.
             Passed through to ``_links.link_or_copy``.
-        migrate: If True, convert legacy direct-copy installs to symlinks via
-            ``_links.migrate_to_symlink``.
+        migrate: If True, run a dedicated migration pass before the standard
+            install.  ``_migrate_claude`` iterates over all expected alias paths,
+            calls ``_links.migrate_to_symlink`` on each, and prints a summary
+            line.  The standard install then proceeds normally.
     """
-    # Copy plugin content (skills, agents, hooks/settings.json)
+    if migrate:
+        click.echo("Migration pass:")
+        _migrate_claude(target)
+        click.echo()
+
+    # Copy plugin content (skills, agents, hooks/settings.json).
+    # When migrate=True the dedicated pass above already ran; pass migrate
+    # through so _install_plugin_content still guards against overwriting
+    # conflicting aliases that the migration pass left unchanged.
     _install_plugin_content(target, copy=copy, migrate=migrate)
 
     # Write AGENTS.md and create CLAUDE.md alias

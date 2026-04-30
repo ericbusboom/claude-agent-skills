@@ -1,6 +1,7 @@
 """Tests for clasi.init_command module."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -661,6 +662,47 @@ class TestPlatformsClaude:
         claude_uninstall(target)
         # Second call should not raise
         claude_uninstall(target)
+
+
+# ---------------------------------------------------------------------------
+# --migrate platform scope
+# ---------------------------------------------------------------------------
+
+
+class TestMigratePlatformScope:
+    """Verify that --migrate is platform-scoped: it only runs when an explicit
+    platform flag (--claude or --codex) is also supplied."""
+
+    def test_migrate_without_explicit_platform_no_migration_pass(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """run_init(migrate=True) without an explicit platform flag does NOT run
+        the migration pass (no 'Migration pass:' output)."""
+        target = tmp_path / "repo"
+        target.mkdir()
+
+        # Neither claude=True nor codex=True passed — the non-interactive
+        # default will install Claude, but migrate must be suppressed.
+        run_init(str(target), claude=False, codex=False, migrate=True)
+
+        captured = capsys.readouterr()
+        assert "Migration pass:" not in captured.out, (
+            "--migrate without explicit platform must not run the migration pass"
+        )
+
+    def test_migrate_with_explicit_claude_runs_migration_pass(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """run_init(claude=True, migrate=True) runs the migration pass."""
+        target = tmp_path / "repo"
+        target.mkdir()
+
+        run_init(str(target), claude=True, migrate=True)
+
+        captured = capsys.readouterr()
+        assert "Migration pass:" in captured.out, (
+            "--claude --migrate must run the migration pass"
+        )
 
     def test_uninstall_preserves_user_file_inside_skill_dir(self, tmp_path):
         """User-added notes.md in .claude/skills/se/ survives uninstall."""

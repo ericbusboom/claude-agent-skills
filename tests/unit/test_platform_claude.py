@@ -304,6 +304,151 @@ class TestMigrateConflict:
 
 
 # ---------------------------------------------------------------------------
+# Migrate — not-found case
+# ---------------------------------------------------------------------------
+
+
+class TestMigrateNotFound:
+    def test_migrate_not_found_skipped_silently(self, tmp_path: Path) -> None:
+        """install(migrate=True) with no pre-existing alias is a silent skip."""
+        name = _first_skill_name()
+        alias = tmp_path / ".claude" / "skills" / name / "SKILL.md"
+        assert not alias.exists()  # confirm no pre-existing alias
+
+        # Should not raise; alias is created fresh by the install step.
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+
+        # After install the alias exists as a symlink (install creates it).
+        assert alias.is_symlink(), "Fresh install must create symlink alias"
+
+    def test_migrate_not_found_does_not_print_error(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """install(migrate=True) with no pre-existing alias prints no conflict/error."""
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+        captured = capsys.readouterr()
+        assert "Conflict" not in captured.out
+        assert "Error" not in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Migrate — summary line
+# ---------------------------------------------------------------------------
+
+
+class TestMigrateSummary:
+    def test_summary_line_printed(self, tmp_path: Path, capsys) -> None:
+        """install(migrate=True) prints the summary line."""
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+        captured = capsys.readouterr()
+        assert "Migration complete:" in captured.out
+
+    def test_summary_zero_converted_on_fresh_install(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """Fresh install: summary shows 0 converted (all not-found → skipped)."""
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+        captured = capsys.readouterr()
+        assert "0 converted" in captured.out
+
+    def test_summary_counts_one_migrated(self, tmp_path: Path, capsys) -> None:
+        """Summary shows 1 converted when one legacy direct-copy alias is present."""
+        name = _first_skill_name()
+        plugin_src = _PLUGIN_DIR / "skills" / name / "SKILL.md"
+
+        alias = tmp_path / ".claude" / "skills" / name / "SKILL.md"
+        alias.parent.mkdir(parents=True, exist_ok=True)
+        alias.write_bytes(plugin_src.read_bytes())  # matching content
+
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+        captured = capsys.readouterr()
+        # At least 1 converted (the skill we seeded)
+        assert "1 converted" in captured.out or "converted" in captured.out
+        # Extract the count and verify >= 1
+        import re
+        match = re.search(r"(\d+) converted", captured.out)
+        assert match and int(match.group(1)) >= 1
+
+    def test_summary_counts_one_conflict(self, tmp_path: Path, capsys) -> None:
+        """Summary shows 1 conflict when one alias has mismatched content."""
+        name = _first_skill_name()
+
+        alias = tmp_path / ".claude" / "skills" / name / "SKILL.md"
+        alias.parent.mkdir(parents=True, exist_ok=True)
+        alias.write_text("# Conflicting content\n", encoding="utf-8")
+
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+        captured = capsys.readouterr()
+        import re
+        match = re.search(r"(\d+) conflicts", captured.out)
+        assert match and int(match.group(1)) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Migrate — CLAUDE.md via migrate=True
+# ---------------------------------------------------------------------------
+
+
+class TestMigrateClaudeMd:
+    def test_migrate_converts_claude_md_regular_file_to_symlink(
+        self, tmp_path: Path
+    ) -> None:
+        """install(migrate=True) converts a matching CLAUDE.md regular file to symlink."""
+        from clasi.platforms._markers import write_section
+        from clasi.platforms.claude import _CLAUDE_ENTRY_POINT
+
+        # Write AGENTS.md and create a legacy direct-copy CLAUDE.md
+        agents_md = tmp_path / "AGENTS.md"
+        write_section(agents_md, entry_point=_CLAUDE_ENTRY_POINT,
+                      legacy_match_substr="team-lead/agent.md")
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_bytes(agents_md.read_bytes())
+        assert not claude_md.is_symlink()
+
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+
+        assert claude_md.is_symlink(), "migrate=True must convert matching CLAUDE.md to symlink"
+        assert claude_md.resolve() == agents_md.resolve()
+
+    def test_migrate_claude_md_conflict_leaves_file_unchanged(
+        self, tmp_path: Path
+    ) -> None:
+        """install(migrate=True) leaves CLAUDE.md with different content unchanged."""
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text("# User authored content — do not touch\n", encoding="utf-8")
+        original_content = claude_md.read_bytes()
+
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+
+        assert claude_md.read_bytes() == original_content
+        assert not claude_md.is_symlink()
+
+    def test_migrate_claude_md_already_symlink_no_error(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        """install(migrate=True) when CLAUDE.md is already a symlink is silent."""
+        # First install creates the symlink
+        claude_mod.install(tmp_path, mcp_config={})
+        claude_md = tmp_path / "CLAUDE.md"
+        assert claude_md.is_symlink()
+
+        # Migrate pass: already-symlink is silently skipped
+        capsys.readouterr()  # clear buffer
+        claude_mod.install(tmp_path, mcp_config={}, migrate=True)
+        captured = capsys.readouterr()
+        # No "Migrated: CLAUDE.md" in the migration section
+        lines = captured.out.split("\n")
+        in_migration_pass = False
+        for line in lines:
+            if "Migration pass:" in line:
+                in_migration_pass = True
+            if "Migration complete:" in line:
+                in_migration_pass = False
+            if in_migration_pass and "Migrated: CLAUDE.md" in line:
+                pytest.fail("Already-symlink CLAUDE.md should not show Migrated message")
+
+
+# ---------------------------------------------------------------------------
 # Idempotency
 # ---------------------------------------------------------------------------
 

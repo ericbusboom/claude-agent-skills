@@ -1,13 +1,13 @@
 ---
-id: "013-005"
-title: "Migration logic for existing direct-copy installs (--migrate flag)"
-status: todo
-sprint: "013"
+id: 013-005
+title: Migration logic for existing direct-copy installs (--migrate flag)
+status: done
+sprint: '013'
 use-cases:
-  - SUC-001
-  - SUC-002
+- SUC-001
+- SUC-002
 depends-on:
-  - "013-001"
+- 013-001
 ---
 
 # 013-005: Migration logic for existing direct-copy installs (`--migrate` flag)
@@ -29,22 +29,22 @@ of the migration.
 
 ## Acceptance Criteria
 
-- [ ] `clasi init --claude --migrate` converts all `.claude/skills/<n>/SKILL.md`
+- [x] `clasi init --claude --migrate` converts all `.claude/skills/<n>/SKILL.md`
       regular files that match their canonical to symlinks. Reports each conversion.
-- [ ] `clasi init --claude --migrate` converts `CLAUDE.md` if it is a regular file
+- [x] `clasi init --claude --migrate` converts `CLAUDE.md` if it is a regular file
       matching `AGENTS.md`. Reports the conversion.
-- [ ] `clasi init --claude --migrate` reports a conflict (path + message) for any file
+- [x] `clasi init --claude --migrate` reports a conflict (path + message) for any file
       that cannot be converted (content mismatch) without aborting migration of other
       files.
-- [ ] Already-symlinked paths are skipped silently (no error, no spurious "migrated"
+- [x] Already-symlinked paths are skipped silently (no error, no spurious "migrated"
       message).
-- [ ] Non-existent paths are skipped silently.
-- [ ] A summary line is printed: "Migration complete: N converted, M conflicts, P skipped."
-- [ ] `clasi init --migrate` without `--claude` has no effect (migration is
+- [x] Non-existent paths are skipped silently.
+- [x] A summary line is printed: "Migration complete: N converted, M conflicts, P skipped."
+- [x] `clasi init --migrate` without `--claude` has no effect (migration is
       platform-scoped).
-- [ ] Unit tests cover all four `migrate_to_symlink` return values in the context of the
+- [x] Unit tests cover all four `migrate_to_symlink` return values in the context of the
       Claude installer's migration pass.
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 

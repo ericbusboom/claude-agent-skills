@@ -137,6 +137,11 @@ def run_init(
     from clasi.platforms.claude import install as claude_install
     from clasi.platforms.codex import install as codex_install
 
+    # Track whether the user explicitly specified a platform.  --migrate is
+    # platform-scoped: it only runs when an explicit platform flag is given.
+    explicit_platform = claude or codex
+    effective_migrate = migrate and explicit_platform
+
     # Resolve the platform selection when neither flag was supplied.
     if not claude and not codex:
         interactive = sys.stdin.isatty() and sys.stdout.isatty()
@@ -168,11 +173,11 @@ def run_init(
     else:
         if claude:
             # Project-local mode: delegate all Claude-specific steps to the platform module.
-            claude_install(target_path, mcp_config, copy=copy, migrate=migrate)
+            claude_install(target_path, mcp_config, copy=copy, migrate=effective_migrate)
 
         if codex:
             # Codex platform install.
-            codex_install(target_path, mcp_config, copy=copy, migrate=migrate)
+            codex_install(target_path, mcp_config, copy=copy, migrate=effective_migrate)
 
     # Configure MCP server in .mcp.json at project root (shared setup).
     click.echo("MCP server configuration:")
