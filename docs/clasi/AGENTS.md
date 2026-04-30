@@ -1,10 +1,13 @@
 # CLASI SE Process Rules
 
-Before doing any SE process work in this directory:
+You are modifying CLASI planning artifacts. Before making changes:
 
-1. Verify the CLASI MCP server is running by calling get_version().
-   If the call fails, stop and report the issue.
-2. Use CLASI MCP tools for all sprint, ticket, and TODO operations.
-   Do not create sprint directories, tickets, or TODO files manually.
-3. Do not create planning artifacts (sprint.md, usecases.md,
-   architecture-update.md, ticket files) outside the MCP tools.
+1. Confirm you have an active sprint (`list_sprints(status="active")`),
+   or the stakeholder said "out of process" / "direct change".
+2. If creating or modifying tickets, the sprint must be in `ticketing`
+   or `executing` phase (`get_sprint_phase(sprint_id)`).
+3. Use CLASI MCP tools for all artifact operations — do not create
+   sprint/ticket/TODO files manually.
+
+Direct edits to `docs/clasi/sprints/` are blocked for team-lead. Use MCP tools.
+

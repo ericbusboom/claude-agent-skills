@@ -1,9 +1,7 @@
-# CLASI Source Code Rules
-
-Before modifying source code or tests in this directory:
+You are modifying source code or tests. Before writing code:
 
 1. You must have a ticket in `in-progress` status, or the stakeholder
    said "out of process".
-2. If you have a ticket, follow the execute-ticket skill for the full
-   implementation flow.
-3. Run the project test suite after making changes.
+2. If you have a ticket, follow the execute-ticket skill — call
+   `get_skill_definition("execute-ticket")` if unsure of the steps.
+3. Run the project's test suite after changes.
