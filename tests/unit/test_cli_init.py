@@ -63,7 +63,9 @@ class TestRunInitDefaultInstallsClaudeOnly:
         run_init(str(target))
         assert not (target / ".codex").exists()
         assert not (target / "AGENTS.md").exists()
-        assert not (target / ".agents").exists()
+        # .agents/skills/ IS created by Claude-only install (canonical location
+        # for skills per sprint 013 architecture; not a Codex-only artifact).
+        # Only .codex/ and AGENTS.md are Codex-specific.
 
     def test_shared_artifacts_created(self, tmp_path):
         target = tmp_path / "repo"
@@ -87,7 +89,9 @@ class TestRunInitExplicitClaude:
         run_init(str(target), claude=True, codex=False)
         assert not (target / ".codex").exists()
         assert not (target / "AGENTS.md").exists()
-        assert not (target / ".agents").exists()
+        # .agents/skills/ IS created by Claude-only install (canonical location
+        # for skills per sprint 013 architecture; not a Codex-only artifact).
+        # Only .codex/ and AGENTS.md are Codex-specific.
 
 
 class TestRunInitCodexOnly:

@@ -1,7 +1,7 @@
 ---
 id: "013-003"
 title: "Refactor claude.py skills install to use _links.py (symlink to canonical)"
-status: todo
+status: done
 sprint: "013"
 use-cases:
   - SUC-001
@@ -35,23 +35,23 @@ The `--migrate` flag triggers `_links.migrate_to_symlink` on each existing
 
 ## Acceptance Criteria
 
-- [ ] After `clasi init --claude`, `.agents/skills/<n>/SKILL.md` exists for every
+- [x] After `clasi init --claude`, `.agents/skills/<n>/SKILL.md` exists for every
       bundled skill.
-- [ ] After `clasi init --claude`, `.claude/skills/<n>/SKILL.md` is a symlink to
+- [x] After `clasi init --claude`, `.claude/skills/<n>/SKILL.md` is a symlink to
       `.agents/skills/<n>/SKILL.md` (default mode).
-- [ ] After `clasi init --claude --copy`, `.claude/skills/<n>/SKILL.md` is a regular
+- [x] After `clasi init --claude --copy`, `.claude/skills/<n>/SKILL.md` is a regular
       file with content identical to `.agents/skills/<n>/SKILL.md`.
-- [ ] `clasi init --claude` without `--codex` still produces `.agents/skills/` canonical.
-- [ ] `clasi uninstall --claude` removes `.claude/skills/<n>/SKILL.md` (symlink or copy)
+- [x] `clasi init --claude` without `--codex` still produces `.agents/skills/` canonical.
+- [x] `clasi uninstall --claude` removes `.claude/skills/<n>/SKILL.md` (symlink or copy)
       but leaves `.agents/skills/<n>/SKILL.md` intact.
-- [ ] `clasi init --claude --migrate` converts an existing direct-copy
+- [x] `clasi init --claude --migrate` converts an existing direct-copy
       `.claude/skills/<n>/SKILL.md` to a symlink when content matches.
-- [ ] `clasi init --claude --migrate` reports a conflict (does not silently overwrite)
+- [x] `clasi init --claude --migrate` reports a conflict (does not silently overwrite)
       when the existing file's content differs from canonical.
-- [ ] Existing unit tests for Claude skills install are updated and pass.
-- [ ] New unit tests cover: canonical write, symlink alias, copy alias, uninstall
+- [x] Existing unit tests for Claude skills install are updated and pass.
+- [x] New unit tests cover: canonical write, symlink alias, copy alias, uninstall
       precision (alias removed, canonical preserved), migrate happy path, migrate conflict.
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 

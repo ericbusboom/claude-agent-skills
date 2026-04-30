@@ -17,11 +17,13 @@ Those remain in init_command.py.
 """
 
 import json
+import shutil
 from pathlib import Path
 from typing import Dict
 
 import click
 
+from clasi.platforms import _links
 from clasi.platforms._rules import (
     CLASI_ARTIFACTS_BODY,
     GIT_COMMITS_BODY,
@@ -88,10 +90,21 @@ def _write_claude_md(target: Path) -> bool:
 # Plugin content helpers
 # ---------------------------------------------------------------------------
 
-def _install_plugin_content(target: Path) -> None:
+def _install_plugin_content(
+    target: Path,
+    copy: bool = False,
+    migrate: bool = False,
+) -> None:
     """Copy skills, agents, and hooks from the plugin/ directory to .claude/.
 
     This is the project-local installation mode. Skills are unnamespaced.
+
+    Skills are written canonically to ``.agents/skills/<n>/SKILL.md`` and
+    aliased (symlink or copy) at ``.claude/skills/<n>/SKILL.md``.  When
+    *migrate* is ``True``, an existing direct-copy alias is converted to a
+    symlink before the standard alias step (no-op if already a symlink or if
+    a conflict is detected — conflict is reported to stdout and the alias is
+    left unchanged).
     """
     if not _PLUGIN_DIR.exists():
         click.echo("  Warning: plugin/ directory not found, skipping content install")
@@ -100,21 +113,47 @@ def _install_plugin_content(target: Path) -> None:
     # Copy skills
     plugin_skills = _PLUGIN_DIR / "skills"
     if plugin_skills.exists():
-        target_skills = target / ".claude" / "skills"
         click.echo("Skills:")
         for skill_dir in sorted(plugin_skills.iterdir()):
             if not skill_dir.is_dir():
                 continue
-            skill_md = skill_dir / "SKILL.md"
-            if not skill_md.exists():
+            skill_src = skill_dir / "SKILL.md"
+            if not skill_src.exists():
                 continue
-            dest_dir = target_skills / skill_dir.name
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            dest = dest_dir / "SKILL.md"
-            source_content = skill_md.read_text(encoding="utf-8")
-            rel = f".claude/skills/{skill_dir.name}/SKILL.md"
-            dest.write_text(source_content, encoding="utf-8")
-            click.echo(f"  Wrote: {rel}")
+
+            # 1. Write canonical to .agents/skills/<n>/SKILL.md
+            canonical = target / ".agents" / "skills" / skill_dir.name / "SKILL.md"
+            canonical.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(skill_src, canonical)
+
+            # 2. Create alias .claude/skills/<n>/SKILL.md
+            alias = target / ".claude" / "skills" / skill_dir.name / "SKILL.md"
+
+            # Handle --migrate: convert legacy copy to symlink before alias step
+            if migrate and alias.exists():
+                migrate_result = _links.migrate_to_symlink(canonical, alias)
+                if migrate_result == "conflict":
+                    click.echo(
+                        f"  Conflict: .claude/skills/{skill_dir.name}/SKILL.md "
+                        f"differs from canonical — skipping migrate"
+                    )
+                    # Leave the alias unchanged; skip the normal alias step
+                    click.echo(f"  Canonical: .agents/skills/{skill_dir.name}/SKILL.md")
+                    continue
+                elif migrate_result == "migrated":
+                    click.echo(f"  Migrated: .claude/skills/{skill_dir.name}/SKILL.md -> symlink")
+                    click.echo(f"  Canonical: .agents/skills/{skill_dir.name}/SKILL.md")
+                    continue
+                # "already-symlink" or "not-found" — fall through to normal alias step
+
+            # Remove stale alias if present so link_or_copy won't fail
+            if alias.exists() or alias.is_symlink():
+                alias.unlink()
+
+            result = _links.link_or_copy(canonical, alias, copy=copy)
+            verb = "Symlinked" if result == "symlink" else "Copied"
+            click.echo(f"  {verb}: .claude/skills/{skill_dir.name}/SKILL.md")
+            click.echo(f"  Canonical: .agents/skills/{skill_dir.name}/SKILL.md")
         click.echo()
 
     # Copy agents
@@ -250,14 +289,12 @@ def install(
         mcp_config: The MCP server command dict (unused here; kept for
             interface symmetry with future platform modules that may need it).
         copy: If True, use file copy instead of symlink for alias operations.
-            Passed through to ``_links.link_or_copy`` when that helper is wired
-            in (ticket 003/004).  Currently a no-op in direct writes.
+            Passed through to ``_links.link_or_copy``.
         migrate: If True, convert legacy direct-copy installs to symlinks via
-            ``_links.migrate_to_symlink``.  Wired in ticket 003/004; currently
-            accepted and ignored for forward-compatibility.
+            ``_links.migrate_to_symlink``.
     """
     # Copy plugin content (skills, agents, hooks/settings.json)
-    _install_plugin_content(target)
+    _install_plugin_content(target, copy=copy, migrate=migrate)
 
     # Write CLAUDE.md
     click.echo("CLAUDE.md:")
@@ -306,7 +343,7 @@ def uninstall(target: Path, copy: bool = False) -> None:
     from clasi.platforms._markers import strip_section
     strip_section(target / "CLAUDE.md")
 
-    # --- .claude/skills/ ---
+    # --- .claude/skills/ (alias only — canonical .agents/skills/ is preserved) ---
     skills_dir = target / ".claude" / "skills"
     if skills_dir.exists() and _PLUGIN_DIR.exists():
         plugin_skills = _PLUGIN_DIR / "skills"
@@ -317,16 +354,15 @@ def uninstall(target: Path, copy: bool = False) -> None:
                 target_skill = skills_dir / skill_dir.name
                 if not target_skill.exists():
                     continue
-                skill_md = target_skill / "SKILL.md"
-                if skill_md.exists():
-                    skill_md.unlink()
+                alias = target_skill / "SKILL.md"
+                _links.unlink_alias(alias)
                 if not any(target_skill.iterdir()):
                     target_skill.rmdir()
                     click.echo(f"  Removed: .claude/skills/{skill_dir.name}/")
                 else:
                     click.echo(
                         f"  Partial: .claude/skills/{skill_dir.name}/ "
-                        f"(removed SKILL.md; user files preserved)"
+                        f"(removed SKILL.md alias; user files preserved)"
                     )
 
     # --- .claude/agents/ ---
