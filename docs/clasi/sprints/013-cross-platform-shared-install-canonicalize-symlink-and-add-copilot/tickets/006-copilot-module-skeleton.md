@@ -1,7 +1,7 @@
 ---
 id: "013-006"
 title: "New module copilot.py with install/uninstall skeleton"
-status: todo
+status: done
 sprint: "013"
 use-cases:
   - SUC-005
@@ -31,28 +31,28 @@ sub-ticket).
 
 ## Acceptance Criteria
 
-- [ ] `clasi/platforms/copilot.py` exists with:
+- [x] `clasi/platforms/copilot.py` exists with:
   - `install(target: Path, mcp_config: dict, copy: bool = False) -> None`
   - `uninstall(target: Path) -> None`
   - Private stubs: `_install_global_instructions`, `_uninstall_global_instructions`,
     `_install_path_rules`, `_uninstall_path_rules`, `_install_agents`,
     `_uninstall_agents`, `_install_vscode_mcp`, `_uninstall_vscode_mcp`,
     `_print_cloud_mcp_notice`.
-- [ ] `install()` calls each stub in order and emits a section header for each (e.g.,
+- [x] `install()` calls each stub in order and emits a section header for each (e.g.,
       "GitHub Copilot:").
-- [ ] `.github/skills/` → `.agents/skills/` symlink (or copy under `--copy`) is
+- [x] `.github/skills/` → `.agents/skills/` symlink (or copy under `--copy`) is
       implemented and functional (not a stub) in this ticket.
   - Canonical `.agents/skills/` is written first (reuse the write loop from
     `_links.link_or_copy` with source from `plugin/skills/`).
   - Then `_links.link_or_copy(.agents/skills/, .github/skills/, copy=copy)` creates
     the directory-level symlink.
-- [ ] `uninstall()` calls each uninstall stub and also removes the `.github/skills/`
+- [x] `uninstall()` calls each uninstall stub and also removes the `.github/skills/`
       symlink/directory via `_links.unlink_alias`.
-- [ ] The module imports `_rules`, `_markers`, and `_links` (even if only `_links` is
+- [x] The module imports `_rules`, `_markers`, and `_links` (even if only `_links` is
       used in this ticket).
-- [ ] A minimal test confirms `install()` runs without error against a `tmp_path` and
+- [x] A minimal test confirms `install()` runs without error against a `tmp_path` and
       produces `.github/skills/` (symlink) and does not crash on the stubs.
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 
