@@ -15,7 +15,15 @@ import pytest
 
 from clasi.platforms import copilot
 from clasi.platforms._markers import MARKER_END, MARKER_START
-from clasi.platforms._rules import GIT_COMMITS_BODY, MCP_REQUIRED_BODY
+import yaml
+
+from clasi.platforms._rules import (
+    CLASI_ARTIFACTS_BODY,
+    GIT_COMMITS_BODY,
+    MCP_REQUIRED_BODY,
+    SOURCE_CODE_BODY,
+    TODO_DIR_BODY,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -267,3 +275,113 @@ def test_install_calls_print_cloud_mcp_notice(tmp_path: Path, capsys: pytest.Cap
     copilot.install(tmp_path, mcp_config={"command": "clasi", "args": ["mcp"]})
     captured = capsys.readouterr()
     assert "Copilot Cloud Coding Agent MCP (manual step required):" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# _install_path_rules / _uninstall_path_rules — ticket 008
+# ---------------------------------------------------------------------------
+
+# Map of expected filename -> (applyTo glob, rule body constant)
+_EXPECTED_PATH_RULES = [
+    ("clasi-artifacts.instructions.md", "docs/clasi/**", CLASI_ARTIFACTS_BODY),
+    ("todo-dir.instructions.md", "docs/clasi/todo/**", TODO_DIR_BODY),
+    ("source-code.instructions.md", "clasi/**", SOURCE_CODE_BODY),
+]
+
+
+def test_install_path_rules_creates_instructions_dir(tmp_path: Path) -> None:
+    """`_install_path_rules` must create .github/instructions/ if absent."""
+    copilot._install_path_rules(tmp_path)
+    assert (tmp_path / ".github" / "instructions").is_dir()
+
+
+def test_install_path_rules_creates_all_files(tmp_path: Path) -> None:
+    """`_install_path_rules` must write one file per CLASI path rule."""
+    copilot._install_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    for fname, _apply_to, _body in _EXPECTED_PATH_RULES:
+        assert (rules_dir / fname).exists(), f"Expected {fname} to exist"
+
+
+def test_install_path_rules_valid_yaml_frontmatter(tmp_path: Path) -> None:
+    """Each emitted file must have parseable YAML frontmatter."""
+    copilot._install_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    for fname, _apply_to, _body in _EXPECTED_PATH_RULES:
+        content = (rules_dir / fname).read_text(encoding="utf-8")
+        # YAML frontmatter is between the first two "---" delimiters
+        parts = content.split("---", maxsplit=2)
+        assert len(parts) >= 3, f"{fname}: expected YAML frontmatter delimiters"
+        fm = yaml.safe_load(parts[1])
+        assert fm is not None, f"{fname}: frontmatter must not be empty"
+        assert "applyTo" in fm, f"{fname}: frontmatter must contain 'applyTo' key"
+
+
+def test_install_path_rules_apply_to_values(tmp_path: Path) -> None:
+    """Each file's `applyTo` frontmatter value must match the expected glob."""
+    copilot._install_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    for fname, apply_to, _body in _EXPECTED_PATH_RULES:
+        content = (rules_dir / fname).read_text(encoding="utf-8")
+        parts = content.split("---", maxsplit=2)
+        fm = yaml.safe_load(parts[1])
+        assert fm["applyTo"] == apply_to, (
+            f"{fname}: expected applyTo={apply_to!r}, got {fm['applyTo']!r}"
+        )
+
+
+def test_install_path_rules_body_content(tmp_path: Path) -> None:
+    """Each file's body must match the corresponding _rules.py constant."""
+    copilot._install_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    for fname, _apply_to, body in _EXPECTED_PATH_RULES:
+        content = (rules_dir / fname).read_text(encoding="utf-8")
+        # Body follows the closing "---" of frontmatter
+        parts = content.split("---", maxsplit=2)
+        file_body = parts[2].strip()
+        assert file_body == body.strip(), (
+            f"{fname}: body content does not match expected constant"
+        )
+
+
+def test_install_path_rules_idempotent(tmp_path: Path) -> None:
+    """Calling `_install_path_rules` twice must produce the same files (no error)."""
+    copilot._install_path_rules(tmp_path)
+    copilot._install_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    for fname, _apply_to, _body in _EXPECTED_PATH_RULES:
+        assert (rules_dir / fname).exists()
+
+
+def test_uninstall_path_rules_removes_clasi_files(tmp_path: Path) -> None:
+    """`_uninstall_path_rules` must remove all CLASI-written instruction files."""
+    copilot._install_path_rules(tmp_path)
+    copilot._uninstall_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    for fname, _apply_to, _body in _EXPECTED_PATH_RULES:
+        assert not (rules_dir / fname).exists(), f"{fname} should be removed after uninstall"
+
+
+def test_uninstall_path_rules_preserves_user_files(tmp_path: Path) -> None:
+    """`_uninstall_path_rules` must not remove user-created files."""
+    copilot._install_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    user_file = rules_dir / "my-custom.instructions.md"
+    user_file.write_text("# User content\n", encoding="utf-8")
+
+    copilot._uninstall_path_rules(tmp_path)
+
+    assert user_file.exists(), "User-created file must not be removed by uninstall"
+
+
+def test_uninstall_path_rules_does_not_rmdir(tmp_path: Path) -> None:
+    """`_uninstall_path_rules` must NOT remove .github/instructions/ even if empty."""
+    copilot._install_path_rules(tmp_path)
+    copilot._uninstall_path_rules(tmp_path)
+    rules_dir = tmp_path / ".github" / "instructions"
+    assert rules_dir.exists(), ".github/instructions/ must remain after uninstall"
+
+
+def test_uninstall_path_rules_no_install(tmp_path: Path) -> None:
+    """`_uninstall_path_rules` on a fresh directory must not raise."""
+    copilot._uninstall_path_rules(tmp_path)  # no prior install, must not raise

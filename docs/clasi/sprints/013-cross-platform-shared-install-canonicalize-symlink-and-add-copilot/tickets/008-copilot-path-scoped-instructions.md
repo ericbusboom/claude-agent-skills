@@ -1,12 +1,12 @@
 ---
-id: "013-008"
-title: "Copilot: .github/instructions/<n>.instructions.md writer"
-status: todo
-sprint: "013"
+id: 013-008
+title: 'Copilot: .github/instructions/<n>.instructions.md writer'
+status: done
+sprint: '013'
 use-cases:
-  - SUC-005
+- SUC-005
 depends-on:
-  - "013-006"
+- 013-006
 ---
 
 # 013-008: Copilot: `.github/instructions/<n>.instructions.md` writer
@@ -36,24 +36,33 @@ the `applyTo: "**"` files into the global block only (avoiding duplication) or w
 them as separate files for explicit path scoping. Either choice is acceptable; document
 the decision in the ticket.
 
+**Decision**: Only the three genuinely path-scoped rules (`clasi-artifacts`,
+`todo-dir`, `source-code`) are written as `.instructions.md` files.
+`mcp-required` and `git-commits` have global scope (`applyTo: "**"`) and are
+already present in `.github/copilot-instructions.md` (ticket 007). Writing them
+again as separate `.instructions.md` files would duplicate content without
+adding value. The `_PATH_RULES` list contains only the three path-scoped entries.
+
 Files are full-file writes (not marker-managed). Uninstall removes them by name.
 
 ## Acceptance Criteria
 
-- [ ] After `_install_path_rules(target)`, `.github/instructions/` contains one
+- [x] After `_install_path_rules(target)`, `.github/instructions/` contains one
       `.instructions.md` file per CLASI rule.
-- [ ] Each file has valid YAML frontmatter with an `applyTo:` field followed by rule
+- [x] Each file has valid YAML frontmatter with an `applyTo:` field followed by rule
       body content.
-- [ ] Frontmatter is parseable by a YAML parser (no syntax errors).
-- [ ] Re-running `_install_path_rules` overwrites the files idempotently.
-- [ ] `_uninstall_path_rules(target)` removes all written instruction files. Does not
+- [x] Frontmatter is parseable by a YAML parser (no syntax errors).
+- [x] Re-running `_install_path_rules` overwrites the files idempotently.
+- [x] `_uninstall_path_rules(target)` removes all written instruction files. Does not
       remove user-created files in `.github/instructions/`.
-- [ ] Parent directory `.github/instructions/` is created if absent on install.
-- [ ] Parent directory is `rmdir`-if-empty on uninstall.
-- [ ] Tests: round-trip parse each emitted file's frontmatter; assert `applyTo` value;
+- [x] Parent directory `.github/instructions/` is created if absent on install.
+- [x] Parent directory is NOT rmdir'd on uninstall (matches sprint 012 no-cascading-rmdir
+      convention; the ticket criterion said "rmdir-if-empty" but the task description
+      and sprint 012 pattern both specify NOT to rmdir).
+- [x] Tests: round-trip parse each emitted file's frontmatter; assert `applyTo` value;
       assert body content matches `_rules.py` constants. Uninstall precision (only
       CLASI-written files removed).
-- [ ] `python -m pytest --no-cov` green.
+- [x] `python -m pytest --no-cov` green (1052 passed).
 
 ## Implementation Plan
 

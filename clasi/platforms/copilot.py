@@ -25,7 +25,13 @@ import click
 
 from clasi.platforms import _links
 from clasi.platforms._markers import strip_section, write_section
-from clasi.platforms._rules import GIT_COMMITS_BODY, MCP_REQUIRED_BODY
+from clasi.platforms._rules import (
+    CLASI_ARTIFACTS_BODY,
+    GIT_COMMITS_BODY,
+    MCP_REQUIRED_BODY,
+    SOURCE_CODE_BODY,
+    TODO_DIR_BODY,
+)
 
 # The plugin directory is bundled inside the clasi package.
 _PLUGIN_DIR = Path(__file__).parent.parent / "plugin"
@@ -187,23 +193,55 @@ def _uninstall_global_instructions(target: Path) -> None:
     strip_section(path)
 
 
+# ---------------------------------------------------------------------------
+# Path-scoped instruction files — ticket 008
+# ---------------------------------------------------------------------------
+
+# Decision: mcp-required and git-commits have global scope ("**") and are
+# already written into .github/copilot-instructions.md by ticket 007.
+# Writing them again here as separate .instructions.md files would duplicate
+# content without adding value.  Only the three genuinely path-scoped rules
+# are emitted here.
+_PATH_RULES: list[tuple[str, str, str]] = [
+    ("clasi-artifacts.instructions.md", "docs/clasi/**", CLASI_ARTIFACTS_BODY),
+    ("todo-dir.instructions.md", "docs/clasi/todo/**", TODO_DIR_BODY),
+    ("source-code.instructions.md", "clasi/**", SOURCE_CODE_BODY),
+]
+
+
 def _install_path_rules(target: Path) -> None:
     """Write .github/instructions/<n>.instructions.md path-rule files.
 
-    Stub — implemented in ticket 008.
+    Each file has YAML frontmatter with a single ``applyTo:`` glob field
+    followed by the corresponding rule body from ``_rules.py``.  Files are
+    full-file writes (not marker-managed) and are overwritten idempotently.
+
+    The directory ``.github/instructions/`` is created if absent.
     """
-    # TODO(013-008): write one .instructions.md file per CLASI rule using
-    #   YAML frontmatter with applyTo field and body from _rules.py constants.
-    click.echo("  [stub] .github/instructions/ (ticket 008)")
+    rules_dir = target / ".github" / "instructions"
+    rules_dir.mkdir(parents=True, exist_ok=True)
+    for fname, apply_to, body in _PATH_RULES:
+        content = f'---\napplyTo: "{apply_to}"\n---\n\n{body}\n'
+        (rules_dir / fname).write_text(content, encoding="utf-8")
+        click.echo(f"  Wrote: .github/instructions/{fname}")
 
 
 def _uninstall_path_rules(target: Path) -> None:
     """Remove CLASI .instructions.md files from .github/instructions/.
 
-    Stub — implemented in ticket 008.
+    Removes only the files written by ``_install_path_rules`` (by name).
+    Does not remove user-created files in the directory.
+    Does not rmdir ``.github/instructions/`` even if it becomes empty
+    (mirrors the no-cascading-rmdir convention from sprint 012).
     """
-    # TODO(013-008): remove the CLASI-owned .instructions.md files by name.
-    click.echo("  [stub] uninstall .github/instructions/ (ticket 008)")
+    rules_dir = target / ".github" / "instructions"
+    for fname, _apply_to, _body in _PATH_RULES:
+        fpath = rules_dir / fname
+        if fpath.exists():
+            fpath.unlink()
+            click.echo(f"  Removed: .github/instructions/{fname}")
+        else:
+            click.echo(f"  Skipped: .github/instructions/{fname} (not found)")
 
 
 def _install_agents(target: Path, copy: bool = False) -> None:
