@@ -1,20 +1,20 @@
 ---
-id: "013"
-title: "Cross-platform shared install: canonicalize, symlink, and add Copilot"
-status: planning
+id: '013'
+title: 'Cross-platform shared install: canonicalize, symlink, and add Copilot'
+status: done
 branch: sprint/013-cross-platform-shared-install-canonicalize-symlink-and-add-copilot
 use-cases:
-  - SUC-001
-  - SUC-002
-  - SUC-003
-  - SUC-004
-  - SUC-005
-  - SUC-006
-  - SUC-007
-  - SUC-008
+- SUC-001
+- SUC-002
+- SUC-003
+- SUC-004
+- SUC-005
+- SUC-006
+- SUC-007
+- SUC-008
 todos:
-  - docs/clasi/todo/cross-platform-agent-config-canonicalize-and-symlink.md
-  - docs/clasi/todo/add-github-copilot-platform-support.md
+- docs/clasi/todo/cross-platform-agent-config-canonicalize-and-symlink.md
+- docs/clasi/todo/add-github-copilot-platform-support.md
 ---
 <!-- CLASI: Before changing code or making plans, review the SE process in CLAUDE.md -->
 
