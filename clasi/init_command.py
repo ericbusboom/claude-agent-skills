@@ -53,27 +53,27 @@ def _detect_mcp_command(target: Path) -> dict:
 def _prompt_platform(recommendation: str) -> str:
     """Prompt the user to choose a platform and return the choice string.
 
-    Displays the four options with a recommended default derived from
-    *recommendation* (``"claude"``, ``"codex"``, or ``"both"``).  Returns
-    one of those strings based on the user's numeric selection.  Copilot
-    is listed as an option; full wiring is completed in ticket 011.
+    Displays four options with a recommended default derived from
+    *recommendation* (``"claude"``, ``"codex"``, ``"copilot"``, or
+    ``"both"``).  Returns one of those strings based on the user's
+    numeric selection.
 
     Only call this function when running interactively (TTY attached).
     """
-    _choice_map = {"1": "claude", "2": "codex", "3": "both"}
-    _rec_to_default = {"claude": "1", "codex": "2", "both": "3"}
+    _choice_map = {"1": "claude", "2": "codex", "3": "copilot", "4": "both"}
+    _rec_to_default = {"claude": "1", "codex": "2", "copilot": "3", "both": "4"}
 
     default_num = _rec_to_default.get(recommendation, "1")
-    rec_label = {"1": "Claude", "2": "Codex", "3": "Both"}[default_num]
+    rec_label = {"1": "Claude", "2": "Codex", "3": "Copilot", "4": "All three"}[default_num]
 
     click.echo(
-        f"Install for: [1] Claude  [2] Codex  [3] Both  "
-        f"(Copilot: use --copilot, coming soon)  (recommended: {rec_label})"
+        f"Install for: [1] Claude  [2] Codex  [3] Copilot  [4] All three  "
+        f"(recommended: {rec_label})"
     )
     raw = click.prompt(
         "Choice",
         default=default_num,
-        type=click.Choice(["1", "2", "3"]),
+        type=click.Choice(["1", "2", "3", "4"]),
         show_choices=False,
     )
     return _choice_map[raw]
@@ -114,6 +114,7 @@ def run_init(
     plugin_mode: bool = False,
     claude: bool = False,
     codex: bool = False,
+    copilot: bool = False,
     copy: bool = False,
     migrate: bool = False,
 ) -> None:
@@ -123,27 +124,29 @@ def run_init(
     from the plugin/ directory into .claude/. In plugin mode, registers
     the CLASI plugin with Claude Code.
 
-    When neither *claude* nor *codex* is True (the non-interactive default),
-    the function defaults to Claude-only for backward compatibility.
+    When neither *claude*, *codex*, nor *copilot* is True (the non-interactive
+    default), the function defaults to Claude-only for backward compatibility.
 
     Args:
         target: Path to the target project root (string; resolved internally).
         plugin_mode: If True, run in plugin mode instead of project-local mode.
         claude: If True, run the Claude platform installer.
         codex: If True, run the Codex platform installer.
+        copilot: If True, run the Copilot platform installer.
         copy: If True, use file copy instead of symlink for alias operations.
         migrate: If True, convert legacy direct-copy installs to symlinks.
     """
     from clasi.platforms.claude import install as claude_install
     from clasi.platforms.codex import install as codex_install
+    from clasi.platforms.copilot import install as copilot_install
 
     # Track whether the user explicitly specified a platform.  --migrate is
     # platform-scoped: it only runs when an explicit platform flag is given.
-    explicit_platform = claude or codex
+    explicit_platform = claude or codex or copilot
     effective_migrate = migrate and explicit_platform
 
     # Resolve the platform selection when neither flag was supplied.
-    if not claude and not codex:
+    if not claude and not codex and not copilot:
         interactive = sys.stdin.isatty() and sys.stdout.isatty()
         if interactive:
             from clasi.platforms.detect import detect_platforms
@@ -152,6 +155,7 @@ def run_init(
             choice = _prompt_platform(signals.recommendation)
             claude = choice in ("claude", "both")
             codex = choice in ("codex", "both")
+            copilot = choice in ("copilot", "both")
         else:
             # Non-interactive default: Claude-only for backward compatibility.
             claude = True
@@ -178,6 +182,10 @@ def run_init(
         if codex:
             # Codex platform install.
             codex_install(target_path, mcp_config, copy=copy, migrate=effective_migrate)
+
+        if copilot:
+            # Copilot platform install.
+            copilot_install(target_path, mcp_config, copy=copy)
 
     # Configure MCP server in .mcp.json at project root (shared setup).
     click.echo("MCP server configuration:")

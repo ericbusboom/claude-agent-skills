@@ -46,7 +46,8 @@ def test_returns_platform_signals(tmp_path: Path) -> None:
     assert isinstance(result, PlatformSignals)
     assert isinstance(result.claude_score, int)
     assert isinstance(result.codex_score, int)
-    assert result.recommendation in {"claude", "codex", "both"}
+    assert isinstance(result.copilot_score, int)
+    assert result.recommendation in {"claude", "codex", "copilot", "both"}
 
 
 # ---------------------------------------------------------------------------
@@ -433,3 +434,175 @@ def test_all_codex_signals_accumulate(tmp_path: Path) -> None:
     # .codex (+2) + AGENTS.md (+2) + .agents/skills (+2) + command (+1) + user dir (+1) + env (+1) = 9
     assert result.codex_score >= 9
     assert result.recommendation == "codex"
+
+
+# ---------------------------------------------------------------------------
+# Copilot signals
+# ---------------------------------------------------------------------------
+
+
+def _make_copilot_project(tmp_path: Path) -> None:
+    """Create Copilot project-level signal files in *tmp_path*."""
+    github = tmp_path / ".github"
+    github.mkdir()
+    (github / "copilot-instructions.md").write_text("# Copilot\n")
+
+
+def test_copilot_project_file_copilot_instructions(tmp_path: Path) -> None:
+    """.github/copilot-instructions.md present → copilot signal."""
+    _make_copilot_project(tmp_path)
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_project_file_agents_dir(tmp_path: Path) -> None:
+    """.github/agents/ present → copilot signal."""
+    (tmp_path / ".github" / "agents").mkdir(parents=True)
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_project_file_instructions_dir(tmp_path: Path) -> None:
+    """.github/instructions/ present → copilot signal."""
+    instructions = tmp_path / ".github" / "instructions"
+    instructions.mkdir(parents=True)
+    (instructions / "example.instructions.md").write_text("# Instructions\n")
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_command_code(tmp_path: Path) -> None:
+    """'code' binary on PATH → copilot advisory signal."""
+
+    def _which(cmd: str) -> str | None:
+        return "/usr/local/bin/code" if cmd == "code" else None
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", side_effect=_which),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_command_gh(tmp_path: Path) -> None:
+    """'gh' binary on PATH → copilot advisory signal."""
+
+    def _which(cmd: str) -> str | None:
+        return "/usr/local/bin/gh" if cmd == "gh" else None
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", side_effect=_which),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_user_config_dir(tmp_path: Path) -> None:
+    """~/.config/github-copilot/ present → copilot signal."""
+    fake_home = tmp_path / "home"
+    (fake_home / ".config" / "github-copilot").mkdir(parents=True)
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=fake_home),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_env_var(tmp_path: Path) -> None:
+    """GITHUB_COPILOT_* env var present → copilot signal."""
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {"GITHUB_COPILOT_TOKEN": "REDACTED"}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score > 0
+    assert result.recommendation == "copilot"
+
+
+def test_copilot_no_signals(tmp_path: Path) -> None:
+    """No Copilot signals → copilot_score is 0."""
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.copilot_score == 0
+
+
+def test_copilot_and_claude_both_detected(tmp_path: Path) -> None:
+    """Copilot and Claude signals both present → recommendation 'both'."""
+    _make_claude_project(tmp_path)
+    _make_copilot_project(tmp_path)
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", return_value=None),
+        patch("clasi.platforms.detect.Path.home", return_value=tmp_path / "fake_home"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    assert result.claude_score > 0
+    assert result.copilot_score > 0
+    assert result.recommendation == "both"
+
+
+def test_all_copilot_signals_accumulate(tmp_path: Path) -> None:
+    """All Copilot signal types accumulate into copilot_score."""
+    _make_copilot_project(tmp_path)
+    fake_home = tmp_path / "home"
+    (fake_home / ".config" / "github-copilot").mkdir(parents=True)
+
+    def _which(cmd: str) -> str | None:
+        return f"/usr/local/bin/{cmd}" if cmd in {"code", "gh"} else None
+
+    with (
+        patch("clasi.platforms.detect.shutil.which", side_effect=_which),
+        patch("clasi.platforms.detect.Path.home", return_value=fake_home),
+        patch.dict("os.environ", {"GITHUB_COPILOT_TOKEN": "REDACTED"}, clear=True),
+    ):
+        result = detect_platforms(tmp_path)
+
+    # copilot-instructions.md (+2) + code (+1) + gh (+1) + user dir (+1) + env (+1) = 6
+    assert result.copilot_score >= 6
+    assert result.recommendation == "copilot"

@@ -1,13 +1,13 @@
 ---
-id: "013-011"
-title: "Wire --copilot flag into CLI and update detect.py"
-status: todo
-sprint: "013"
+id: 013-011
+title: Wire --copilot flag into CLI and update detect.py
+status: done
+sprint: '013'
 use-cases:
-  - SUC-005
-  - SUC-006
+- SUC-005
+- SUC-006
 depends-on:
-  - "013-006"
+- 013-006
 ---
 
 # 013-011: Wire `--copilot` flag into CLI and update `detect.py`
@@ -22,23 +22,23 @@ platform prompt to offer Copilot as a fourth option.
 
 ## Acceptance Criteria
 
-- [ ] `clasi init --copilot` runs `copilot.install(target, mcp_config, copy=copy)`.
-- [ ] `clasi uninstall --copilot` runs `copilot.uninstall(target)`.
-- [ ] `clasi init --claude --codex --copilot` runs all three installers in order.
-- [ ] `--copilot` is accepted as a standalone flag (no other platform flags required).
-- [ ] Interactive prompt (TTY) offers Copilot as a fourth choice alongside Claude, Codex.
+- [x] `clasi init --copilot` runs `copilot.install(target, mcp_config, copy=copy)`.
+- [x] `clasi uninstall --copilot` runs `copilot.uninstall(target)`.
+- [x] `clasi init --claude --codex --copilot` runs all three installers in order.
+- [x] `--copilot` is accepted as a standalone flag (no other platform flags required).
+- [x] Interactive prompt (TTY) offers Copilot as a fourth choice alongside Claude, Codex.
       Recommended default is updated based on `detect.py` Copilot signal.
-- [ ] `detect.py` recognizes Copilot signals:
+- [x] `detect.py` recognizes Copilot signals:
   - `.github/copilot-instructions.md` exists → copilot signal.
   - `.github/agents/` exists → copilot signal.
   - `.github/instructions/` exists (with `*.instructions.md` files) → copilot signal.
   - `code` or `gh` binary on PATH → advisory (not definitive).
-- [ ] `PlatformSignals` dataclass (or equivalent) gains a `copilot: bool` field.
-- [ ] `detect.py` `recommend_platforms` (or equivalent function) returns `"copilot"`
+- [x] `PlatformSignals` dataclass (or equivalent) gains a `copilot: bool` field.
+- [x] `detect.py` `recommend_platforms` (or equivalent function) returns `"copilot"`
       in its output when Copilot signals are detected.
-- [ ] Detection tests in `tests/unit/test_platform_detect.py` cover Copilot signals.
-- [ ] CLI tests confirm `--copilot` is accepted and wired correctly.
-- [ ] `python -m pytest --no-cov` green.
+- [x] Detection tests in `tests/unit/test_platform_detect.py` cover Copilot signals.
+- [x] CLI tests confirm `--copilot` is accepted and wired correctly.
+- [x] `python -m pytest --no-cov` green.
 
 ## Implementation Plan
 
