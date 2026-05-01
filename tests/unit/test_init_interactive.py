@@ -40,11 +40,13 @@ def _has_codex_artifacts(target):
 def _make_signals(recommendation):
     """Build a PlatformSignals with scores that match the recommendation."""
     if recommendation == "claude":
-        return PlatformSignals(claude_score=2, codex_score=0, recommendation="claude")
+        return PlatformSignals(claude_score=2, codex_score=0, copilot_score=0, recommendation="claude")
     if recommendation == "codex":
-        return PlatformSignals(claude_score=0, codex_score=2, recommendation="codex")
+        return PlatformSignals(claude_score=0, codex_score=2, copilot_score=0, recommendation="codex")
+    if recommendation == "copilot":
+        return PlatformSignals(claude_score=0, codex_score=0, copilot_score=2, recommendation="copilot")
     # both
-    return PlatformSignals(claude_score=2, codex_score=2, recommendation="both")
+    return PlatformSignals(claude_score=2, codex_score=2, copilot_score=0, recommendation="both")
 
 
 # ---------------------------------------------------------------------------
@@ -67,8 +69,14 @@ class TestPromptPlatform:
             choice = _prompt_platform("codex")
         assert choice == "codex"
 
-    def test_both_recommendation_returns_both_on_3(self):
+    def test_copilot_recommendation_returns_copilot_on_3(self):
         with patch("clasi.init_command.click.prompt", return_value="3"), \
+             patch("clasi.init_command.click.echo"):
+            choice = _prompt_platform("copilot")
+        assert choice == "copilot"
+
+    def test_both_recommendation_returns_both_on_4(self):
+        with patch("clasi.init_command.click.prompt", return_value="4"), \
              patch("clasi.init_command.click.echo"):
             choice = _prompt_platform("both")
         assert choice == "both"
@@ -89,12 +97,12 @@ class TestPromptPlatform:
 
     def test_both_recommendation_shown_in_echo(self):
         echoed = []
-        with patch("clasi.init_command.click.prompt", return_value="3"), \
+        with patch("clasi.init_command.click.prompt", return_value="4"), \
              patch("clasi.init_command.click.echo", side_effect=echoed.append):
             _prompt_platform("both")
-        assert any("recommended: Both" in str(m) for m in echoed)
+        assert any("recommended: All three" in str(m) for m in echoed)
 
-    def test_prompt_shows_all_three_options(self):
+    def test_prompt_shows_all_four_options(self):
         echoed = []
         with patch("clasi.init_command.click.prompt", return_value="1"), \
              patch("clasi.init_command.click.echo", side_effect=echoed.append):
@@ -102,7 +110,8 @@ class TestPromptPlatform:
         combined = " ".join(str(m) for m in echoed)
         assert "Claude" in combined
         assert "Codex" in combined
-        assert "Both" in combined
+        assert "Copilot" in combined
+        assert "All three" in combined
 
 
 # ---------------------------------------------------------------------------

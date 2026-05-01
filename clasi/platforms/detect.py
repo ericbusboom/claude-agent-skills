@@ -11,15 +11,17 @@ Public interface::
 
 ``PlatformSignals`` is a dataclass with::
 
-    claude_score: int          # sum of all Claude signal weights
-    codex_score:  int          # sum of all Codex signal weights
-    recommendation: str        # "claude", "codex", or "both"
+    claude_score:  int          # sum of all Claude signal weights
+    codex_score:   int          # sum of all Codex signal weights
+    copilot_score: int          # sum of all Copilot signal weights
+    recommendation: str        # "claude", "codex", "copilot", or "both"
 
 Recommendation logic:
-- claude_score > 0 and codex_score == 0  → "claude"
-- codex_score > 0  and claude_score == 0 → "codex"
-- both > 0                               → "both"
-- both == 0                              → "claude"  (backward-compat default)
+- claude_score > 0 and codex_score == 0 and copilot_score == 0  → "claude"
+- codex_score > 0  and claude_score == 0 and copilot_score == 0 → "codex"
+- copilot_score > 0 and claude_score == 0 and codex_score == 0  → "copilot"
+- any two or more > 0                                            → "both"
+- all == 0                                                       → "claude"  (backward-compat default)
 
 Signal weights:
 - Project-level file present: +2
@@ -47,7 +49,8 @@ class PlatformSignals:
 
     claude_score: int
     codex_score: int
-    recommendation: str  # "claude" | "codex" | "both"
+    copilot_score: int
+    recommendation: str  # "claude" | "codex" | "copilot" | "both"
 
 
 # ---------------------------------------------------------------------------
@@ -69,10 +72,12 @@ _CODEX_PROJECT_FILES = [
 # CLI command names (weight +1 each)
 _CLAUDE_COMMANDS = ["claude"]
 _CODEX_COMMANDS = ["codex"]
+_COPILOT_COMMANDS = ["code", "gh"]
 
 # User config directories under ~ (weight +1 each)
 _CLAUDE_USER_DIRS = [".claude"]
 _CODEX_USER_DIRS = [".codex"]
+_COPILOT_USER_DIRS = [".config/github-copilot"]
 
 # Environment variable name prefixes/exact names (weight +1 per matching name)
 # Values are NEVER read — only names are checked.
@@ -81,6 +86,16 @@ _CLAUDE_ENV_PREFIX = "CLAUDE_"
 
 _CODEX_ENV_EXACT = {"OPENAI_API_KEY"}
 _CODEX_ENV_PREFIX = "CODEX_"
+
+_COPILOT_ENV_EXACT: set[str] = set()
+_COPILOT_ENV_PREFIX = "GITHUB_COPILOT_"
+
+# Copilot project-level indicators (weight +2 each)
+_COPILOT_PROJECT_FILES = [
+    ".github/copilot-instructions.md",
+    ".github/agents",
+    ".github/instructions",
+]
 
 
 def _project_file_score(target: Path, indicators: list[str]) -> int:
@@ -156,17 +171,29 @@ def detect_platforms(target: Path) -> PlatformSignals:
         + _env_score(_CODEX_ENV_EXACT, _CODEX_ENV_PREFIX)
     )
 
-    if claude_score > 0 and codex_score == 0:
-        recommendation = "claude"
-    elif codex_score > 0 and claude_score == 0:
-        recommendation = "codex"
-    elif claude_score > 0 and codex_score > 0:
-        recommendation = "both"
-    else:
+    copilot_score = (
+        _project_file_score(target, _COPILOT_PROJECT_FILES)
+        + _command_score(_COPILOT_COMMANDS)
+        + _user_dir_score(_COPILOT_USER_DIRS)
+        + _env_score(_COPILOT_ENV_EXACT, _COPILOT_ENV_PREFIX)
+    )
+
+    active = sum(1 for s in (claude_score, codex_score, copilot_score) if s > 0)
+
+    if active == 0:
         recommendation = "claude"  # safe default
+    elif active > 1:
+        recommendation = "both"
+    elif claude_score > 0:
+        recommendation = "claude"
+    elif codex_score > 0:
+        recommendation = "codex"
+    else:
+        recommendation = "copilot"
 
     return PlatformSignals(
         claude_score=claude_score,
         codex_score=codex_score,
+        copilot_score=copilot_score,
         recommendation=recommendation,
     )

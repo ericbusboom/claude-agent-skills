@@ -30,24 +30,27 @@ def cli():
               help="Install Claude platform integration.")
 @click.option("--codex", "install_codex", is_flag=True, default=False,
               help="Install Codex platform integration.")
+@click.option("--copilot", "install_copilot", is_flag=True, default=False,
+              help="Install GitHub Copilot platform integration.")
 @click.option("--copy/--no-copy", default=False,
               help="Use file copy instead of symlink for alias operations.")
 @click.option("--migrate", is_flag=True, default=False,
               help="Convert legacy direct-copy installs to symlinks.")
-def init(target, plugin, install_claude, install_codex, copy, migrate):
+def init(target, plugin, install_claude, install_codex, install_copilot, copy, migrate):
     """Initialize a repository for the CLASI SE process.
 
-    By default (no --claude or --codex flag), behavior depends on context:
+    By default (no --claude, --codex, or --copilot flag), behavior depends on context:
 
     \b
     - Interactive (TTY): inspects advisory platform signals and prompts the
-      user to choose Claude, Codex, or both, with a recommended default.
+      user to choose Claude, Codex, Copilot, or all three, with a recommended
+      default.
     - Non-interactive (no TTY, e.g. scripts/CI): defaults to Claude-only for
       backward compatibility.
 
-    With --claude and/or --codex, installs the selected platform(s) without
-    prompting.  With --plugin, registers the CLASI plugin with Claude Code
-    (plugin mode).  With --copy, alias operations use file copy instead of
+    With --claude, --codex, and/or --copilot, installs the selected platform(s)
+    without prompting.  With --plugin, registers the CLASI plugin with Claude
+    Code (plugin mode).  With --copy, alias operations use file copy instead of
     symlink (useful on Windows without Developer Mode).  With --migrate,
     converts legacy direct-copy installs to symlinks.
     """
@@ -58,6 +61,7 @@ def init(target, plugin, install_claude, install_codex, copy, migrate):
         plugin_mode=plugin,
         claude=install_claude,
         codex=install_codex,
+        copilot=install_copilot,
         copy=copy,
         migrate=migrate,
     )
@@ -73,12 +77,20 @@ cli.add_command(init, name="install")
               help="Remove Claude platform integration.")
 @click.option("--codex", "uninstall_codex", is_flag=True, default=False,
               help="Remove Codex platform integration.")
+@click.option("--copilot", "uninstall_copilot", is_flag=True, default=False,
+              help="Remove GitHub Copilot platform integration.")
 @click.option("--copy/--no-copy", default=False,
               help="Use file copy removal instead of symlink removal for alias operations.")
-def uninstall(target, uninstall_claude, uninstall_codex, copy):
+def uninstall(target, uninstall_claude, uninstall_codex, uninstall_copilot, copy):
     """Remove CLASI-managed platform integration files."""
     from clasi.uninstall_command import run_uninstall
-    run_uninstall(target, claude=uninstall_claude, codex=uninstall_codex, copy=copy)
+    run_uninstall(
+        target,
+        claude=uninstall_claude,
+        codex=uninstall_codex,
+        copilot=uninstall_copilot,
+        copy=copy,
+    )
 
 
 @cli.group()
