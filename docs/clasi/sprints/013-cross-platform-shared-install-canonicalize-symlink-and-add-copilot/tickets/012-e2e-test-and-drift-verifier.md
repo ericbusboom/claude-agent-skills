@@ -1,19 +1,19 @@
 ---
-id: "013-012"
-title: "End-to-end three-platform install test, CI drift verifier, and README update"
-status: todo
-sprint: "013"
+id: 013-012
+title: End-to-end three-platform install test, CI drift verifier, and README update
+status: done
+sprint: '013'
 use-cases:
-  - SUC-004
-  - SUC-006
+- SUC-004
+- SUC-006
 depends-on:
-  - "013-003"
-  - "013-004"
-  - "013-007"
-  - "013-008"
-  - "013-009"
-  - "013-010"
-  - "013-011"
+- 013-003
+- 013-004
+- 013-007
+- 013-008
+- 013-009
+- 013-010
+- 013-011
 ---
 
 # 013-012: End-to-end three-platform install test, CI drift verifier, and README update
@@ -32,58 +32,58 @@ tickets being complete. Three deliverables:
 
 ### End-to-End Test
 
-- [ ] A test `test_three_platform_install_end_to_end` exists in
+- [x] A test `test_three_platform_install_end_to_end` exists in
       `tests/unit/test_init_command.py` (or `test_platform_copilot.py`).
-- [ ] The test runs `clasi init --claude --codex --copilot` against a `tmp_path`.
-- [ ] Asserts all canonical files exist:
+- [x] The test runs `clasi init --claude --codex --copilot` against a `tmp_path`.
+- [x] Asserts all canonical files exist:
   - `.agents/skills/<n>/SKILL.md` for every bundled skill.
   - `AGENTS.md` with CLASI marker block.
-- [ ] Asserts all symlink aliases:
+- [x] Asserts all symlink aliases:
   - `.claude/skills/<n>/SKILL.md` is a symlink to `.agents/skills/<n>/SKILL.md`.
   - `CLAUDE.md` is a symlink to `AGENTS.md`.
   - `.github/skills/` is a symlink to `.agents/skills/`.
-- [ ] Asserts no SKILL.md content duplication (no regular file copies at alias paths
+- [x] Asserts no SKILL.md content duplication (no regular file copies at alias paths
       in default mode).
-- [ ] Asserts all three platforms' unique files are present:
+- [x] Asserts all three platforms' unique files are present:
   - `.claude/rules/*.md` (5 files)
   - `.codex/agents/*.toml` (3 agents)
   - `.github/copilot-instructions.md`
   - `.github/instructions/*.instructions.md` (5 files)
   - `.github/agents/*.agent.md` (3 agents)
   - `.mcp.json`, `.vscode/mcp.json`, `.codex/config.toml`
-- [ ] Round-trip parses YAML frontmatter for all `.instructions.md` and `.agent.md` files.
-- [ ] Round-trip parses `.vscode/mcp.json` as valid JSON with `servers.clasi` present.
-- [ ] Test exits green.
+- [x] Round-trip parses YAML frontmatter for all `.instructions.md` and `.agent.md` files.
+- [x] Round-trip parses `.vscode/mcp.json` as valid JSON with `servers.clasi` present.
+- [x] Test exits green.
 
 ### CI Drift Verifier
 
-- [ ] A test function `test_drift_verifier` (or a helper callable from CI) asserts:
+- [x] A test function `test_drift_verifier` (or a helper callable from CI) asserts:
   - For each `(canonical, alias)` pair in a CLASI install:
     - If `alias` is a symlink: assert `alias.resolve() == canonical.resolve()`.
     - If `alias` is a regular file: assert `alias.read_bytes() == canonical.read_bytes()`.
-- [ ] Covered pairs:
+- [x] Covered pairs:
   - `.agents/skills/<n>/SKILL.md` ↔ `.claude/skills/<n>/SKILL.md`
   - `.agents/skills/<n>/SKILL.md` ↔ `.github/skills/<n>/SKILL.md` (via directory symlink)
   - `AGENTS.md` ↔ `CLAUDE.md`
-- [ ] The verifier reports all mismatches (not just the first) with clear path output.
-- [ ] A test invokes the verifier against a clean three-platform install and asserts pass.
-- [ ] A test manually breaks one alias (edit file content) and asserts the verifier
+- [x] The verifier reports all mismatches (not just the first) with clear path output.
+- [x] A test invokes the verifier against a clean three-platform install and asserts pass.
+- [x] A test manually breaks one alias (edit file content) and asserts the verifier
       reports the mismatch.
 
 ### README Update
 
-- [ ] README section added (or updated) describing:
+- [x] README section added (or updated) describing:
   - The shared-canonical-symlink pattern: "CLASI writes skills once to `.agents/skills/`
     and symlinks platform-specific aliases."
   - The `--copy` flag for environments where symlinks are unavailable.
   - The `--migrate` flag for converting legacy installs.
   - Copilot install footprint: list of files written by `clasi init --copilot`.
   - Cloud-agent MCP manual step: what to do in GitHub Settings after `--copilot` install.
-- [ ] Existing README content is not removed or broken.
+- [x] Existing README content is not removed or broken.
 
 ### Final Gate
 
-- [ ] Full test suite `python -m pytest --no-cov` green after all ticket 012 changes.
+- [x] Full test suite `python -m pytest --no-cov` green after all ticket 012 changes.
 
 ## Implementation Plan
 
