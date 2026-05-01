@@ -1,5 +1,13 @@
 ---
-status: pending
+status: done
+sprint: '013'
+tickets:
+- '001'
+- '002'
+- '003'
+- '004'
+- '005'
+- '012'
 ---
 
 # Cross-platform agent config — canonicalize on shared spec, symlink the rest

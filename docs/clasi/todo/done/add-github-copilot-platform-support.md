@@ -1,5 +1,14 @@
 ---
-status: pending
+status: done
+sprint: '013'
+tickets:
+- '006'
+- '007'
+- 008
+- 009
+- '010'
+- '011'
+- '012'
 ---
 
 # Add GitHub Copilot platform support (`clasi init --copilot`)
