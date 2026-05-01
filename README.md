@@ -168,6 +168,100 @@ clasi uninstall --claude
 
 ---
 
+## GitHub Copilot Integration
+
+CLASI supports [GitHub Copilot](https://github.com/features/copilot) as a
+third AI platform.
+
+### Installing for Copilot
+
+```bash
+clasi init --copilot
+```
+
+Or install for all three platforms at once:
+
+```bash
+clasi init --claude --codex --copilot
+```
+
+### Files Written by `clasi init --copilot`
+
+| Path | Purpose |
+|------|---------|
+| `.github/copilot-instructions.md` | Global Copilot instructions (marker-managed CLASI block) |
+| `.github/instructions/*.instructions.md` | Path-scoped rules with `applyTo:` frontmatter |
+| `.github/agents/team-lead.agent.md` | Sub-agent definition for the team-lead role |
+| `.github/agents/sprint-planner.agent.md` | Sub-agent definition for the sprint-planner role |
+| `.github/agents/programmer.agent.md` | Sub-agent definition for the programmer role |
+| `.github/skills/` | Symlink to `.agents/skills/` (see canonical-symlink pattern below) |
+| `.vscode/mcp.json` | VS Code MCP configuration with `servers.clasi` entry |
+
+### Cloud Coding Agent MCP (manual step required)
+
+After running `clasi init --copilot`, the VS Code MCP config is written
+automatically. However, Copilot's **Cloud Coding Agent** reads MCP settings
+from GitHub Settings, not from `.vscode/mcp.json`. To enable MCP for cloud
+sessions:
+
+1. Go to `https://github.com/settings/copilot` (or your org's settings page).
+2. Under **Model Context Protocol (MCP) Servers**, click **Add MCP server**.
+3. Paste the JSON snippet printed by `clasi init --copilot` at the end of the
+   install output.
+
+This step is not automatable from the CLI — it requires a browser login to
+GitHub. The local VS Code integration works without it.
+
+### Removing Copilot Integration
+
+```bash
+clasi uninstall --copilot
+```
+
+---
+
+## Canonical-Symlink Pattern
+
+CLASI writes skill files **once** to `.agents/skills/` and creates platform-
+specific aliases via symlinks. This eliminates content duplication across tools
+and ensures all platforms always see the same skill content without manual
+synchronization.
+
+```
+.agents/skills/<name>/SKILL.md   ← canonical (single source of truth)
+.claude/skills/<name>/SKILL.md   → symlink to canonical (Claude Code)
+.github/skills/                  → directory symlink to .agents/skills/ (Copilot)
+AGENTS.md                        ← canonical instruction file
+CLAUDE.md                        → symlink to AGENTS.md (Claude Code shim)
+```
+
+### The `--copy` flag
+
+In environments where symlinks are unavailable (Windows without Developer
+Mode, some CI sandboxes), use `--copy` to write regular file copies instead:
+
+```bash
+clasi init --claude --codex --copilot --copy
+```
+
+With `--copy`, all aliases become independent file copies. Content will
+drift if skills are updated later — re-run `clasi init` to refresh them.
+
+### The `--migrate` flag
+
+If a project was initialized before sprint 013 (when direct copies were
+used instead of symlinks), `--migrate` converts legacy copies to symlinks:
+
+```bash
+clasi init --claude --migrate
+```
+
+The migrator content-matches each alias against its canonical before
+converting. If content has diverged, the file is flagged as a conflict and
+skipped — you can resolve it manually or force-overwrite with a fresh install.
+
+---
+
 ## How It Works
 
 CLASI is an MCP (Model Context Protocol) server. When Claude Code
