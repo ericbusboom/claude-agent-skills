@@ -44,6 +44,11 @@ def link_or_copy(
     """
     alias.parent.mkdir(parents=True, exist_ok=True)
 
+    # If the alias already exists or is a symlink, remove it first so we can
+    # re-create it cleanly (idempotent re-install for the same provider).
+    if alias.exists() or alias.is_symlink():
+        alias.unlink()
+
     if copy:
         shutil.copy2(canonical, alias)
         return "copy"

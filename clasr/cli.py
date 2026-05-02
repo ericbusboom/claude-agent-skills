@@ -2,8 +2,8 @@
 
 Provides:
   clasr --instructions        Print bundled instructions and exit.
-  clasr install               (stub) Install asr/ to target platforms.
-  clasr uninstall             (stub) Uninstall a provider from target platforms.
+  clasr install               Install asr/ to target platforms.
+  clasr uninstall             Uninstall a provider from target platforms.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import importlib.resources
 import sys
+from pathlib import Path
 
 
 def _print_instructions() -> None:
@@ -38,19 +39,68 @@ def _validate_required_flag(
 
 
 def _cmd_install(args: argparse.Namespace, install_parser: argparse.ArgumentParser) -> int:
-    """Stub install subcommand — dispatches to platform stubs."""
+    """Install subcommand — dispatches to platform modules."""
     _validate_required_flag(args, "source", install_parser)
     _validate_required_flag(args, "provider", install_parser)
     _validate_platform_flags(args, install_parser)
-    print("not yet implemented (ticket 011)")
+
+    source = Path(args.source).resolve()
+    if not source.exists() or not source.is_dir():
+        print(f"clasr: error: --source '{args.source}' does not exist or is not a directory", file=sys.stderr)
+        return 1
+
+    target = Path(args.target).resolve()
+    if not target.is_dir():
+        print(f"clasr: error: --target '{args.target}' is not a directory", file=sys.stderr)
+        return 1
+
+    from clasr.platforms import claude, codex, copilot  # lazy import
+
+    platforms = []
+    if args.claude:
+        platforms.append(("claude", claude))
+    if args.codex:
+        platforms.append(("codex", codex))
+    if args.copilot:
+        platforms.append(("copilot", copilot))
+
+    for platform_name, platform_module in platforms:
+        try:
+            platform_module.install(source, target, args.provider, copy=args.copy)
+        except Exception as exc:  # noqa: BLE001
+            print(f"clasr: error installing {platform_name}: {exc}", file=sys.stderr)
+            return 1
+
     return 0
 
 
 def _cmd_uninstall(args: argparse.Namespace, uninstall_parser: argparse.ArgumentParser) -> int:
-    """Stub uninstall subcommand — dispatches to platform stubs."""
+    """Uninstall subcommand — dispatches to platform modules."""
     _validate_required_flag(args, "provider", uninstall_parser)
     _validate_platform_flags(args, uninstall_parser)
-    print("not yet implemented (ticket 011)")
+
+    target = Path(args.target).resolve()
+    if not target.is_dir():
+        print(f"clasr: error: --target '{args.target}' is not a directory", file=sys.stderr)
+        return 1
+
+    from clasr.platforms import claude, codex, copilot  # lazy import
+
+    platforms = []
+    if args.claude:
+        platforms.append(("claude", claude))
+    if args.codex:
+        platforms.append(("codex", codex))
+    if args.copilot:
+        platforms.append(("copilot", copilot))
+
+    for platform_name, platform_module in platforms:
+        try:
+            platform_module.uninstall(target, args.provider)
+        except Exception as exc:  # noqa: BLE001
+            print(f"clasr: error uninstalling {platform_name}: {exc}", file=sys.stderr)
+            return 1
+
     return 0
 
 
