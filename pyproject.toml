@@ -31,6 +31,7 @@ dependencies = [
 
 [project.scripts]
 clasi = "clasi.cli:cli"
+clasr = "clasr.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -46,6 +47,7 @@ markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.coverage.run]
 branch = true
+source = ["clasi", "clasr"]
 omit = [
     "clasi/plugin/hooks/role_guard.py",
     "clasi/cli.py",
@@ -70,7 +72,8 @@ clasi = [
     "templates/*.md",
     "se-overview-template.md",
 ]
+clasr = ["*.md", "platforms/*.md"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["clasi*"]
+include = ["clasi*", "clasr*"]
