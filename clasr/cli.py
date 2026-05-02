@@ -21,15 +21,36 @@ def _print_instructions() -> None:
     print(content, end="")
 
 
-def _cmd_install(args: argparse.Namespace) -> int:
-    """Stub install subcommand."""
-    print("not yet implemented")
+def _validate_platform_flags(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    """Exit with an error if no platform flag (--claude, --codex, --copilot) was given."""
+    if not (args.claude or args.codex or args.copilot):
+        parser.error("at least one of --claude, --codex, --copilot is required")
+
+
+def _validate_required_flag(
+    args: argparse.Namespace,
+    flag: str,
+    parser: argparse.ArgumentParser,
+) -> None:
+    """Exit with an error if a required named flag is missing."""
+    if not getattr(args, flag, None):
+        parser.error(f"--{flag} is required")
+
+
+def _cmd_install(args: argparse.Namespace, install_parser: argparse.ArgumentParser) -> int:
+    """Stub install subcommand — dispatches to platform stubs."""
+    _validate_required_flag(args, "source", install_parser)
+    _validate_required_flag(args, "provider", install_parser)
+    _validate_platform_flags(args, install_parser)
+    print("not yet implemented (ticket 011)")
     return 0
 
 
-def _cmd_uninstall(args: argparse.Namespace) -> int:
-    """Stub uninstall subcommand."""
-    print("not yet implemented")
+def _cmd_uninstall(args: argparse.Namespace, uninstall_parser: argparse.ArgumentParser) -> int:
+    """Stub uninstall subcommand — dispatches to platform stubs."""
+    _validate_required_flag(args, "provider", uninstall_parser)
+    _validate_platform_flags(args, uninstall_parser)
+    print("not yet implemented (ticket 011)")
     return 0
 
 
@@ -59,12 +80,18 @@ def main(argv: list[str] | None = None) -> int:
     install_parser.add_argument(
         "--source",
         metavar="PATH",
-        help="Path to the asr/ source directory.",
+        help="Path to the asr/ source directory (required).",
     )
     install_parser.add_argument(
         "--provider",
         metavar="NAME",
-        help="Provider name (used to namespace installed files).",
+        help="Provider name (used to namespace installed files; required).",
+    )
+    install_parser.add_argument(
+        "--target",
+        metavar="PATH",
+        default=".",
+        help="Target project root directory (default: current directory).",
     )
     install_parser.add_argument(
         "--claude",
@@ -99,7 +126,13 @@ def main(argv: list[str] | None = None) -> int:
     uninstall_parser.add_argument(
         "--provider",
         metavar="NAME",
-        help="Provider name to uninstall.",
+        help="Provider name to uninstall (required).",
+    )
+    uninstall_parser.add_argument(
+        "--target",
+        metavar="PATH",
+        default=".",
+        help="Target project root directory (default: current directory).",
     )
     uninstall_parser.add_argument(
         "--claude",
@@ -127,10 +160,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "install":
-        return _cmd_install(args)
+        return _cmd_install(args, install_parser)
 
     if args.command == "uninstall":
-        return _cmd_uninstall(args)
+        return _cmd_uninstall(args, uninstall_parser)
 
     # No subcommand given — print help
     parser.print_help()
